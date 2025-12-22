@@ -1,0 +1,5 @@
+{
+    "diffEditor.codeLens": true,
+    "docwriter.style": "Auto-detect",
+    "docwriter.progress.trackFunctions": false
+}
