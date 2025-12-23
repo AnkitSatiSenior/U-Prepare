@@ -1,11 +1,12 @@
 <x-guest-layout>
-@section('page_title', 'Home')
+    @section('page_title', 'Home')
     {{-- ================= HERO SLIDER ================= --}}
     <section class="container-fluid slider p-0">
         <div class="hero-slider">
             @foreach (getSlides() as $slide)
                 <div>
-                    <div class="slider-item" style="background-image: url({{ asset('storage/app/public/' . $slide->img) }})">
+                    <div class="slider-item"
+                        style="background-image: url({{ asset('storage/app/public/' . $slide->img) }})">
                         <div class="overlay"></div>
                         <div class="caption">
                             @if ($slide->head)
@@ -80,8 +81,10 @@
                                 <ul class="list-unstyled m-0">
                                     @foreach (getNews() as $item)
                                         <li class="d-flex align-items-start mb-1 text-black">
-                                            <img class="me-2 mt-1" src="{{ asset('assets/img/icons/bullet.png') }}" alt="•">
-                                            <a href="{{ route('news.show', $item->id) }}" class="text-black text-decoration-none">
+                                            <img class="me-2 mt-1" src="{{ asset('assets/img/icons/bullet.png') }}"
+                                                alt="•">
+                                            <a href="{{ route('news.show', $item->id) }}"
+                                                class="text-black text-decoration-none">
                                                 {!! request()->cookie('lang') === 'hi' ? $item->title_hi : $item->title_en !!}
                                             </a>
                                         </li>
@@ -131,7 +134,8 @@
                                 <div class="overlay w-100 h-100 {{ $item->bgc }}"></div>
                                 <img class="w-100 h-100" src="{{ asset($item->img) }}">
                             </div>
-                            <div class="content d-flex flex-column align-items-center justify-content-between h-100 prel">
+                            <div
+                                class="content d-flex flex-column align-items-center justify-content-between h-100 prel">
                                 <h6 class="fw-bold text-white">{{ $item->name }}</h6>
                                 <h2 class="fw-bold text-white">{{ $item->title }}</h2>
                                 <a href="{{ $item->link }}" @class(['btn', 'btn-pp', 'btn-af' => $key])>
@@ -240,7 +244,7 @@
     </section>
 
     {{-- ================= CONTACT / FEEDBACK ================= --}}
-      <section class="contact">
+    <section class="contact">
         <div class="contact-head text-center">
             <h3>REACH US</h3>
         </div>
