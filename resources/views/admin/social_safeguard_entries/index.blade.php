@@ -212,63 +212,94 @@
 
         {{-- Upload Modal --}}
         <x-upload-modal />
+
+        <!-- Hidden Delete Form -->
         <form id="delete-file-form" method="POST" style="display:none;">
             @csrf
             @method('DELETE')
         </form>
+
         <script>
-            $(document).on('click', '.open-upload-modal', function() {
+            $(document).ready(function() {
+                const canDeleteFiles = @json(canRoute('admin.media.destroy'));
+                const deleteRouteTemplate = @json(route('admin.media.destroy', ':id'));
 
-                const entryId = $(this).data('entry-id');
-                const socialId = $(this).data('social-id');
-                const mediaIds = $(this).data('media-ids') || [];
+                // -----------------------------
+                // Open Upload Modal
+                // -----------------------------
+                $(document).on('click', '.open-upload-modal', function() {
+                    const entryId = $(this).data('entry-id');
+                    const socialId = $(this).data('social-id');
+                    const mediaIds = $(this).data('media-ids') || [];
 
-                $('#modal-entry-id').val(entryId);
-                $('#modal-social-id').val(socialId);
+                    $('#modal-entry-id').val(entryId);
+                    $('#modal-social-id').val(socialId);
 
-                // Reset view table
-                const tbody = $('#view-table-body');
-                tbody.html('<tr><td colspan="4" class="text-center">Loading...</td></tr>');
+                    const tbody = $('#view-table-body');
+                    tbody.html('<tr><td colspan="4" class="text-center">Loading...</td></tr>');
 
-                if (!mediaIds.length) {
-                    tbody.html('<tr><td colspan="4" class="text-center">No files uploaded yet.</td></tr>');
-                    $('#uploadModal').modal('show');
-                    return;
-                }
+                    if (!mediaIds.length) {
+                        tbody.html('<tr><td colspan="4" class="text-center">No files uploaded yet.</td></tr>');
+                        $('#uploadModal').modal('show');
+                        return;
+                    }
 
-                $.get("{{ route('media-files.by-ids') }}", {
-                    ids: mediaIds
-                }, function(files) {
+                    // Fetch file details from backend
+                    $.get("{{ route('media-files.by-ids') }}", {
+                        ids: mediaIds
+                    }, function(files) {
+                        tbody.empty();
 
-                    tbody.empty();
+                        files.forEach((file, index) => {
+                            const fileName = file.meta_data?.name ?? `File #${file.id}`;
+                            const fileUrl = `/storage/${file.path}`;
+                            const isImage = file.mime_type?.startsWith('image');
 
-                    files.forEach((file, index) => {
-
-                        const fileName = file.meta_data?.name ?? `File #${file.id}`;
-                        const fileUrl = `/storage/${file.path}`;
-                        const isImage = file.mime_type?.startsWith('image');
-
-                        tbody.append(`
-                <tr>
-                    <td>${index + 1}</td>
-                    <td>${fileName}</td>
-                    <td>${file.mime_type ?? '-'}</td>
-                    <td>
-                        ${
-                            isImage
-                            ? `<img src="${fileUrl}" height="40" class="rounded">`
-                            : `<a href="${fileUrl}" target="_blank">View</a>`
-                        }
-                    </td>
-                </tr>
-            `);
+                            tbody.append(`
+                    <tr data-id="${file.id}">
+                        <td>${index + 1}</td>
+                        <td>${fileName}</td>
+                        <td>${file.mime_type ?? '-'}</td>
+                        <td>
+                            ${
+                                isImage
+                                ? `<img src="${fileUrl}" height="40" class="rounded">`
+                                : `<a href="${fileUrl}" target="_blank" class="btn btn-sm btn-primary ms-2">View</a>`
+                            }
+                            ${
+                                canDeleteFiles 
+                                ? `<button type="button" class="btn btn-sm btn-danger delete-file ms-2" data-id="${file.id}">
+                                            <i class="fas fa-trash"></i> Delete
+                                           </button>` 
+                                : ''
+                            }
+                        </td>
+                    </tr>
+                `);
+                        });
                     });
 
+                    $('#uploadModal').modal('show');
                 });
 
-                $('#uploadModal').modal('show');
+                // -----------------------------
+                // Delete File
+                // -----------------------------
+                $(document).on('click', '.delete-file', function() {
+                    const btn = $(this);
+                    const fileId = btn.data('id');
+                    if (!fileId) return;
+
+                    if (!confirm('Are you sure you want to delete this file?')) return;
+
+                    const form = $('#delete-file-form');
+                    const action = deleteRouteTemplate.replace(':id', fileId);
+                    form.attr('action', action);
+                    form.submit();
+                });
             });
         </script>
+
 
     </div>
     <script>

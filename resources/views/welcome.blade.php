@@ -162,44 +162,36 @@
                 </div>
             </div>
 
-           <div class="components-slider">
-    @forelse(getPackageComponents() as $comp)
-        <div>
-            <div class="comps-item">
-
-                @if(!empty($comp->image))
-                    <div class="ci-img">
-                        <img src="{{ $comp->image }}" alt="">
+            <div class="components-slider">
+                @forelse(getPackageComponents() as $comp)
+                    <div>
+                        <div class="comps-item">
+                            <div class="ci-img">
+                                <img src="{{ $comp->image }}" />
+                            </div>
+                            <div class="ci-content p-2">
+                                <h4>
+                                    {!! request()->cookie('lang') === 'hi'
+                                        ? Str::limit($comp->page_hin_title, 50)
+                                        : Str::limit($comp->page_eng_title, 50) !!}
+                                </h4>
+                                <p class="mb-0">
+                                    {!! request()->cookie('lang') === 'hi'
+                                        ? Str::limit($comp->hin_content, 500)
+                                        : Str::limit($comp->eng_content, 600) !!}
+                                </p>
+                            </div>
+                            <div class="ci-rms text-center pb-3">
+                                <a href="{{ $comp->link }}" class="rmore">
+                                    <span>READ MORE</span>
+                                    <i class="bi bi-caret-right-fill"></i>
+                                </a>
+                            </div>
+                        </div>
                     </div>
-                @endif
-
-                <div class="ci-content p-2">
-                    <h4>
-                        {!! request()->cookie('lang') === 'hi'
-                            ? Str::limit($comp->page_hin_title, 50)
-                            : Str::limit($comp->page_eng_title, 50) !!}
-                    </h4>
-
-                    <p class="mb-0">
-                        {!! request()->cookie('lang') === 'hi'
-                            ? Str::limit($comp->hin_content, 500)
-                            : Str::limit($comp->eng_content, 600) !!}
-                    </p>
-                </div>
-
-                <div class="ci-rms text-center pb-3">
-                    <a href="{{ $comp->link }}" class="rmore">
-                        <span>READ MORE</span>
-                        <i class="bi bi-caret-right-fill"></i>
-                    </a>
-                </div>
-
+                @empty
+                @endforelse
             </div>
-        </div>
-    @empty
-    @endforelse
-</div>
-
         </div>
     </section>
 
