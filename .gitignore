@@ -54,3 +54,4 @@ vendor/_laravel_ide/_model_helpers.php
 vendor/_laravel_ide/_model_helpers.php
 public/storage
 public/hot
+.env
