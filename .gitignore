@@ -79,3 +79,4 @@ yarn-error.log*
 ##################################
 /vendor/_laravel_ide/
 /vendor/_laravel_ide/_model_helpers.php
+.env
