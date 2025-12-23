@@ -1,8 +1,8 @@
  # Laravel standard ignores
 /vendor
 /node_modules
-/.env
-/.env.*.backup
+.env
+.env.*.backup
 Homestead.yaml
 Homestead.json
 /.idea
