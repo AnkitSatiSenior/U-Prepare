@@ -1,1 +1,56 @@
- 
+ # Laravel standard ignores
+/vendor
+/node_modules
+/.env
+/.env.*.backup
+Homestead.yaml
+Homestead.json
+/.idea
+/.vscode
+/.phpunit.result.cache
+.phpunit.result.cache
+/.php_cs.cache
+
+# Log files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Laravel storage & cache
+/storage/*.key
+/storage/debugbar/*
+/storage/framework/cache/data/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/logs/*
+
+
+# Public (if you do not version control built assets)
+
+# Ignore composer generated files
+/vendor/composer/*.php
+/vendor/composer/installed.json
+
+# Ignore node build output
+
+# Ignore zip backup or other archives
+*.zip
+
+# Ignore other system files
+.env.local
+.env.backup
+.env.testing
+
+/vendor/_laravel_ide/_model_helpers.php
+
+/vendor/_laravel_ide
+vendor/_laravel_ide/_model_helpers.php
+vendor/_laravel_ide/_model_helpers.php
+vendor/_laravel_ide/_model_helpers.php
+public/storage
+public/hot
