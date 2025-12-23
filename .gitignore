@@ -1,56 +1,81 @@
- # Laravel standard ignores
-/vendor
-/node_modules
+##################################
+# Laravel core
+##################################
+/vendor/
+/node_modules/
 .env
-.env.*.backup
-Homestead.yaml
-Homestead.json
-/.idea
-/.vscode
-/.phpunit.result.cache
-.phpunit.result.cache
-/.php_cs.cache
+.env.*
+!.env.example
 
-# Log files
+##################################
+# IDE & Editor
+##################################
+.idea/
+.vscode/
+
+##################################
+# OS / System
+##################################
+.DS_Store
+Thumbs.db
+
+##################################
+# Logs
+##################################
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# OS files
-.DS_Store
-Thumbs.db
+##################################
+# PHPUnit
+##################################
+.phpunit.result.cache
 
-# Laravel storage & cache
+##################################
+# Laravel storage (generated)
+##################################
 /storage/*.key
-/storage/debugbar/*
-/storage/framework/cache/data/*
-/storage/framework/sessions/*
-/storage/framework/views/*
-/storage/logs/*
+/storage/debugbar/
+/storage/framework/cache/
+/storage/framework/sessions/
+/storage/framework/views/
+/storage/logs/
 
+##################################
+# Public generated files
+##################################
+/public/storage
+/public/hot
 
-# Public (if you do not version control built assets)
-
-# Ignore composer generated files
-/vendor/composer/*.php
+##################################
+# Composer
+##################################
 /vendor/composer/installed.json
+/vendor/composer/*.php
 
-# Ignore node build output
+##################################
+# Node build
+##################################
+/public/build
+/mix-manifest.json
 
-# Ignore zip backup or other archives
+##################################
+# Backups / Archives
+##################################
 *.zip
+*.tar
+*.gz
 
-# Ignore other system files
+##################################
+# Environment backups
+##################################
 .env.local
 .env.backup
 .env.testing
 
+##################################
+# Laravel IDE Helper
+##################################
+/vendor/_laravel_ide/
 /vendor/_laravel_ide/_model_helpers.php
-
-/vendor/_laravel_ide
-vendor/_laravel_ide/_model_helpers.php
-vendor/_laravel_ide/_model_helpers.php
-vendor/_laravel_ide/_model_helpers.php
-public/storage
-public/hot
