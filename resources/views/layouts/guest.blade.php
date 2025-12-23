@@ -37,6 +37,7 @@
     <!-- Template Main CSS File -->
     <link rel="stylesheet" href="/assets/public/css/styles.css?ver=1.1.4" title="main">
     <link rel="stylesheet" href="/assets/public/css/home.css?ver=1.1.5">
+    @vite(['resources/js/app.js'])
     <style>
         main {
             min-height: calc(100vh - 335px);
