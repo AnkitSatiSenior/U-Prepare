@@ -534,42 +534,80 @@ class SocialSafeguardEntryController extends Controller
      * Overview of sub-package projects
      */
     public function subPackageProjectOverview(Request $request)
-    {
-        $date = $request->date_of_entry ? Carbon::parse($request->date_of_entry)->format('Y-m-d') : now()->format('Y-m-d');
+{
+    $date = $request->date_of_entry
+        ? Carbon::parse($request->date_of_entry)->format('Y-m-d')
+        : now()->format('Y-m-d');
 
-        $subProjects = SubPackageProject::orderBy('name')->get();
+    /**
+     * ✅ ONLY SubPackageProjects
+     * whose parent PackageProject has safeguard_exists = 1
+     */
+    $subProjects = SubPackageProject::whereHas('packageProject', function ($q) {
+            $q->where('safeguard_exists', true);
+        })
+        ->orderBy('name')
+        ->get();
 
-        $safeguardCompliances = SafeguardCompliance::orderBy('name')->get();
-        $contractionPhases = ContractionPhase::orderBy('name')->get();
+    $safeguardCompliances = SafeguardCompliance::orderBy('name')->get();
+    $contractionPhases   = ContractionPhase::orderBy('name')->get();
 
-        // ✅ MASTER safeguards (same for ALL projects)
-        $masterSafeguards = AlreadyDefineSafeguardEntry::where('is_validity', 1)->get()->groupBy('safeguard_compliance_id');
+    /**
+     * ✅ MASTER safeguards (same for ALL projects)
+     */
+    $masterSafeguards = AlreadyDefineSafeguardEntry::where('is_validity', 1)
+        ->get()
+        ->groupBy('safeguard_compliance_id');
 
-        // ✅ Fetch ALL social safeguard entries once
-        $socialEntries = SocialSafeguardEntry::whereDate('date_of_entry', '<=', $date)
-            ->get()
-            ->groupBy(['sub_package_project_id', 'already_define_safeguard_entry_id']);
+    /**
+     * ✅ Fetch ALL social safeguard entries once
+     */
+    $socialEntries = SocialSafeguardEntry::whereDate('date_of_entry', '<=', $date)
+        ->get()
+        ->groupBy([
+            'sub_package_project_id',
+            'already_define_safeguard_entry_id'
+        ]);
 
-        $statusMap = [];
-        foreach ($subProjects as $project) {
-            foreach ($safeguardCompliances as $compliance) {
-                $done = false;
+    /**
+     * ✅ Build Status Map
+     */
+    $statusMap = [];
 
-                // master safeguards under this compliance
-                $complianceSafeguards = $masterSafeguards[$compliance->id] ?? collect();
+    foreach ($subProjects as $project) {
+        foreach ($safeguardCompliances as $compliance) {
 
-                foreach ($complianceSafeguards as $safeguard) {
-                    if (isset($socialEntries[$project->id][$safeguard->id])) {
-                        $done = true;
-                        break; // one hit is enough
-                    }
+            $done = false;
+
+            $complianceSafeguards =
+                $masterSafeguards[$compliance->id] ?? collect();
+
+            foreach ($complianceSafeguards as $safeguard) {
+                if (
+                    isset(
+                        $socialEntries[$project->id][$safeguard->id]
+                    )
+                ) {
+                    $done = true;
+                    break;
                 }
-
-                $statusMap[$project->id][$compliance->id] = $done;
             }
+
+            $statusMap[$project->id][$compliance->id] = $done;
         }
-        return view('admin.social_safeguard_entries.overview', compact('subProjects', 'safeguardCompliances', 'contractionPhases', 'statusMap', 'date'));
     }
+
+    return view(
+        'admin.social_safeguard_entries.overview',
+        compact(
+            'subProjects',
+            'safeguardCompliances',
+            'contractionPhases',
+            'statusMap',
+            'date'
+        )
+    );
+}
 
     private function canAccessCompliance(SafeguardCompliance $compliance): bool
     {
