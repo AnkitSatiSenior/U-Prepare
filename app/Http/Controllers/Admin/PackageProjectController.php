@@ -21,6 +21,9 @@ use App\Models\{
     PackageComponent,
     Contract,
 };
+
+use Illuminate\Support\Facades\DB;
+
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
@@ -131,27 +134,49 @@ class PackageProjectController extends Controller
 
     public function update(UpdatePackageProjectRequest $request, PackageProject $packageProject): RedirectResponse
     {
-        $data = $request->validated();
+        DB::transaction(function () use ($request, $packageProject) {
+            $data = $request->validated();
 
-        // Handle DEC Document
-        if ($request->hasFile('dec_document_path')) {
-            if (!empty($packageProject->dec_document_path) && Storage::disk('public')->exists($packageProject->dec_document_path)) {
-                Storage::disk('public')->delete($packageProject->dec_document_path);
+            /**
+             * ✅ Handle DEC Document
+             */
+            if ($request->hasFile('dec_document_path')) {
+                if (!empty($packageProject->dec_document_path) && Storage::disk('public')->exists($packageProject->dec_document_path)) {
+                    Storage::disk('public')->delete($packageProject->dec_document_path);
+                }
+
+                $data['dec_document_path'] = $request->file('dec_document_path')->store('package-projects/dec-documents', 'public');
             }
-            $data['dec_document_path'] = $request->file('dec_document_path')->store('package-projects/dec-documents', 'public');
-        }
 
-        // Handle HPC Document
-        if ($request->hasFile('hpc_document_path')) {
-            if (!empty($packageProject->hpc_document_path) && Storage::disk('public')->exists($packageProject->hpc_document_path)) {
-                Storage::disk('public')->delete($packageProject->hpc_document_path);
+            /**
+             * ✅ Handle HPC Document
+             */
+            if ($request->hasFile('hpc_document_path')) {
+                if (!empty($packageProject->hpc_document_path) && Storage::disk('public')->exists($packageProject->hpc_document_path)) {
+                    Storage::disk('public')->delete($packageProject->hpc_document_path);
+                }
+
+                $data['hpc_document_path'] = $request->file('hpc_document_path')->store('package-projects/hpc-documents', 'public');
             }
-            $data['hpc_document_path'] = $request->file('hpc_document_path')->store('package-projects/hpc-documents', 'public');
-        }
 
-        $data['status'] = $data['status'] ?? $packageProject->status;
+            /**
+             * ✅ Keep existing status if not sent
+             */
+            $data['status'] = $data['status'] ?? $packageProject->status;
 
-        $packageProject->update($data);
+            /**
+             * ✅ Update Package Project
+             */
+            $packageProject->update($data);
+
+            /**
+             * ✅ BIDIRECTIONAL SAFEGUARD SYNC
+             */
+            SubPackageProject::where('project_id', $packageProject->id)->update([
+                'safeguard_exists' => $request->boolean('safeguard_exists'),
+                'updated_at' => now(),
+            ]);
+        });
 
         return redirect()->route('admin.package-projects.index')->with('success', 'Package project updated successfully.');
     }
