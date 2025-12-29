@@ -1,11 +1,12 @@
 <x-guest-layout>
-@section('page_title', 'Home')
+    @section('page_title', 'Home')
     {{-- ================= HERO SLIDER ================= --}}
     <section class="container-fluid slider p-0">
         <div class="hero-slider">
             @foreach (getSlides() as $slide)
                 <div>
-                    <div class="slider-item" style="background-image: url({{ asset('storage/app/public/' . $slide->img) }})">
+                    <div class="slider-item"
+                        style="background-image: url({{ asset('storage/app/public/' . $slide->img) }})">
                         <div class="overlay"></div>
                         <div class="caption">
                             @if ($slide->head)
@@ -80,8 +81,10 @@
                                 <ul class="list-unstyled m-0">
                                     @foreach (getNews() as $item)
                                         <li class="d-flex align-items-start mb-1 text-black">
-                                            <img class="me-2 mt-1" src="{{ asset('assets/img/icons/bullet.png') }}" alt="•">
-                                            <a href="{{ route('news.show', $item->id) }}" class="text-black text-decoration-none">
+                                            <img class="me-2 mt-1" src="{{ asset('assets/img/icons/bullet.png') }}"
+                                                alt="•">
+                                            <a href="{{ route('news.show', $item->id) }}"
+                                                class="text-black text-decoration-none">
                                                 {!! request()->cookie('lang') === 'hi' ? $item->title_hi : $item->title_en !!}
                                             </a>
                                         </li>
@@ -131,7 +134,8 @@
                                 <div class="overlay w-100 h-100 {{ $item->bgc }}"></div>
                                 <img class="w-100 h-100" src="{{ asset($item->img) }}">
                             </div>
-                            <div class="content d-flex flex-column align-items-center justify-content-between h-100 prel">
+                            <div
+                                class="content d-flex flex-column align-items-center justify-content-between h-100 prel">
                                 <h6 class="fw-bold text-white">{{ $item->name }}</h6>
                                 <h2 class="fw-bold text-white">{{ $item->title }}</h2>
                                 <a href="{{ $item->link }}" @class(['btn', 'btn-pp', 'btn-af' => $key])>
@@ -166,32 +170,41 @@
                 @forelse(getPackageComponents() as $comp)
                     <div>
                         <div class="comps-item">
-                            <div class="ci-img">
-                                <img src="{{ $comp->image }}" />
-                            </div>
+
+                            {{-- Show image only if exists --}}
+                            @if (!empty($comp->image))
+                                <div class="ci-img">
+                                    <img src="{{ $comp->image }}" alt="Component Image">
+                                </div>
+                            @endif
+
                             <div class="ci-content p-2">
                                 <h4>
                                     {!! request()->cookie('lang') === 'hi'
                                         ? Str::limit($comp->page_hin_title, 50)
                                         : Str::limit($comp->page_eng_title, 50) !!}
                                 </h4>
+
                                 <p class="mb-0">
                                     {!! request()->cookie('lang') === 'hi'
                                         ? Str::limit($comp->hin_content, 500)
                                         : Str::limit($comp->eng_content, 600) !!}
                                 </p>
                             </div>
+
                             <div class="ci-rms text-center pb-3">
                                 <a href="{{ $comp->link }}" class="rmore">
                                     <span>READ MORE</span>
                                     <i class="bi bi-caret-right-fill"></i>
                                 </a>
                             </div>
+
                         </div>
                     </div>
                 @empty
                 @endforelse
             </div>
+
         </div>
     </section>
 
@@ -240,7 +253,7 @@
     </section>
 
     {{-- ================= CONTACT / FEEDBACK ================= --}}
-      <section class="contact">
+    <section class="contact">
         <div class="contact-head text-center">
             <h3>REACH US</h3>
         </div>
