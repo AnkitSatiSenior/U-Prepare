@@ -4,7 +4,7 @@
         {{-- Breadcrumb --}}
         <x-admin.breadcrumb-header
             icon="fas fa-project-diagram text-primary"
-            title="Sub-Project Safeguard Overview"
+            title="Sub-Project Safeguard Overview yuvi"
             :breadcrumbs="[
                 ['route' => 'dashboard', 'label' => '<i class=\'fas fa-home\'></i>'],
                 ['label' => 'Admin'],
@@ -24,7 +24,7 @@
                     )"
                     :excel="true"
                     :print="true"
-                    title="Sub-Project Safeguard Overview"
+                    title="Sub-Project Safeguard Overview yuvi"
                     searchPlaceholder="Search sub-projects..."
                     resourceName="sub-projects"
                     :pageLength="10"
