@@ -81,107 +81,112 @@ class SocialSafeguardEntryController extends Controller
         $phase_id ??= $compliance->contractionPhases()->first()?->id ?? 1;
         $selectedDate = $request->input('date_of_entry', now()->format('Y-m-d'));
 
-        $entries = SafeguardEntry::with(['definedSafeguard', 'socialSafeguardEntries', 'contractionPhase'])
-
-            ->where([
-                'sub_package_project_id' => $project_id,
-                'safeguard_compliance_id' => $compliance_id,
-                'contraction_phase_id' => $phase_id,
-            ])
+        $entries = AlreadyDefineSafeguardEntry::with(['safeguardCompliance', 'contractionPhase', 'category'])
+            ->where('safeguard_compliance_id', $compliance_id)
+            ->where('contraction_phase_id', $phase_id)
             ->orderBy('order_by', 'asc')
             ->orderBy('id', 'asc')
             ->get();
 
-        $entries = $this->processEntries($entries, $selectedDate);
+        // Fetch all social entries for this project, compliance, phase, and <= selected date
+        $socialEntries = SocialSafeguardEntry::where('sub_package_project_id', $project_id)->where('social_compliance_id', $compliance_id)->where('contraction_phase_id', $phase_id)->whereDate('date_of_entry', '<=', $selectedDate)->get()->groupBy('already_define_safeguard_entry_id');
+
+        // Attach the latest social entry to each master entry
+        $entries->each(function ($entry) use ($socialEntries) {
+            if (isset($socialEntries[$entry->id])) {
+                $entry->social = $socialEntries[$entry->id]->sortByDesc('date_of_entry')->first();
+            } else {
+                $entry->social = null;
+            }
+            $entry->has_entry = $entry->social ? true : false;
+        });
 
         return view('admin.social_safeguard_entries.index-report', compact('entries', 'subProject', 'compliance', 'phase_id', 'selectedDate'));
     }
 
-   public function reportSummary(int $project_id, int $compliance_id, int $phase_id, Request $request)
-{
-    $subProject = SubPackageProject::findOrFail($project_id);
-    $compliance = SafeguardCompliance::findOrFail($compliance_id);
+    public function reportSummary(int $project_id, int $compliance_id, int $phase_id, Request $request)
+    {
+        $subProject = SubPackageProject::findOrFail($project_id);
+        $compliance = SafeguardCompliance::findOrFail($compliance_id);
 
-    $start = $request->filled('start_date') ? Carbon::parse($request->input('start_date')) : now()->startOfYear();
-    $end = $request->filled('end_date') ? Carbon::parse($request->input('end_date')) : now();
+        $start = $request->filled('start_date') ? Carbon::parse($request->input('start_date')) : now()->startOfYear();
+        $end = $request->filled('end_date') ? Carbon::parse($request->input('end_date')) : now();
 
-    if ($start->gt($end)) {
-        [$start, $end] = [$end, $start];
-    }
-
-    $phase = ContractionPhase::findOrFail($phase_id);
-    $isOneTime = $phase->is_one_time;
-
-    // Fetch all social safeguard entries with master already_define_safeguard_entries
-    $entries = SocialSafeguardEntry::with(['masterSafeguard'])
-        ->where('sub_package_project_id', $project_id)
-        ->where('social_compliance_id', $compliance_id)
-        ->where('contraction_phase_id', $phase_id)
-        ->orderBy('id')
-        ->get();
-
-    $report = [];
-
-    foreach ($entries as $social) {
-        $sl = $social->masterSafeguard->sl_no ?? 'N/A';
-        $item = $social->masterSafeguard->item_description ?? 'N/A';
-
-        if (!isset($report[$sl])) {
-            $report[$sl] = [
-                'item' => $item,
-                'months' => [],
-            ];
+        if ($start->gt($end)) {
+            [$start, $end] = [$end, $start];
         }
 
-        if (empty($social->date_of_entry)) {
-            continue;
-        }
+        $phase = ContractionPhase::findOrFail($phase_id);
+        $isOneTime = $phase->is_one_time;
 
-        $entryDate = Carbon::parse($social->date_of_entry);
-        $value = $social->yes_no == 1 || $social->yes_no == 3 ? 1 : 0;
+        // Fetch all social safeguard entries with master already_define_safeguard_entries
+        $entries = SocialSafeguardEntry::with(['masterSafeguard'])
+            ->where('sub_package_project_id', $project_id)
+            ->where('social_compliance_id', $compliance_id)
+            ->where('contraction_phase_id', $phase_id)
+            ->orderBy('id')
+            ->get();
 
-        $cursor = $entryDate->copy()->startOfMonth();
+        $report = [];
 
-        if (!empty($social->validity_date)) {
-            $validityDate = Carbon::parse($social->validity_date);
-            $monthEnd = $validityDate->lte($end) ? $validityDate->copy()->endOfMonth() : $end->copy()->endOfMonth();
-        } else {
-            $monthEnd = $isOneTime ? $end->copy()->endOfMonth() : $entryDate->copy()->endOfMonth();
-        }
+        foreach ($entries as $social) {
+            $sl = $social->masterSafeguard->sl_no ?? 'N/A';
+            $item = $social->masterSafeguard->item_description ?? 'N/A';
 
-        while ($cursor <= $monthEnd) {
-            $monthKey = $cursor->format('M-Y');
-            if (!isset($report[$sl]['months'][$monthKey])) {
-                $report[$sl]['months'][$monthKey] = ['value' => $value];
+            if (!isset($report[$sl])) {
+                $report[$sl] = [
+                    'item' => $item,
+                    'months' => [],
+                ];
             }
 
-            if (!$isOneTime && empty($social->validity_date)) {
-                break;
+            if (empty($social->date_of_entry)) {
+                continue;
             }
 
+            $entryDate = Carbon::parse($social->date_of_entry);
+            $value = $social->yes_no == 1 || $social->yes_no == 3 ? 1 : 0;
+
+            $cursor = $entryDate->copy()->startOfMonth();
+
+            if (!empty($social->validity_date)) {
+                $validityDate = Carbon::parse($social->validity_date);
+                $monthEnd = $validityDate->lte($end) ? $validityDate->copy()->endOfMonth() : $end->copy()->endOfMonth();
+            } else {
+                $monthEnd = $isOneTime ? $end->copy()->endOfMonth() : $entryDate->copy()->endOfMonth();
+            }
+
+            while ($cursor <= $monthEnd) {
+                $monthKey = $cursor->format('M-Y');
+                if (!isset($report[$sl]['months'][$monthKey])) {
+                    $report[$sl]['months'][$monthKey] = ['value' => $value];
+                }
+
+                if (!$isOneTime && empty($social->validity_date)) {
+                    break;
+                }
+
+                $cursor->addMonth();
+            }
+        }
+
+        // Fill missing months as No
+        $monthColumns = [];
+        $cursor = $start->copy();
+        while ($cursor <= $end) {
+            $monthColumns[] = $cursor->format('M-Y');
+            foreach ($report as $sl => &$row) {
+                $monthKey = $cursor->format('M-Y');
+                if (!isset($row['months'][$monthKey])) {
+                    $row['months'][$monthKey] = ['value' => 0];
+                }
+            }
+            unset($row);
             $cursor->addMonth();
         }
-    }
 
-    // Fill missing months as No
-    $monthColumns = [];
-    $cursor = $start->copy();
-    while ($cursor <= $end) {
-        $monthColumns[] = $cursor->format('M-Y');
-        foreach ($report as $sl => &$row) {
-            $monthKey = $cursor->format('M-Y');
-            if (!isset($row['months'][$monthKey])) {
-                $row['months'][$monthKey] = ['value' => 0];
-            }
-        }
-        unset($row);
-        $cursor->addMonth();
+        return view('admin.social_safeguard_entries.report_summary', compact('subProject', 'compliance', 'report', 'monthColumns', 'start', 'end', 'phase_id', 'phase'));
     }
-
-    return view('admin.social_safeguard_entries.report_summary', compact(
-        'subProject', 'compliance', 'report', 'monthColumns', 'start', 'end', 'phase_id', 'phase'
-    ));
-}
 
     public function dynamicComplianceReport(Request $request)
     {
@@ -427,41 +432,39 @@ class SocialSafeguardEntryController extends Controller
         return view('admin.social_safeguard_entries.report', compact('subProject', 'packageProject', 'contract', 'compliance', 'startDate', 'endDate', 'monthsInRange', 'phaseReports', 'overallTotal', 'overallDone', 'overallPercent'));
     }
 
-   public function reportDetails(int $project_id, int $compliance_id, Request $request)
-{
-    $subProject = SubPackageProject::findOrFail($project_id);
-    $compliance = SafeguardCompliance::findOrFail($compliance_id);
+    public function reportDetails(int $project_id, int $compliance_id, Request $request)
+    {
+        $subProject = SubPackageProject::findOrFail($project_id);
+        $compliance = SafeguardCompliance::findOrFail($compliance_id);
 
-    $packageProject = $subProject->packageProject ?? null;
-    $contract = $packageProject ? Contract::where('project_id', $packageProject->id)->first() : null;
+        $packageProject = $subProject->packageProject ?? null;
+        $contract = $packageProject ? Contract::where('project_id', $packageProject->id)->first() : null;
 
-    $entries = DB::table('social_safeguard_entries AS sse')
-    ->leftJoin('safeguard_entries AS se', 'sse.safeguard_entry_id', '=', 'se.id')
-    ->leftJoin('already_define_safeguard_entries AS ade', 'se.nomraline', '=', 'ade.nomraline')
-    ->leftJoin('contraction_phases AS cp', 'sse.contraction_phase_id', '=', 'cp.id')
-    ->select(
-        'sse.id as sse_id',
-        'sse.already_define_safeguard_entry_id',
-        'se.id as safeguard_entry_id',
-        'ade.item_description as master_item_description', // master description
-        'sse.yes_no',
-        'sse.photos_documents_case_studies',
-        'sse.remarks',
-        'sse.validity_date',
-        'sse.date_of_entry',
-        'sse.created_at',
-        'sse.updated_at',
-        'cp.name as phase_name'
-    )
-    ->where('sse.sub_package_project_id', $subProject->id)
-    ->where('sse.social_compliance_id', $compliance->id)
-    ->orderBy('sse.date_of_entry', 'desc')
-    ->get();
+        $entries = DB::table('social_safeguard_entries AS sse')
+            ->leftJoin('safeguard_entries AS se', 'sse.safeguard_entry_id', '=', 'se.id')
+            ->leftJoin('already_define_safeguard_entries AS ade', 'se.nomraline', '=', 'ade.nomraline')
+            ->leftJoin('contraction_phases AS cp', 'sse.contraction_phase_id', '=', 'cp.id')
+            ->select(
+                'sse.id as sse_id',
+                'sse.already_define_safeguard_entry_id',
+                'se.id as safeguard_entry_id',
+                'ade.item_description as master_item_description', // master description
+                'sse.yes_no',
+                'sse.photos_documents_case_studies',
+                'sse.remarks',
+                'sse.validity_date',
+                'sse.date_of_entry',
+                'sse.created_at',
+                'sse.updated_at',
+                'cp.name as phase_name',
+            )
+            ->where('sse.sub_package_project_id', $subProject->id)
+            ->where('sse.social_compliance_id', $compliance->id)
+            ->orderBy('sse.date_of_entry', 'desc')
+            ->get();
 
-
-    return view('admin.social_safeguard_entries.report_details', compact('subProject', 'compliance', 'packageProject', 'contract', 'entries'));
-}
-
+        return view('admin.social_safeguard_entries.report_details', compact('subProject', 'compliance', 'packageProject', 'contract', 'entries'));
+    }
 
     public function destroy($id)
     {
@@ -534,80 +537,58 @@ class SocialSafeguardEntryController extends Controller
      * Overview of sub-package projects
      */
     public function subPackageProjectOverview(Request $request)
-{
-    $date = $request->date_of_entry
-        ? Carbon::parse($request->date_of_entry)->format('Y-m-d')
-        : now()->format('Y-m-d');
+    {
+        $date = $request->date_of_entry ? Carbon::parse($request->date_of_entry)->format('Y-m-d') : now()->format('Y-m-d');
 
-    /**
-     * ✅ ONLY SubPackageProjects
-     * whose parent PackageProject has safeguard_exists = 1
-     */
-    $subProjects = SubPackageProject::whereHas('packageProject', function ($q) {
+        /**
+         * ✅ ONLY SubPackageProjects
+         * whose parent PackageProject has safeguard_exists = 1
+         */
+        $subProjects = SubPackageProject::whereHas('packageProject', function ($q) {
             $q->where('safeguard_exists', true);
         })
-        ->orderBy('name')
-        ->get();
+            ->orderBy('name')
+            ->get();
 
-    $safeguardCompliances = SafeguardCompliance::orderBy('name')->get();
-    $contractionPhases   = ContractionPhase::orderBy('name')->get();
+        $safeguardCompliances = SafeguardCompliance::orderBy('name')->get();
+        $contractionPhases = ContractionPhase::orderBy('name')->get();
 
-    /**
-     * ✅ MASTER safeguards (same for ALL projects)
-     */
-    $masterSafeguards = AlreadyDefineSafeguardEntry::where('is_validity', 1)
-        ->get()
-        ->groupBy('safeguard_compliance_id');
+        /**
+         * ✅ MASTER safeguards (same for ALL projects)
+         */
+        $masterSafeguards = AlreadyDefineSafeguardEntry::where('is_validity', 1)->get()->groupBy('safeguard_compliance_id');
 
-    /**
-     * ✅ Fetch ALL social safeguard entries once
-     */
-    $socialEntries = SocialSafeguardEntry::whereDate('date_of_entry', '<=', $date)
-        ->get()
-        ->groupBy([
-            'sub_package_project_id',
-            'already_define_safeguard_entry_id'
-        ]);
+        /**
+         * ✅ Fetch ALL social safeguard entries once
+         */
+        $socialEntries = SocialSafeguardEntry::whereDate('date_of_entry', '<=', $date)
+            ->get()
+            ->groupBy(['sub_package_project_id', 'already_define_safeguard_entry_id']);
 
-    /**
-     * ✅ Build Status Map
-     */
-    $statusMap = [];
+        /**
+         * ✅ Build Status Map
+         */
+        $statusMap = [];
 
-    foreach ($subProjects as $project) {
-        foreach ($safeguardCompliances as $compliance) {
+        foreach ($subProjects as $project) {
+            foreach ($safeguardCompliances as $compliance) {
+                $done = false;
 
-            $done = false;
+                $complianceSafeguards = $masterSafeguards[$compliance->id] ?? collect();
 
-            $complianceSafeguards =
-                $masterSafeguards[$compliance->id] ?? collect();
-
-            foreach ($complianceSafeguards as $safeguard) {
-                if (
-                    isset(
-                        $socialEntries[$project->id][$safeguard->id]
-                    )
-                ) {
-                    $done = true;
-                    break;
+                foreach ($complianceSafeguards as $safeguard) {
+                    if (isset($socialEntries[$project->id][$safeguard->id])) {
+                        $done = true;
+                        break;
+                    }
                 }
+
+                $statusMap[$project->id][$compliance->id] = $done;
             }
-
-            $statusMap[$project->id][$compliance->id] = $done;
         }
-    }
 
-    return view(
-        'admin.social_safeguard_entries.overview',
-        compact(
-            'subProjects',
-            'safeguardCompliances',
-            'contractionPhases',
-            'statusMap',
-            'date'
-        )
-    );
-}
+        return view('admin.social_safeguard_entries.overview', compact('subProjects', 'safeguardCompliances', 'contractionPhases', 'statusMap', 'date'));
+    }
 
     private function canAccessCompliance(SafeguardCompliance $compliance): bool
     {
