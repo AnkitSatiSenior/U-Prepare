@@ -19,67 +19,55 @@ class PhysicalEpcProgressController extends Controller
 
         return view('admin.financial_progress_update.index-2', compact('subProjects'));
     }
-public function index3(Request $request)
-{
-    $request->validate([
-        'sub_package_project_id' => 'nullable|integer',
-    ]);
+    public function index3(Request $request)
+    {
+        $request->validate([
+            'sub_package_project_id' => 'nullable|integer',
+        ]);
 
-    if (!$request->filled('sub_package_project_id')) {
-        return redirect()->back()->with('error', 'Sub Package Project ID is required.');
+        if (!$request->filled('sub_package_project_id')) {
+            return redirect()->back()->with('error', 'Sub Package Project ID is required.');
+        }
+
+        $subPackageProject = SubPackageProject::find($request->sub_package_project_id);
+
+        if (!$subPackageProject) {
+            return redirect()->back()->with('error', 'Invalid Sub Package Project ID.');
+        }
+
+        // Fetch all progress entries without pagination, ordered by ID or SL No
+        $progressEntries = PhysicalEpcProgress::with(['epcEntryData.subPackageProject'])
+            ->whereHas('epcEntryData', function ($q) use ($request) {
+                $q->where('sub_package_project_id', $request->sub_package_project_id);
+            })
+            ->orderBy('id', 'asc') // or ->orderBy('sl_no', 'asc') if sl_no exists in epc_entry_data
+            ->get();
+
+        // Attach images
+        $progressEntries->transform(function ($entry) {
+            $imageIds = is_array($entry->images) ? $entry->images : json_decode($entry->images, true);
+            $entry->image_urls = $imageIds ? MediaFile::whereIn('id', $imageIds)->pluck('path')->toArray() : [];
+            return $entry;
+        });
+
+        // Targets by activity & stage
+        $targetByActivityStage = EpcEntryData::where('sub_package_project_id', $request->sub_package_project_id)
+            ->select('activity_name', 'stage_name')
+            ->selectRaw('SUM(percent) as target_percent')
+            ->groupBy('activity_name', 'stage_name')
+            ->orderBy('id', 'asc') // ordering by id
+            ->get();
+
+        // Achieved percent by activity & stage
+        $achievedByActivityStage = PhysicalEpcProgress::join('epcentry_data', 'physical_epc_progress.epcentry_data_id', '=', 'epcentry_data.id')->where('epcentry_data.sub_package_project_id', $request->sub_package_project_id)->select('epcentry_data.activity_name', 'epcentry_data.stage_name')->selectRaw('SUM(physical_epc_progress.percent) as achieved_percent')->groupBy('epcentry_data.activity_name', 'epcentry_data.stage_name')->orderBy('epcentry_data.id', 'asc')->get()->keyBy(fn($item) => $item->activity_name . '|' . $item->stage_name);
+
+        return view('admin.physical_epc_progress.index-2', [
+            'progressEntries' => $progressEntries,
+            'subPackageProjectName' => $subPackageProject->name,
+            'targetByActivityStage' => $targetByActivityStage,
+            'achievedByActivityStage' => $achievedByActivityStage,
+        ]);
     }
-
-    $subPackageProject = SubPackageProject::find($request->sub_package_project_id);
-
-    if (!$subPackageProject) {
-        return redirect()->back()->with('error', 'Invalid Sub Package Project ID.');
-    }
-
-    // Fetch all progress entries
-    $progressEntries = PhysicalEpcProgress::with(['epcEntryData.subPackageProject'])
-        ->whereHas('epcEntryData', function ($q) use ($request) {
-            $q->where('sub_package_project_id', $request->sub_package_project_id);
-        })
-        ->latest()
-        ->paginate(15);
-
-    // Attach images
-    $progressEntries->getCollection()->transform(function ($entry) {
-        $imageIds = is_array($entry->images) ? $entry->images : json_decode($entry->images, true);
-        $entry->image_urls = $imageIds 
-            ? MediaFile::whereIn('id', $imageIds)->pluck('path')->toArray() 
-            : [];
-        return $entry;
-    });
-
-
-$targetByActivityStage = EpcEntryData::where('sub_package_project_id', $request->sub_package_project_id)
-    ->select('activity_name', 'stage_name')
-    ->selectRaw('SUM(percent) as target_percent')
-    ->groupBy('activity_name', 'stage_name')
-    ->get();
-
-// Get achieved percent per activity & stage
-$achievedByActivityStage = PhysicalEpcProgress::join('epcentry_data', 'physical_epc_progress.epcentry_data_id', '=', 'epcentry_data.id')
-    ->where('epcentry_data.sub_package_project_id', $request->sub_package_project_id)
-    ->select('epcentry_data.activity_name', 'epcentry_data.stage_name')
-    ->selectRaw('SUM(physical_epc_progress.percent) as achieved_percent')
-    ->groupBy('epcentry_data.activity_name', 'epcentry_data.stage_name')
-    ->get()
-    ->keyBy(function($item) {
-        return $item->activity_name . '|' . $item->stage_name;
-    });
-
-
-    return view('admin.physical_epc_progress.index-2', [
-        'progressEntries' => $progressEntries,
-        'subPackageProjectName' => $subPackageProject->name,
-       
-        'targetByActivityStage' => $targetByActivityStage,
-        'achievedByActivityStage'=> $achievedByActivityStage,
-    ]);
-}
-
 
     public function index(Request $request)
     {
@@ -237,61 +225,56 @@ $achievedByActivityStage = PhysicalEpcProgress::join('epcentry_data', 'physical_
      * Upload new images and attach them to the latest PhysicalEpcProgress record
      * for a given sub_package_project_id.
      */
-public function uploadImagesToLastProgress(Request $request)
-{
-    $request->validate([
-        'sub_package_project_id' => 'required|integer|exists:sub_package_projects,id',
-        'epcentry_data_id' => 'required|integer|exists:epcentry_data,id', // make required to ensure correct match
-        'percent' => 'nullable|numeric|min:0|max:100',
-        'images.*' => 'required|image|mimes:jpg,jpeg,png|max:2048',
-    ]);
-
-    // Try to find an existing progress record for this specific sub project & EPC entry
-    $progress = PhysicalEpcProgress::
-    where('epcentry_data_id', $request->epcentry_data_id)
-        ->first();
-
-    // Prepare metadata for image upload
-    $additionalMeta = [
-        'subject' => 'Physical EPC Progress Image Upload',
-        'sub_package_project_id' => $request->sub_package_project_id,
-        'attached_to' => $progress ? "Existing Progress ID: {$progress->id}" : "New Progress Entry",
-    ];
-
-    // Upload the images
-    $newImageIds = $this->handleImages($request, $additionalMeta);
-
-    if ($progress) {
-        /** ✅ Case 1: Progress for this EPC entry already exists — just merge images **/
-
-        $existingImages = is_array($progress->images)
-            ? $progress->images
-            : json_decode($progress->images, true);
-
-        $updatedImages = array_merge($existingImages ?? [], $newImageIds);
-
-        $progress->update([
-            'images' => $updatedImages,
-            'percent' => $request->percent ?? $progress->percent,
+    public function uploadImagesToLastProgress(Request $request)
+    {
+        $request->validate([
+            'sub_package_project_id' => 'required|integer|exists:sub_package_projects,id',
+            'epcentry_data_id' => 'required|integer|exists:epcentry_data,id', // make required to ensure correct match
+            'percent' => 'nullable|numeric|min:0|max:100',
+            'images.*' => 'required|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
-        $message = 'Existing Physical Progress updated successfully with new images.';
-    } else {
-        /** ✅ Case 2: No progress found for this EPC entry — create new **/
-        PhysicalEpcProgress::create([
+        // Try to find an existing progress record for this specific sub project & EPC entry
+        $progress = PhysicalEpcProgress::where('epcentry_data_id', $request->epcentry_data_id)->first();
+
+        // Prepare metadata for image upload
+        $additionalMeta = [
+            'subject' => 'Physical EPC Progress Image Upload',
             'sub_package_project_id' => $request->sub_package_project_id,
-            'epcentry_data_id' => $request->epcentry_data_id,
-            'percent' => $request->percent ?? 0,
-            'images' => $newImageIds,
-            'created_by' => auth()->id(),
-        ]);
+            'attached_to' => $progress ? "Existing Progress ID: {$progress->id}" : 'New Progress Entry',
+        ];
 
-        $message = 'New Physical Progress entry created successfully with uploaded images.';
+        // Upload the images
+        $newImageIds = $this->handleImages($request, $additionalMeta);
+
+        if ($progress) {
+            /** ✅ Case 1: Progress for this EPC entry already exists — just merge images **/
+
+            $existingImages = is_array($progress->images) ? $progress->images : json_decode($progress->images, true);
+
+            $updatedImages = array_merge($existingImages ?? [], $newImageIds);
+
+            $progress->update([
+                'images' => $updatedImages,
+                'percent' => $request->percent ?? $progress->percent,
+            ]);
+
+            $message = 'Existing Physical Progress updated successfully with new images.';
+        } else {
+            /** ✅ Case 2: No progress found for this EPC entry — create new **/
+            PhysicalEpcProgress::create([
+                'sub_package_project_id' => $request->sub_package_project_id,
+                'epcentry_data_id' => $request->epcentry_data_id,
+                'percent' => $request->percent ?? 0,
+                'images' => $newImageIds,
+                'created_by' => auth()->id(),
+            ]);
+
+            $message = 'New Physical Progress entry created successfully with uploaded images.';
+        }
+
+        return redirect()->back()->with('success', $message);
     }
-
-    return redirect()->back()->with('success', $message);
-}
-
 
     public function destroy(Request $request, PhysicalEpcProgress $physicalEpcProgress)
     {
