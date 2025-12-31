@@ -45,6 +45,7 @@
                                     @endphp
 
                                     <td class="text-nowrap">
+
                                         {{-- Add / Update --}}
                                         @if (canRoute('admin.social_safeguard_entries.index'))
                                             <a href="{{ route('admin.social_safeguard_entries.index', [
@@ -58,7 +59,7 @@
                                             </a>
                                         @endif
 
-                                        {{-- Report --}}
+                                        {{-- Report Entry --}}
                                         @if (canRoute('admin.report.indexReport'))
                                             <a href="{{ route('admin.report.indexReport', [
                                                 'project_id' => $project->id,
@@ -70,6 +71,64 @@
                                                 Report
                                             </a>
                                         @endif
+
+                                        {{-- View Report --}}
+                                        @if (canRoute('admin.social_safeguard_entries.report'))
+                                            <a href="{{ route('admin.social_safeguard_entries.report', [
+                                                'project_id' => $project->id,
+                                                'compliance_id' => $compliance->id,
+                                            ]) }}"
+                                                class="btn btn-sm btn-outline-primary">
+                                                View
+                                            </a>
+                                        @endif
+
+                                        {{-- Detailed Report --}}
+                                        @if (canRoute('admin.social_safeguard_entries.report_details'))
+                                            <a href="{{ route('admin.social_safeguard_entries.report_details', [
+                                                'project_id' => $project->id,
+                                                'compliance_id' => $compliance->id,
+                                            ]) }}"
+                                                class="btn btn-sm btn-outline-secondary">
+                                                Details
+                                            </a>
+                                        @endif
+
+                                        {{-- Gallery --}}
+                                        @if (canRoute('admin.social_safeguard.gallery'))
+                                            <a href="{{ route('admin.social_safeguard.gallery', [
+                                                'sub_package_project_id' => $project->id,
+                                                'safeguard_compliance_id' => $compliance->id,
+                                                'contraction_phase_id' => $phase,
+                                            ]) }}"
+                                                class="btn btn-sm btn-outline-info">
+                                                Gallery
+                                            </a>
+                                        @endif
+
+                                        {{-- Entry Checking --}}
+                                        @if (canRoute('admin.safeguard_entries.index'))
+                                            <a href="{{ route('admin.safeguard_entries.index', [
+                                                'sub_package_project_id' => $project->id,
+                                                'safeguard_compliance_id' => $compliance->id,
+                                            ]) }}"
+                                                class="btn btn-sm btn-outline-dark">
+                                                Entry Check
+                                            </a>
+                                        @endif
+
+                                        {{-- Monthly Summary --}}
+                                        @if (canRoute('admin.report.summary'))
+                                            <a href="{{ route('admin.report.summary', [
+                                                'project_id' => $project->id,
+                                                'compliance_id' => $compliance->id,
+                                                'phase_id' => $phase,
+                                            ]) }}"
+                                                class="btn btn-sm btn-outline-success">
+                                                <i class="fa fa-chart-bar"></i>
+                                            </a>
+                                        @endif
+
                                     </td>
                                 @endforeach
                             </tr>
