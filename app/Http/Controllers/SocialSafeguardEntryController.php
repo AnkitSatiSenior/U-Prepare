@@ -441,27 +441,25 @@ class SocialSafeguardEntryController extends Controller
         $contract = $packageProject ? Contract::where('project_id', $packageProject->id)->first() : null;
 
         $entries = DB::table('social_safeguard_entries AS sse')
-            ->leftJoin('safeguard_entries AS se', 'sse.safeguard_entry_id', '=', 'se.id')
-            ->leftJoin('already_define_safeguard_entries AS ade', 'se.nomraline', '=', 'ade.nomraline')
-            ->leftJoin('contraction_phases AS cp', 'sse.contraction_phase_id', '=', 'cp.id')
-            ->select(
-                'sse.id as sse_id',
-                'sse.already_define_safeguard_entry_id',
-                'se.id as safeguard_entry_id',
-                'ade.item_description as master_item_description', // master description
-                'sse.yes_no',
-                'sse.photos_documents_case_studies',
-                'sse.remarks',
-                'sse.validity_date',
-                'sse.date_of_entry',
-                'sse.created_at',
-                'sse.updated_at',
-                'cp.name as phase_name',
-            )
-            ->where('sse.sub_package_project_id', $subProject->id)
-            ->where('sse.social_compliance_id', $compliance->id)
-            ->orderBy('sse.date_of_entry', 'desc')
-            ->get();
+    ->leftJoin('already_define_safeguard_entries AS ade', 'sse.already_define_safeguard_entry_id', '=', 'ade.id')
+    ->leftJoin('contraction_phases AS cp', 'sse.contraction_phase_id', '=', 'cp.id')
+    ->select(
+        'sse.id as sse_id',
+        'sse.already_define_safeguard_entry_id',
+        'ade.item_description as master_item_description', // master description
+        'sse.yes_no',
+        'sse.photos_documents_case_studies',
+        'sse.remarks',
+        'sse.validity_date',
+        'sse.date_of_entry',
+        'sse.created_at',
+        'sse.updated_at',
+        'cp.name as phase_name',
+    )
+    ->where('sse.sub_package_project_id', $subProject->id)
+    ->where('sse.social_compliance_id', $compliance->id)
+    ->orderBy('sse.date_of_entry', 'desc')
+    ->get();
 
         return view('admin.social_safeguard_entries.report_details', compact('subProject', 'compliance', 'packageProject', 'contract', 'entries'));
     }
