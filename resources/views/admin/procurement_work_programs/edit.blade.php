@@ -17,7 +17,7 @@
             <label for="sharedStartDate" class="col-sm-2 col-form-label fw-semibold">Shared Start Date</label>
             <div class="col-sm-4">
                 <input type="date" id="sharedStartDate" class="form-control"
-                    value="{{ optional($workPrograms->first()->start_date)->format('Y-m-d') }}">
+                    value="{{ $workPrograms->first()->start_date->format('Y-m-d') }}">
             </div>
             <div class="col-sm-6 d-flex justify-content-end">
                 <a href="{{ route('admin.procurement-details.index') }}" class="btn btn-secondary me-2">
