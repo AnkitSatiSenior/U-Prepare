@@ -16,7 +16,7 @@
         <div class="mb-3 row">
             <label for="sharedStartDate" class="col-sm-2 col-form-label fw-semibold">Shared Start Date</label>
             <div class="col-sm-4">
-                {{ $workPrograms->first()->start_date }}
+                {{ $workPrograms->start_date }}
                 <input type="date" id="sharedStartDate" class="form-control" value="{{ optional($workPrograms->first()->start_date)->format('Y-m-d') }}">
             </div>
             <div class="col-sm-6 d-flex justify-content-end">
