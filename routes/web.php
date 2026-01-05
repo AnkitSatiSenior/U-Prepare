@@ -63,6 +63,21 @@ use App\Http\Controllers\Admin\ProjectSubprojectLinkController;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Illuminate\Support\Facades\Artisan;
 
+
+use Illuminate\Support\Facades\Mail;
+
+Route::get('/send-test-mail', function () {
+    $to_email = 'yuvrajkohli8090ylt@gmail.com';
+
+    Mail::raw('Hello! This is a test email from Laravel using Zoho SMTP.', function ($message) use ($to_email) {
+        $message->to($to_email)
+                ->subject('Laravel Zoho SMTP Test Mail');
+    });
+
+    return 'Test email sent to ' . $to_email;
+});
+
+
 Route::get('/link-storage', function () {
     Artisan::call('storage:link');
     $output = Artisan::output();
