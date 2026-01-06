@@ -51,13 +51,13 @@
             </div>
 
             <div class="card-body">
-                <x-admin.data-table :headers="['ID', 'Work Service', 'SL No', 'Activity Name', 'Stage Name', 'Percent', 'Actions']" id="epc-entries-table" :excel="true" :print="true"
+                <x-admin.data-table :headers="['ID', 'Work Service', 'Activity Name', 'Stage Name', 'Percent', 'Actions']" id="epc-entries-table" :excel="true" :print="true"
                     :pageLength="10">
                    @foreach ($items as $index => $item)
     <tr>
         <td>{{ $index + 1 }}</td> {{-- Auto numbering --}}
         <td>{{ $item->workService->name ?? 'N/A' }}</td>
-        <td>{{ $item->sl_no }}</td>
+       
         <td>{{ $item->activityName->name ?? 'N/A' }}</td>
         <td>{{ $item->stage_name }}</td>
         <td>{{ number_format($item->percent, 2) }}%</td>
