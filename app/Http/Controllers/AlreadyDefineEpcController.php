@@ -9,11 +9,14 @@ use Illuminate\Http\Request;
 
 class AlreadyDefineEpcController extends Controller
 {
-    public function index()
-    {
-        $items = AlreadyDefineEpc::with(['workService', 'activityName'])->get();
-        return view('admin.already_define_epc.index', compact('items'));
-    }
+   public function index()
+{
+    $items = AlreadyDefineEpc::with(['workService', 'activityName'])
+        ->orderBy('sl_no', 'asc')
+        ->get();
+
+    return view('admin.already_define_epc.index', compact('items'));
+}
 
     public function create()
     {

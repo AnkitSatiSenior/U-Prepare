@@ -53,38 +53,35 @@
             <div class="card-body">
                 <x-admin.data-table :headers="['ID', 'Work Service', 'SL No', 'Activity Name', 'Stage Name', 'Percent', 'Actions']" id="epc-entries-table" :excel="true" :print="true"
                     :pageLength="10">
-                    @foreach ($items as $item)
-                        <tr>
-                            <td>{{ $item->id }}</td>
-                            <td>{{ $item->workService->name ?? 'N/A' }}</td>
-                            <td>{{ $item->sl_no }}</td>
-                            <td>{{ $item->activityName->name ?? 'N/A' }}</td>
-                            <td>{{ $item->stage_name }}</td>
-                            <td>{{ number_format($item->percent, 2) }}%</td>
-                            <td>
-                                <div class="d-flex justify-content-end gap-2">
-                                    <a href="{{ route('admin.already_define_epc.show', $item) }}"
-                                        class="btn btn-sm btn-outline-info" title="View">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="{{ route('admin.already_define_epc.edit', $item) }}"
-                                        class="btn btn-sm btn-outline-primary" title="Edit">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <form action="{{ route('admin.already_define_epc.destroy', $item) }}"
-                                        method="POST"
-                                        onsubmit="return confirm('Are you sure you want to delete this entry?');"
-                                        style="display:inline;">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    @endforeach
+                   @foreach ($items as $index => $item)
+    <tr>
+        <td>{{ $index + 1 }}</td> {{-- Auto numbering --}}
+        <td>{{ $item->workService->name ?? 'N/A' }}</td>
+        <td>{{ $item->sl_no }}</td>
+        <td>{{ $item->activityName->name ?? 'N/A' }}</td>
+        <td>{{ $item->stage_name }}</td>
+        <td>{{ number_format($item->percent, 2) }}%</td>
+        <td>
+            <div class="d-flex justify-content-end gap-2">
+                <a href="{{ route('admin.already_define_epc.show', $item) }}" class="btn btn-sm btn-outline-info">
+                    <i class="fas fa-eye"></i>
+                </a>
+                <a href="{{ route('admin.already_define_epc.edit', $item) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-edit"></i>
+                </a>
+                <form action="{{ route('admin.already_define_epc.destroy', $item) }}" method="POST"
+                      onsubmit="return confirm('Are you sure you want to delete this entry?');" style="display:inline;">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </form>
+            </div>
+        </td>
+    </tr>
+@endforeach
+
                 </x-admin.data-table>
             </div>
 
