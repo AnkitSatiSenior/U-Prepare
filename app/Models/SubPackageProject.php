@@ -32,7 +32,7 @@ class SubPackageProject extends Model
     {
         return $this->hasMany(WorkProgressData::class, 'project_id');
     }
-  public function socialSafeguardProgress(?int $complianceId = null, ?Carbon $requestedStart = null, ?Carbon $requestedEnd = null): array
+ public function socialSafeguardProgress(?int $complianceId = null, ?Carbon $requestedStart = null, ?Carbon $requestedEnd = null): array
 {
     // Resolve dates
     $contractStart = $this->packageProject?->contracts()->latest('id')->first()?->commencement_date;
@@ -49,11 +49,18 @@ class SubPackageProject extends Model
 
     $progress = [];
 
-    // Fetch master entries (already_define_safeguard_entries) instead of old safeguard_entries
-    $masterEntriesQuery = AlreadyDefineSafeguardEntry::with('safeguardCompliance', 'contractionPhase');
+    // Fetch master entries
+    // ✅ MODIFICATION: Added condition to exclude parents (headers)
+    $masterEntriesQuery = AlreadyDefineSafeguardEntry::with('safeguardCompliance', 'contractionPhase')
+        ->where(function($q) {
+            $q->where('is_parent', 0)
+              ->orWhereNull('is_parent');
+        });
+
     if ($complianceId) {
         $masterEntriesQuery->where('safeguard_compliance_id', $complianceId);
     }
+    
     $masterEntries = $masterEntriesQuery->orderBy('order_by')->get();
 
     // Group by compliance
@@ -75,6 +82,7 @@ class SubPackageProject extends Model
             $masterEntryIds = $phaseEntries->pluck('id')->toArray();
             $childCount = count($masterEntryIds);
 
+            // If filtering parents results in 0 children, handle empty phase
             if ($childCount === 0) {
                 $phaseReports[] = [
                     'id' => $phaseId,
@@ -92,7 +100,7 @@ class SubPackageProject extends Model
             $effectiveMonths = $phase?->is_one_time ? 1 : $monthsInRange;
             $totalForPhase = $childCount * $effectiveMonths;
 
-            // Done entries from social_safeguard_entries
+            // Done entries
             $doneForPhase = DB::table('social_safeguard_entries')
                 ->whereIn('already_define_safeguard_entry_id', $masterEntryIds)
                 ->where('sub_package_project_id', $this->id)
