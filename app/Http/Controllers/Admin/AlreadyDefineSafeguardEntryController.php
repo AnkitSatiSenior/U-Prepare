@@ -46,6 +46,7 @@ class AlreadyDefineSafeguardEntryController extends Controller
     // ========================= UPDATE =========================
     public function update(Request $request, $id)
     {
+        // Find the specific entry by ID
         $entry = AlreadyDefineSafeguardEntry::findOrFail($id);
 
         $request->validate([
@@ -57,31 +58,24 @@ class AlreadyDefineSafeguardEntryController extends Controller
             'order_by' => 'nullable|integer',
             'is_validity' => 'nullable|boolean',
             'is_major_head' => 'nullable|boolean',
-            'is_parent' => 'nullable|boolean', // ✅ NEW
+            'is_parent' => 'nullable|boolean',
         ]);
 
         DB::transaction(function () use ($entry, $request) {
-            // 1️⃣ UPDATE AlreadyDefineSafeguardEntries GROUP
-            AlreadyDefineSafeguardEntry::where('safeguard_compliance_id', $entry->safeguard_compliance_id)
-                ->where('contraction_phase_id', $entry->contraction_phase_id)
-                ->where('item_description', $entry->item_description)
-                ->update([
-                    'safeguard_compliance_id' => $request->safeguard_compliance_id,
-                    'contraction_phase_id' => $request->contraction_phase_id,
-                    'category_id' => $request->category_id,
-                    'sl_no' => $request->sl_no,
-                    'item_description' => $request->item_description,
-                    'order_by' => $request->order_by,
-                    'is_validity' => $request->has('is_validity') ? 1 : 0,
-                    'is_major_head' => $request->has('is_major_head') ? 1 : 0,
-                    'is_parent' => $request->has('is_parent') ? 1 : 0, // ✅ NEW
-                ]);
-
-            // 2️⃣ UPDATE safeguard_entries table
-            
+            $entry->update([
+                'safeguard_compliance_id' => $request->safeguard_compliance_id,
+                'contraction_phase_id' => $request->contraction_phase_id,
+                'category_id' => $request->category_id,
+                'sl_no' => $request->sl_no,
+                'item_description' => $request->item_description,
+                'order_by' => $request->order_by,
+                'is_validity' => $request->has('is_validity') ? 1 : 0,
+                'is_major_head' => $request->has('is_major_head') ? 1 : 0,
+                'is_parent' => $request->has('is_parent') ? 1 : 0,
+            ]);
         });
 
-        return redirect()->route('admin.already-define-safeguards.index')->with('success', 'Safeguard entries updated successfully!');
+        return redirect()->route('admin.already-define-safeguards.index')->with('success', 'Safeguard entry updated successfully!');
     }
 
     // ========================= DELETE =========================
