@@ -32,126 +32,129 @@ class SubPackageProject extends Model
     {
         return $this->hasMany(WorkProgressData::class, 'project_id');
     }
- public function socialSafeguardProgress(?int $complianceId = null, ?Carbon $requestedStart = null, ?Carbon $requestedEnd = null): array
-{
-    // Resolve dates
-    $contractStart = $this->packageProject?->contracts()->latest('id')->first()?->commencement_date;
-    $start = $requestedStart ? Carbon::parse($requestedStart) : ($contractStart ? Carbon::parse($contractStart) : $this->created_at ?? now());
-    $end = $requestedEnd ? Carbon::parse($requestedEnd) : now();
+    public function socialSafeguardProgress(?int $complianceId = null, ?Carbon $requestedStart = null, ?Carbon $requestedEnd = null): array
+    {
+        // Resolve dates
+        $contractStart = $this->packageProject?->contracts()->latest('id')->first()?->commencement_date;
+        $start = $requestedStart ? Carbon::parse($requestedStart) : ($contractStart ? Carbon::parse($contractStart) : $this->created_at ?? now());
+        $end = $requestedEnd ? Carbon::parse($requestedEnd) : now();
 
-    if ($contractStart && $start->lt(Carbon::parse($contractStart))) $start = Carbon::parse($contractStart);
-    if ($end->gt(now())) $end = now();
-    if ($start->gt($end)) [$start, $end] = [$end, $start];
+        if ($contractStart && $start->lt(Carbon::parse($contractStart))) {
+            $start = Carbon::parse($contractStart);
+        }
+        if ($end->gt(now())) {
+            $end = now();
+        }
+        if ($start->gt($end)) {
+            [$start, $end] = [$end, $start];
+        }
 
-    $startMonth = $start->copy()->startOfMonth();
-    $endMonth = $end->copy()->endOfMonth();
-    $monthsInRange = max(1, (int) $startMonth->diffInMonths($endMonth) + 1);
+        $startMonth = $start->copy()->startOfMonth();
+        $endMonth = $end->copy()->endOfMonth();
+        $monthsInRange = max(1, (int) $startMonth->diffInMonths($endMonth) + 1);
 
-    $progress = [];
+        $progress = [];
 
-    // Fetch master entries
-    // ✅ MODIFICATION: Added condition to exclude parents (headers)
-    $masterEntriesQuery = AlreadyDefineSafeguardEntry::with('safeguardCompliance', 'contractionPhase')
-        ->where(function($q) {
-            $q->where('is_parent', 0)
-              ->orWhereNull('is_parent');
+        // Fetch master entries
+        // ✅ MODIFICATION: Added condition to exclude parents (headers)
+        $masterEntriesQuery = AlreadyDefineSafeguardEntry::with('safeguardCompliance', 'contractionPhase')->where(function ($q) {
+            $q->where('is_parent', 0)->orWhereNull('is_parent');
         });
 
-    if ($complianceId) {
-        $masterEntriesQuery->where('safeguard_compliance_id', $complianceId);
-    }
-    
-    $masterEntries = $masterEntriesQuery->orderBy('order_by')->get();
+        if ($complianceId) {
+            $masterEntriesQuery->where('safeguard_compliance_id', $complianceId);
+        }
 
-    // Group by compliance
-    $grouped = $masterEntries->groupBy('safeguard_compliance_id');
+        $masterEntries = $masterEntriesQuery->orderBy('order_by')->get();
 
-    foreach ($grouped as $cid => $entries) {
-        $compliance = $entries->first()->safeguardCompliance;
+        // Group by compliance
+        $grouped = $masterEntries->groupBy('safeguard_compliance_id');
 
-        // Group by phase
-        $phaseGroups = $entries->groupBy('contraction_phase_id');
+        foreach ($grouped as $cid => $entries) {
+            $compliance = $entries->first()->safeguardCompliance;
 
-        $phaseReports = [];
-        $totalAll = 0;
-        $doneAll = 0;
+            // Group by phase
+            $phaseGroups = $entries->groupBy('contraction_phase_id');
 
-        foreach ($phaseGroups as $phaseId => $phaseEntries) {
-            $phase = $phaseEntries->first()->contractionPhase;
+            $phaseReports = [];
+            $totalAll = 0;
+            $doneAll = 0;
 
-            $masterEntryIds = $phaseEntries->pluck('id')->toArray();
-            $childCount = count($masterEntryIds);
+            foreach ($phaseGroups as $phaseId => $phaseEntries) {
+                $phase = $phaseEntries->first()->contractionPhase;
 
-            // If filtering parents results in 0 children, handle empty phase
-            if ($childCount === 0) {
+                $masterEntryIds = $phaseEntries->pluck('id')->toArray();
+                $childCount = count($masterEntryIds);
+
+                // If filtering parents results in 0 children, handle empty phase
+                if ($childCount === 0) {
+                    $phaseReports[] = [
+                        'id' => $phaseId,
+                        'phase' => $phase?->name ?? 'N/A',
+                        'total' => 0,
+                        'done' => 0,
+                        'entry_count' => 0,
+                        'percent' => 0,
+                        'is_one_time' => (bool) ($phase?->is_one_time ?? false),
+                    ];
+                    continue;
+                }
+
+                // Total expected
+                $effectiveMonths = $phase?->is_one_time ? 1 : $monthsInRange;
+                $totalForPhase = $childCount * $effectiveMonths;
+
+                // Done entries
+                $doneForPhase =
+                    DB::table('social_safeguard_entries')
+                        ->whereIn('already_define_safeguard_entry_id', $masterEntryIds)
+                        ->where('sub_package_project_id', $this->id)
+                        ->where('social_compliance_id', $cid)
+                        ->where('contraction_phase_id', $phaseId)
+                        ->when(!$phase?->is_one_time, fn($q) => $q->whereBetween('date_of_entry', [$startMonth->toDateString(), $endMonth->toDateString()]))
+                        ->whereIn('yes_no', [1, 3])
+                        ->select(DB::raw("COUNT(DISTINCT CONCAT(already_define_safeguard_entry_id, '-', DATE_FORMAT(date_of_entry, '%Y-%m'))) as cnt"))
+                        ->value('cnt') ?? 0;
+
+                // Entry count
+                $entryCount = DB::table('social_safeguard_entries')
+                    ->whereIn('already_define_safeguard_entry_id', $masterEntryIds)
+                    ->where('sub_package_project_id', $this->id)
+                    ->where('social_compliance_id', $cid)
+                    ->where('contraction_phase_id', $phaseId)
+                    ->when(!$phase?->is_one_time, fn($q) => $q->whereBetween('date_of_entry', [$startMonth->toDateString(), $endMonth->toDateString()]))
+                    ->count();
+
+                $percent = $totalForPhase > 0 ? round(($doneForPhase / $totalForPhase) * 100, 2) : 0.0;
+
                 $phaseReports[] = [
                     'id' => $phaseId,
                     'phase' => $phase?->name ?? 'N/A',
-                    'total' => 0,
-                    'done' => 0,
-                    'entry_count' => 0,
-                    'percent' => 0,
+                    'total' => $totalForPhase,
+                    'done' => $doneForPhase,
+                    'entry_count' => $entryCount,
+                    'percent' => $percent,
                     'is_one_time' => (bool) ($phase?->is_one_time ?? false),
                 ];
-                continue;
+
+                $totalAll += $totalForPhase;
+                $doneAll += $doneForPhase;
             }
 
-            // Total expected
-            $effectiveMonths = $phase?->is_one_time ? 1 : $monthsInRange;
-            $totalForPhase = $childCount * $effectiveMonths;
-
-            // Done entries
-            $doneForPhase = DB::table('social_safeguard_entries')
-                ->whereIn('already_define_safeguard_entry_id', $masterEntryIds)
-                ->where('sub_package_project_id', $this->id)
-                ->where('social_compliance_id', $cid)
-                ->where('contraction_phase_id', $phaseId)
-                ->when(!$phase?->is_one_time, fn($q) => $q->whereBetween('date_of_entry', [$startMonth->toDateString(), $endMonth->toDateString()]))
-                ->whereIn('yes_no', [1, 3])
-                ->select(DB::raw("COUNT(DISTINCT CONCAT(already_define_safeguard_entry_id, '-', DATE_FORMAT(date_of_entry, '%Y-%m'))) as cnt"))
-                ->value('cnt') ?? 0;
-
-            // Entry count
-            $entryCount = DB::table('social_safeguard_entries')
-                ->whereIn('already_define_safeguard_entry_id', $masterEntryIds)
-                ->where('sub_package_project_id', $this->id)
-                ->where('social_compliance_id', $cid)
-                ->where('contraction_phase_id', $phaseId)
-                ->when(!$phase?->is_one_time, fn($q) => $q->whereBetween('date_of_entry', [$startMonth->toDateString(), $endMonth->toDateString()]))
-                ->count();
-
-            $percent = $totalForPhase > 0 ? round(($doneForPhase / $totalForPhase) * 100, 2) : 0.0;
-
-            $phaseReports[] = [
-                'id' => $phaseId,
-                'phase' => $phase?->name ?? 'N/A',
-                'total' => $totalForPhase,
-                'done' => $doneForPhase,
-                'entry_count' => $entryCount,
-                'percent' => $percent,
-                'is_one_time' => (bool) ($phase?->is_one_time ?? false),
+            $progress[$cid] = [
+                'compliance' => $compliance->name ?? 'N/A',
+                'phases' => $phaseReports,
+                'total' => $totalAll,
+                'done' => $doneAll,
+                'percent' => $totalAll > 0 ? round(($doneAll / $totalAll) * 100, 2) : 0,
+                'start' => $start->toDateString(),
+                'end' => $end->toDateString(),
+                'monthsInRange' => $monthsInRange,
             ];
-
-            $totalAll += $totalForPhase;
-            $doneAll += $doneForPhase;
         }
 
-        $progress[$cid] = [
-            'compliance' => $compliance->name ?? 'N/A',
-            'phases' => $phaseReports,
-            'total' => $totalAll,
-            'done' => $doneAll,
-            'percent' => $totalAll > 0 ? round(($doneAll / $totalAll) * 100, 2) : 0,
-            'start' => $start->toDateString(),
-            'end' => $end->toDateString(),
-            'monthsInRange' => $monthsInRange,
-        ];
+        return $progress;
     }
-
-    return $progress;
-}
-
-
 
     public function workProgress()
     {
