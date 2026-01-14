@@ -34,7 +34,6 @@ class SocialSafeguardEntryController extends Controller
         $entries = AlreadyDefineSafeguardEntry::with(['safeguardCompliance', 'contractionPhase', 'category'])
             ->where('safeguard_compliance_id', $compliance_id)
             ->where('contraction_phase_id', $phase_id)
-            ->orderBy('order_by', 'asc')
             ->orderBy('id', 'asc')
             ->get();
 
