@@ -35,6 +35,7 @@ class SocialSafeguardEntryController extends Controller
             ->where('safeguard_compliance_id', $compliance_id)
             ->where('contraction_phase_id', $phase_id)
             ->orderBy('id', 'asc')
+            ->orderBy('order_by', 'asc')
             ->get();
 
         // Fetch all social entries for this project, compliance, phase, and <= selected date
