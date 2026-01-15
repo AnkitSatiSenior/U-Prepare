@@ -512,7 +512,7 @@ class ReportController extends Controller
     }
 
 
-  public function subProjectsReport(Request $request)
+public function subProjectsReport(Request $request)
 {
     $filters = $request->only([
         'department_id',
@@ -525,15 +525,23 @@ class ReportController extends Controller
             'packageProject',
             'contract.project.procurementDetail.typeOfProcurement',
             'contract.contractor',
-            'boqEntries.physicalBoqProgresses',
-            'epcEntries.physicalEpcProgresses'
+            // Load DIRECT relations for the calculation logic
+            'physicalBoqProgresses',
+            'physicalEpcProgresses',
+            // Keep these if you need nested data elsewhere, otherwise the above two are sufficient for the calc
+            'boqEntries', 
+            'epcEntries'
         ])
         ->whereHas('packageProject', fn ($q) => $q->applyFilters($filters))
         ->get();
 
     $subProjectsData = $subProjects->map(function ($sp) {
 
-        // 🔹 Safeguard progress
+        // 🔹 1. Calculate Physical Progress using your custom logic
+        $type = strtolower($sp->type_of_procurement_name ?? '');
+        $physicalData = $this->calculatePhysicalProgressForReport($sp, $type);
+
+        // 🔹 2. Safeguard progress
         $rawSafeguards = $sp->socialSafeguardProgress();
 
         $safeguards = collect($rawSafeguards)
@@ -560,19 +568,17 @@ class ReportController extends Controller
             'name' => $sp->name,
             'package_number' => $sp->packageProject->package_number ?? 'N/A',
             'contractValue' => $sp->contract_value,
-
-            // ✅ PROCUREMENT TYPE (THIS WAS MISSING)
             'type_of_procurement_name' => $sp->type_of_procurement_name,
 
-            // ✅ Physical & Finance Progress
-            'physicalPercent' => $sp->physical_progress_percentage,
+            // ✅ Use the calculated values
+            'physicalPercent' => $physicalData['percent'],
+            
             'financePercent' => $sp->financial_progress_percentage,
-
             'safeguards' => $safeguards,
         ];
     });
 
-    // 🔹 Build table headers (Compliance – Phase)
+    // 🔹 Build table headers
     $compliancePhaseHeaders = collect($subProjectsData)
         ->flatMap(fn ($sp) =>
             collect($sp['safeguards'])->flatMap(fn ($sg) =>
