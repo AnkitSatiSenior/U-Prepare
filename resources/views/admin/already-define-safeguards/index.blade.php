@@ -156,7 +156,7 @@
                 <h5 class="mb-0 text-primary">
                     <i class="fas fa-list me-2"></i> Imported Safeguard Entries
                 </h5>
-                <span class="badge bg-secondary">Total Records: {{ count($entries) }}</span>
+                <span class="badge bg-primary text-white">Total Records: {{ count($entries) }}</span>
             </div>
 
             <div class="card-body">
