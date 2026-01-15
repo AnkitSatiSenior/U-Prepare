@@ -511,7 +511,44 @@ class ReportController extends Controller
         ]);
     }
 
+private function calculatePhysicalProgressForReport(SubPackageProject $sp, string $type): array
+{
+    $percent = 0.0;
 
+    if ($type === 'epc') {
+        // ---------------------------------------------------------
+        // EPC LOGIC: Sum 'percent' directly
+        // ---------------------------------------------------------
+        // Note: Using the already loaded relationship to avoid N+1 queries
+        $updates = $sp->physicalEpcProgresses;
+
+        // Sum the 'percent' column directly
+        $sumPercent = $updates->sum('percent');
+        
+        $percent = min(100, round($sumPercent, 2));
+
+    } else {
+        // ---------------------------------------------------------
+        // BOQ LOGIC: 'amount' * 1.18 / contract value
+        // ---------------------------------------------------------
+        $updates = $sp->physicalBoqProgresses;
+
+        $totalAmount = $updates->sum('amount');
+        
+        // Add 18% GST (1.18 factor)
+        $totalWithGST = $totalAmount * 1.18;
+        
+        $percent = $sp->contract_value > 0 
+            ? round(($totalWithGST / $sp->contract_value) * 100, 2) 
+            : 0.0;
+            
+        $percent = min(100, $percent);
+    }
+
+    return [
+        'percent' => $percent,
+    ];
+}
 public function subProjectsReport(Request $request)
 {
     $filters = $request->only([
