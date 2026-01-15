@@ -15,55 +15,42 @@ use App\Imports\AlreadyDefineSafeguardEntriesImport;
 class AlreadyDefineSafeguardEntryController extends Controller
 {
     // ========================= INDEX =========================
-  // Import Request
+    // Import Request
 
-public function index(Request $request)
-{
-    // 1. Initialize Query
-    $query = AlreadyDefineSafeguardEntry::with(['safeguardCompliance', 'contractionPhase', 'category']);
+    public function index(Request $request)
+    {
+        // 1. Initialize Query
+        $query = AlreadyDefineSafeguardEntry::with(['safeguardCompliance', 'contractionPhase', 'category']);
 
-    // 2. Apply Filters if selected
-    if ($request->filled('safeguard_compliance_id')) {
-        $query->where('safeguard_compliance_id', $request->safeguard_compliance_id);
+        // 2. Apply Filters if selected
+        if ($request->filled('safeguard_compliance_id')) {
+            $query->where('safeguard_compliance_id', $request->safeguard_compliance_id);
+        }
+
+        if ($request->filled('contraction_phase_id')) {
+            $query->where('contraction_phase_id', $request->contraction_phase_id);
+        }
+
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        // Optional: Filter only parents if needed
+        if ($request->filled('is_parent')) {
+            $query->where('is_parent', 1);
+        }
+
+        // 3. Group and Select (Existing Logic)
+        $entries = $query->select(DB::raw('MIN(id) as id'), 'sl_no', 'item_description', 'safeguard_compliance_id', 'contraction_phase_id', 'category_id', 'is_validity', 'is_major_head', 'order_by', DB::raw('COUNT(*) as total_entries'))->groupBy('sl_no', 'item_description', 'safeguard_compliance_id', 'contraction_phase_id', 'category_id', 'is_validity', 'is_major_head', 'order_by')->orderBy('order_by', 'ASC')->get();
+
+        // 4. Load Dropdown Data
+        $safeguardCompliances = SafeguardCompliance::all();
+
+        $contractionPhases = ContractionPhase::all();
+        $categories = SubCategory::orderBy('name')->get();
+
+        return view('admin.already-define-safeguards.index', compact('entries', 'safeguardCompliances', 'contractionPhases', 'categories'));
     }
-
-    if ($request->filled('contraction_phase_id')) {
-        $query->where('contraction_phase_id', $request->contraction_phase_id);
-    }
-
-    if ($request->filled('category_id')) {
-        $query->where('category_id', $request->category_id);
-    }
-    
-    // Optional: Filter only parents if needed
-    if ($request->filled('is_parent')) {
-        $query->where('is_parent', 1);
-    }
-
-    // 3. Group and Select (Existing Logic)
-    $entries = $query->select(
-            DB::raw('MIN(id) as id'), 
-            'sl_no', 
-            'item_description', 
-            'safeguard_compliance_id', 
-            'contraction_phase_id', 
-            'category_id', 
-            'is_validity', 
-            'is_major_head', 
-            'order_by', 
-            DB::raw('COUNT(*) as total_entries')
-        )
-        ->groupBy('sl_no', 'item_description', 'safeguard_compliance_id', 'contraction_phase_id', 'category_id', 'is_validity', 'is_major_head', 'order_by')
-        ->orderBy('order_by', 'ASC')
-        ->get();
-
-    // 4. Load Dropdown Data
-    $safeguardCompliances = SafeguardCompliance::with('contractionPhases')->get(); // Eager load phases for JS
-    $contractionPhases = ContractionPhase::all();
-    $categories = SubCategory::orderBy('name')->get();
-
-    return view('admin.already-define-safeguards.index', compact('entries', 'safeguardCompliances', 'contractionPhases', 'categories'));
-}
 
     // ========================= EDIT =========================
     public function edit($id)
