@@ -263,7 +263,7 @@ class SubPackageProject extends Model
         }
 
         // Default to BOQ (Item Rate)
-        return $this->calculateBoqProgress();
+        return $this->calculateBoqProgressWithGST();
     }
 protected function calculateBoqProgress(): float
     {
