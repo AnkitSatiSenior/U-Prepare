@@ -146,10 +146,10 @@
         <h5 class="mb-0">📊 Progress Chart</h5>
         <div class="d-flex gap-2 align-items-center">
             <select class="form-control form-control-sm" id="chartType" onchange="drawChart()">
+                <option value="SCurve">S-Curve (Smooth)</option>
                 <option value="LineChart">Line Chart</option>
                 <option value="ColumnChart">Column Chart</option>
                 <option value="BarChart">Bar Chart</option>
-                <option value="SCurve">S-Curve (Smooth)</option>
             </select>
             <select class="form-control form-control-sm" id="progressType" onchange="drawChart()">
                 <option value="finance">Finance</option>
@@ -168,17 +168,19 @@
 
 {{-- Scripts --}}
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
-
 <script src="https://www.gstatic.com/charts/loader.js"></script>
+
 <script>
     $(document).ready(function() {
-        $('#milestoneTable').DataTable({ responsive: true, pageLength: 5, order: [[0, 'asc']] });
-        $('#monthTable').DataTable({ responsive: true, pageLength: 5, order: [[0, 'asc']] });
+        // Initialize DataTables if they exist on page
+        if ($('#milestoneTable').length) $('#milestoneTable').DataTable({ responsive: true, pageLength: 5, order: [[0, 'asc']] });
+        if ($('#monthTable').length) $('#monthTable').DataTable({ responsive: true, pageLength: 5, order: [[0, 'asc']] });
     });
 
     google.charts.load('current', { packages: ['corechart'] });
     google.charts.setOnLoadCallback(drawChart);
 
+    // Get Data from Blade
     var monthData = @json($monthData);
     var milestoneData = @json($tableRows);
 
@@ -188,23 +190,22 @@
         var progressType = document.getElementById('progressType').value;
         var dataType = document.getElementById('dataType').value;
 
+        // Setup Data Table
         var data = new google.visualization.DataTable();
         data.addColumn('string', dataType === 'month' ? 'Month' : 'Milestone');
-        data.addColumn('number', 'Planned (Ideal S-Curve)'); // Renamed for clarity
-        data.addColumn('number', 'Achieved (Actual)');
+        data.addColumn('number', 'Planned');
+        data.addColumn('number', 'Achieved');
 
-        // --- 1. PREPARE DATA ---
+        // --- 1. DATA PREPARATION ---
         var labels = [];
         var achievedValues = [];
         var totalPlanned = 0;
         
-        // Extract raw data first
+        // Extract raw data and calculate "Total" (The Ceiling)
         if (dataType === 'month') {
             Object.keys(monthData).forEach(function(key) {
                 labels.push(key);
-                // Calculate Total Planned Budget/Physical for the S-Curve Ceiling
                 totalPlanned += progressType === 'finance' ? monthData[key].plannedFinance : monthData[key].plannedPhysical;
-                // Store actual achieved values
                 achievedValues.push(progressType === 'finance' ? monthData[key].achievedFinance : monthData[key].achievedPhysical);
             });
         } else {
@@ -215,46 +216,46 @@
             });
         }
 
-        // --- 2. GENERATE CURVES ---
+        // --- 2. GENERATE CURVE DATA ---
         var cumulativeAchieved = 0;
         var totalPoints = labels.length;
-        // Sigmoid Steepness (0.5 is standard, higher = steeper middle)
-        var k = 0.5; 
+        var k = 0.5; // Sigmoid Steepness
         var midpoint = totalPoints / 2;
 
         for (var i = 0; i < totalPoints; i++) {
-            var plannedSValue;
+            var plannedValue;
 
             if (chartType === 'SCurve') {
-                // --- THE MAGIC: SIGMOID FORMULA ---
-                // This forces the "Planned" line into a perfect S-shape
+                // --- OPTION A: SIGMOID S-CURVE ---
                 // Formula: Y = Total / (1 + e^(-k * (x - midpoint)))
-                // We normalize it so it starts near 0 and ends at totalPlanned
                 
-                // 1. Calculate raw sigmoid (0 to 1)
+                // Raw Sigmoid
                 var sigmoid = 1 / (1 + Math.exp(-k * (i - midpoint)));
                 
-                // 2. Scale to Total Planned Amount
-                // We adjust the formula slightly to ensure it hits ~0% at start and ~100% at end
+                // Normalization (Stretch to fit 0% to 100%)
                 var minSigmoid = 1 / (1 + Math.exp(-k * (0 - midpoint)));
                 var maxSigmoid = 1 / (1 + Math.exp(-k * ((totalPoints - 1) - midpoint)));
                 var normalizedSigmoid = (sigmoid - minSigmoid) / (maxSigmoid - minSigmoid);
                 
-                plannedSValue = totalPlanned * normalizedSigmoid;
+                plannedValue = totalPlanned * normalizedSigmoid;
 
             } else {
-                // Standard Linear Accumulation (Old Way)
-                // We approximate this for the 'Linear' view or use specific monthly data if available
-                // For this example, we'll just distribute linearly if not S-Curve
-                plannedSValue = (totalPlanned / totalPoints) * (i + 1);
+                // --- OPTION B: LINEAR PROGRESS ---
+                // For Bar, Column, and standard Line charts, we usually show straight linear growth
+                // or the actual planned data if you had it. Here we approximate linear.
+                plannedValue = (totalPlanned / totalPoints) * (i + 1);
             }
 
-            // Accumulate Achieved (Real Data)
+            // Cumulative Actual Data
             cumulativeAchieved += achievedValues[i];
 
-            // Convert to Percentage for the Chart
-            var plannedPercent = (plannedSValue / totalPlanned) * 100;
+            // Convert to Percentages
+            var plannedPercent = (plannedValue / totalPlanned) * 100;
             var achievedPercent = (cumulativeAchieved / totalPlanned) * 100;
+
+            // Cap at 100% just in case
+            if(plannedPercent > 100) plannedPercent = 100;
+            if(achievedPercent > 100) achievedPercent = 100;
 
             data.addRow([
                 labels[i], 
@@ -263,7 +264,7 @@
             ]);
         }
 
-        // --- 3. CHART OPTIONS ---
+        // --- 3. CHART OPTIONS & STYLING ---
         var options = {
             height: 600,
             backgroundColor: 'transparent',
@@ -279,23 +280,39 @@
                 gridlines: { color: 'transparent' },
                 textStyle: { fontSize: 11 }
             },
-            colors: ['#3B82F6', '#10B981'], // Blue (Planned), Green (Achieved)
+            colors: ['#3B82F6', '#10B981'], // Blue, Green
+            animation: { startup: true, duration: 1000, easing: 'out' },
             
-            // Visual Styles
-            curveType: 'function', // Always smooth
-            areaOpacity: (chartType === 'SCurve') ? 0.2 : 0.0,
+            // Default styling (will be overridden by SCurve logic below)
             lineWidth: 4,
-            pointSize: 5,
-            pointBackgroundColor: '#fff',
-            animation: { startup: true, duration: 1000, easing: 'out' }
+            pointSize: 6,
+            pointBackgroundColor: '#fff'
         };
 
         var chart;
-        if (chartType === 'SCurve') {
-            chart = new google.visualization.AreaChart(chartDiv);
-        } else {
-            chart = new google.visualization.LineChart(chartDiv);
-            options.curveType = 'none'; // Straight lines for non-S-Curve
+
+        // --- 4. RENDER BASED ON TYPE ---
+        switch(chartType) {
+            case 'SCurve':
+                chart = new google.visualization.AreaChart(chartDiv);
+                options.curveType = 'function'; // Smooth lines
+                options.areaOpacity = 0.2;      // Nice fill effect
+                break;
+
+            case 'LineChart':
+                chart = new google.visualization.LineChart(chartDiv);
+                options.curveType = 'none';     // Straight lines
+                options.areaOpacity = 0.0;      // No fill
+                break;
+
+            case 'ColumnChart':
+                chart = new google.visualization.ColumnChart(chartDiv);
+                break;
+
+            case 'BarChart':
+                chart = new google.visualization.BarChart(chartDiv);
+                // Bar charts flip axes, so we usually hide the 'hAxis' title or adjust logic
+                break;
         }
 
         chart.draw(data, options);
