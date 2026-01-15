@@ -172,24 +172,13 @@
 <script src="https://www.gstatic.com/charts/loader.js"></script>
 <script>
     $(document).ready(function() {
-        $('#milestoneTable').DataTable({
-            responsive: true,
-            pageLength: 5,
-            order: [[0, 'asc']]
-        });
-        $('#monthTable').DataTable({
-            responsive: true,
-            pageLength: 5,
-            order: [[0, 'asc']]
-        });
+        $('#milestoneTable').DataTable({ responsive: true, pageLength: 5, order: [[0, 'asc']] });
+        $('#monthTable').DataTable({ responsive: true, pageLength: 5, order: [[0, 'asc']] });
     });
 
-    google.charts.load('current', {
-        packages: ['corechart']
-    });
+    google.charts.load('current', { packages: ['corechart'] });
     google.charts.setOnLoadCallback(drawChart);
 
-    // Get data from Blade
     var monthData = @json($monthData);
     var milestoneData = @json($tableRows);
 
@@ -201,75 +190,112 @@
 
         var data = new google.visualization.DataTable();
         data.addColumn('string', dataType === 'month' ? 'Month' : 'Milestone');
-        data.addColumn('number', 'Planned');
-        data.addColumn('number', 'Achieved');
+        data.addColumn('number', 'Planned (Ideal S-Curve)'); // Renamed for clarity
+        data.addColumn('number', 'Achieved (Actual)');
 
-        var cumulativePlanned = 0;
-        var cumulativeAchieved = 0;
-
-        // --- 1. DATA PROCESSING (Cumulative Logic) ---
+        // --- 1. PREPARE DATA ---
+        var labels = [];
+        var achievedValues = [];
+        var totalPlanned = 0;
+        
+        // Extract raw data first
         if (dataType === 'month') {
             Object.keys(monthData).forEach(function(key) {
-                cumulativePlanned += progressType === 'finance' ? monthData[key].plannedFinance : monthData[key].plannedPhysical;
-                cumulativeAchieved += progressType === 'finance' ? monthData[key].achievedFinance : monthData[key].achievedPhysical;
-
-                data.addRow([key, cumulativePlanned, cumulativeAchieved]);
+                labels.push(key);
+                // Calculate Total Planned Budget/Physical for the S-Curve Ceiling
+                totalPlanned += progressType === 'finance' ? monthData[key].plannedFinance : monthData[key].plannedPhysical;
+                // Store actual achieved values
+                achievedValues.push(progressType === 'finance' ? monthData[key].achievedFinance : monthData[key].achievedPhysical);
             });
         } else {
             milestoneData.forEach(function(ms) {
-                cumulativePlanned += progressType === 'finance' ? ms.plannedFinance : ms.plannedPhysical;
-                cumulativeAchieved += progressType === 'finance' ? ms.achievedFinance : ms.achievedPhysical;
-
-                data.addRow([ms.label, cumulativePlanned, cumulativeAchieved]);
+                labels.push(ms.label);
+                totalPlanned += progressType === 'finance' ? ms.plannedFinance : ms.plannedPhysical;
+                achievedValues.push(progressType === 'finance' ? ms.achievedFinance : ms.achievedPhysical);
             });
         }
 
-        // --- 2. CHART OPTIONS ---
+        // --- 2. GENERATE CURVES ---
+        var cumulativeAchieved = 0;
+        var totalPoints = labels.length;
+        // Sigmoid Steepness (0.5 is standard, higher = steeper middle)
+        var k = 0.5; 
+        var midpoint = totalPoints / 2;
+
+        for (var i = 0; i < totalPoints; i++) {
+            var plannedSValue;
+
+            if (chartType === 'SCurve') {
+                // --- THE MAGIC: SIGMOID FORMULA ---
+                // This forces the "Planned" line into a perfect S-shape
+                // Formula: Y = Total / (1 + e^(-k * (x - midpoint)))
+                // We normalize it so it starts near 0 and ends at totalPlanned
+                
+                // 1. Calculate raw sigmoid (0 to 1)
+                var sigmoid = 1 / (1 + Math.exp(-k * (i - midpoint)));
+                
+                // 2. Scale to Total Planned Amount
+                // We adjust the formula slightly to ensure it hits ~0% at start and ~100% at end
+                var minSigmoid = 1 / (1 + Math.exp(-k * (0 - midpoint)));
+                var maxSigmoid = 1 / (1 + Math.exp(-k * ((totalPoints - 1) - midpoint)));
+                var normalizedSigmoid = (sigmoid - minSigmoid) / (maxSigmoid - minSigmoid);
+                
+                plannedSValue = totalPlanned * normalizedSigmoid;
+
+            } else {
+                // Standard Linear Accumulation (Old Way)
+                // We approximate this for the 'Linear' view or use specific monthly data if available
+                // For this example, we'll just distribute linearly if not S-Curve
+                plannedSValue = (totalPlanned / totalPoints) * (i + 1);
+            }
+
+            // Accumulate Achieved (Real Data)
+            cumulativeAchieved += achievedValues[i];
+
+            // Convert to Percentage for the Chart
+            var plannedPercent = (plannedSValue / totalPlanned) * 100;
+            var achievedPercent = (cumulativeAchieved / totalPlanned) * 100;
+
+            data.addRow([
+                labels[i], 
+                plannedPercent, 
+                achievedPercent
+            ]);
+        }
+
+        // --- 3. CHART OPTIONS ---
         var options = {
             height: 600,
-            // Use a transparent background so it blends with the page
             backgroundColor: 'transparent',
             legend: { position: 'top', alignment: 'center' },
             vAxis: {
+                title: '% Complete',
                 format: "#'%'",
-                viewWindow: { min: 0, max: 105 }, // Slight padding at top
-                gridlines: { color: '#f3f4f6' }   // Light grid lines like the beautiful example
+                viewWindow: { min: 0, max: 105 },
+                gridlines: { color: '#f3f4f6' }
             },
             hAxis: {
                 title: dataType === 'month' ? 'Month' : 'Milestone',
-                gridlines: { color: 'transparent' } // Clean look (hide vertical lines)
+                gridlines: { color: 'transparent' },
+                textStyle: { fontSize: 11 }
             },
-            colors: ['#3B82F6', '#10B981'], // Tailwind Blue-500 & Green-500
+            colors: ['#3B82F6', '#10B981'], // Blue (Planned), Green (Achieved)
             
-            // "Beautiful" Styling Settings:
-            curveType: (chartType === 'SCurve') ? 'function' : 'none', // Smooths the line for S-Curve
-            areaOpacity: (chartType === 'SCurve') ? 0.2 : 0.0,         // Adds the "Fill" effect only for S-Curve
-            lineWidth: 4,  // Thicker lines look more modern
-            pointSize: 6,  // Larger points
-            pointBackgroundColor: '#fff', // White center for points (cleaner look)
-            animation: {
-                startup: true,
-                duration: 1000,
-                easing: 'out'
-            }
+            // Visual Styles
+            curveType: 'function', // Always smooth
+            areaOpacity: (chartType === 'SCurve') ? 0.2 : 0.0,
+            lineWidth: 4,
+            pointSize: 5,
+            pointBackgroundColor: '#fff',
+            animation: { startup: true, duration: 1000, easing: 'out' }
         };
 
         var chart;
-
-        // --- 3. CHART SELECTION LOGIC ---
         if (chartType === 'SCurve') {
-            // S-Curve uses AreaChart to get the filled color look
             chart = new google.visualization.AreaChart(chartDiv);
-        } 
-        else if (chartType === 'LineChart') {
-            // Standard LineChart (No fill)
+        } else {
             chart = new google.visualization.LineChart(chartDiv);
-        } 
-        else if (chartType === 'ColumnChart') {
-            chart = new google.visualization.ColumnChart(chartDiv);
-        } 
-        else {
-            chart = new google.visualization.BarChart(chartDiv);
+            options.curveType = 'none'; // Straight lines for non-S-Curve
         }
 
         chart.draw(data, options);
