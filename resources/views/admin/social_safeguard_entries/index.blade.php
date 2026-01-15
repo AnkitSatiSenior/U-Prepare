@@ -167,16 +167,32 @@
                                     @endif
                                 </td>
 
-                                {{-- Action Buttons --}}
-                                <td>
-                                    @if (!$isParent && !$locked)
-                                        <button type="button"
-                                            class="btn btn-sm {{ $social ? 'btn-warning' : 'btn-success' }} save-row">
-                                            <i class="fas {{ $social ? 'fa-edit' : 'fa-save' }}"></i>
-                                            {{ $social ? 'Update' : 'Save' }}
-                                        </button>
-                                    @endif
-                                </td>
+                  <td>
+    @if (!$isParent && !$locked)
+        @php
+            // 1. Determine if this is an Update or a Store action
+            // Update only if: It has existing social data AND Phase is NOT 2
+            $isUpdateMode = $social && $phase_id != 2;
+
+            // 2. Generate the specific URL for this row
+            // If Update: Use the update route with the ID
+            // If Store: Use the save route
+            $actionUrl = $isUpdateMode 
+                ? route('admin.social.update', ['id' => $social->id]) 
+                : route('admin.social_safeguard_entries.save');
+        @endphp
+
+        <button type="button"
+            class="btn btn-sm {{ $isUpdateMode ? 'btn-warning' : 'btn-success' }} save-row"
+            {{-- Pass the calculate URL and the Method type to JS --}}
+            data-url="{{ $actionUrl }}"
+            data-method="{{ $isUpdateMode ? 'UPDATE' : 'STORE' }}">
+            
+            <i class="fas {{ $isUpdateMode ? 'fa-edit' : 'fa-save' }}"></i>
+            {{ $isUpdateMode ? 'Update' : 'Save' }}
+        </button>
+    @endif
+</td>
 
                                 <td
                                     class="{{ $isParent ? 'bg-light' : ($filesExist ? 'bg-light-success' : 'bg-light-danger') }}">
@@ -302,55 +318,82 @@
 
 
     </div>
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            document.querySelectorAll(".save-row").forEach(button => {
-                button.addEventListener("click", async function() {
-                    let row = this.closest("tr");
-                    let socialId = row.dataset.socialId;
-                    if (!socialId) return alert("Social entry missing.");
-                    let data = new FormData();
-                    data.append("yes_no", row.querySelector("[name='yes_no']").value);
-                    data.append("remarks", row.querySelector("[name='remarks']").value);
-                    data.append("validity_date", row.querySelector("[name='validity_date']")
-                        ?.value || null);
-                    data.append("date_of_entry", row.querySelector("[name='date_of_entry']")
-                        .value);
-                    let response = await fetch(
-                        "{{ route('admin.social.update', ['id' => 'SID']) }}".replace(
-                            "SID", socialId), {
-                            method: "POST",
-                            headers: {
-                                "X-CSRF-TOKEN": document.querySelector(
-                                    'meta[name="csrf-token"]').content
-                            },
-                            body: data
-                        });
+ <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        document.querySelectorAll(".save-row").forEach(button => {
+            button.addEventListener("click", async function() {
+                let row = this.closest("tr");
+                
+                // Get the pre-calculated URL and Method from the button
+                let actionUrl = this.dataset.url;
+                let actionMethod = this.dataset.method; // 'STORE' or 'UPDATE'
+
+                // Validation: Only require socialId if we are strictly updating
+                // If we are 'Storing' (even if Phase 2), we might not need socialId check
+                let socialId = row.dataset.socialId;
+                if (actionMethod === 'UPDATE' && !socialId) {
+                    return alert("Social entry missing for update.");
+                }
+
+                let data = new FormData();
+                // Add your form fields
+                data.append("yes_no", row.querySelector("[name='yes_no']").value);
+                data.append("remarks", row.querySelector("[name='remarks']").value);
+                
+                // Handle optional date
+                let validityDateInput = row.querySelector("[name='validity_date']");
+                data.append("validity_date", validityDateInput ? validityDateInput.value : '');
+                
+                data.append("date_of_entry", row.querySelector("[name='date_of_entry']").value);
+
+                // IMPORTANT: If 'STORE', you usually need to send the parent ID (e.g. compliance_id)
+                // Ensure your row has this input, or append it here manually if needed:
+                // data.append("compliance_id", row.dataset.complianceId); 
+
+                try {
+                    let response = await fetch(actionUrl, { // Use the dynamic URL
+                        method: "POST",
+                        headers: {
+                            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content
+                        },
+                        body: data
+                    });
+
                     let result = await response.json();
+
                     if (result.status === "success") {
                         showAlert("Saved successfully!", "success");
+                        
+                        // If it was a Store action, you might want to reload or update the UI 
+                        // to assign the new ID so the next click becomes an 'Update'
+                        if (actionMethod === 'STORE') {
+                            // Optional: Reload to fetch new IDs or update row dataset manually
+                            // window.location.reload(); 
+                        }
+
                         if (result.locked) {
-                            row.querySelectorAll("input, select").forEach(x => x.setAttribute(
-                                "disabled", true));
+                            row.querySelectorAll("input, select").forEach(x => x.setAttribute("disabled", true));
                             this.remove();
                         }
                     } else {
                         showAlert(result.message ?? "Error saving.", "danger");
                     }
-                });
+                } catch (error) {
+                    console.error(error);
+                    showAlert("An unexpected error occurred.", "danger");
+                }
             });
-
-            function showAlert(msg, type) {
-                const el = document.createElement("div");
-                el.className = alert alert - $ {
-                    type
-                };
-                el.textContent = msg;
-                document.querySelector(".container").prepend(el);
-                setTimeout(() => el.remove(), 2500);
-            }
         });
-    </script>
+
+        function showAlert(msg, type) {
+            const el = document.createElement("div");
+            el.className = `alert alert-${type}`; // Fixed syntax here
+            el.textContent = msg;
+            document.querySelector(".container").prepend(el);
+            setTimeout(() => el.remove(), 2500);
+        }
+    });
+</script>
     {{-- JS Scripts --}}
     <x-upload-js :subProjectId="$subProject->id" :complianceId="$compliance->id" :phaseId="$phase_id" />
 </x-app-layout>

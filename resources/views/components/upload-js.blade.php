@@ -104,33 +104,49 @@
         });
 
         // ---------- Save main row / entry ----------
-        document.querySelectorAll(".save-row").forEach(btn => {
+      document.querySelectorAll(".save-row").forEach(btn => {
             btn.addEventListener("click", async () => {
                 const row = btn.closest("tr");
-                const entryId = row.dataset.entryId; // already_define_safeguard_already_define_safeguard_entry_id
+                
+                // DATA GATHERING
+                const entryId = row.dataset.entryId; 
                 const hasSocial = row.dataset.hasSocial; // 0 = insert, 1 = update
                 const socialId = row.dataset.socialId;
 
-                // Determine URL: save or update
-                const url = hasSocial == "1" ?
-                    "{{ route('admin.social.update', ':id') }}".replace(":id", socialId) :
-                    "{{ route('admin.social_safeguard_entries.save') }}";
+                // 1. GET CURRENT PHASE ID
+                // Check if there is a dropdown with id="phase-id", otherwise use the default blade variable
+                const phaseSelect = document.getElementById('phase-id');
+                const currentPhaseId = phaseSelect ? phaseSelect.value : "{{ $phaseId }}";
 
+                // 2. LOGIC: DETERMINE IF WE ARE UPDATING OR SAVING
+                // We only Update if: Social data exists AND Phase is NOT 2.
+                // If Phase is 2, we treat it as a new "Save" (Store).
+                const isUpdate = (hasSocial == "1" && currentPhaseId != "2");
+
+                // 3. SET URL BASED ON LOGIC
+                let url;
+                if (isUpdate) {
+                    url = "{{ route('admin.social.update', ':id') }}".replace(':id', socialId);
+                } else {
+                    url = "{{ route('admin.social_safeguard_entries.save') }}";
+                }
+
+                // FORM DATA CONSTRUCTION
                 const data = new FormData();
 
-                // Required fields
+                // IDs
                 data.append("already_define_safeguard_entry_id", entryId);
                 data.append("sub_package_project_id", "{{ $subProjectId }}");
                 data.append("social_compliance_id", "{{ $complianceId }}");
-                data.append("contraction_phase_id", "{{ $phaseId }}");
+                
+                // IMPORTANT: Send the actual selected phase ID
+                data.append("contraction_phase_id", currentPhaseId);
 
                 // User inputs
                 const yesNo = row.querySelector('[name="yes_no"]')?.value ?? "";
                 const remarks = row.querySelector('[name="remarks"]')?.value ?? "";
-                const validityDate = row.querySelector('[name="validity_date"]')?.value ??
-                    "";
-                const dateOfEntry = row.querySelector('[name="date_of_entry"]')?.value ??
-                "";
+                const validityDate = row.querySelector('[name="validity_date"]')?.value ?? "";
+                const dateOfEntry = row.querySelector('[name="date_of_entry"]')?.value ?? "";
 
                 data.append("yes_no", yesNo);
                 data.append("remarks", remarks);
@@ -138,23 +154,21 @@
                 data.append("date_of_entry", dateOfEntry);
 
                 // Handle file uploads
-                const fileInputs = row.querySelectorAll(
-                    '[name="photos_documents_case_studies[]"]');
+                const fileInputs = row.querySelectorAll('[name="photos_documents_case_studies[]"]');
                 fileInputs.forEach(input => {
                     if (input.files.length) {
                         for (let i = 0; i < input.files.length; i++) {
-                            data.append("photos_documents_case_studies[]", input
-                                .files[i]);
+                            data.append("photos_documents_case_studies[]", input.files[i]);
                         }
                     }
                 });
 
+                // EXECUTE REQUEST
                 try {
                     const res = await fetch(url, {
                         method: "POST",
                         headers: {
-                            "X-CSRF-TOKEN": document.querySelector(
-                                'meta[name="csrf-token"]').content
+                            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content
                         },
                         body: data
                     });
@@ -163,7 +177,6 @@
 
                     if (result.status === "success") {
                         alert("Saved Successfully!");
-                        // Optionally: update row without reload
                         window.location.reload();
                     } else {
                         alert(result.message || "Failed to save.");
