@@ -149,6 +149,7 @@
                 <option value="LineChart">Line Chart</option>
                 <option value="ColumnChart">Column Chart</option>
                 <option value="BarChart">Bar Chart</option>
+                <option value="SCurve">S-Curve (Smooth)</option>
             </select>
             <select class="form-control form-control-sm" id="progressType" onchange="drawChart()">
                 <option value="finance">Finance</option>
@@ -174,16 +175,12 @@
         $('#milestoneTable').DataTable({
             responsive: true,
             pageLength: 5,
-            order: [
-                [0, 'asc']
-            ]
+            order: [[0, 'asc']]
         });
         $('#monthTable').DataTable({
             responsive: true,
             pageLength: 5,
-            order: [
-                [0, 'asc']
-            ]
+            order: [[0, 'asc']]
         });
     });
 
@@ -192,6 +189,7 @@
     });
     google.charts.setOnLoadCallback(drawChart);
 
+    // Ensure these variables are parsed correctly from Blade
     var monthData = @json($monthData);
     var milestoneData = @json($tableRows);
 
@@ -209,12 +207,11 @@
         var cumulativePlanned = 0;
         var cumulativeAchieved = 0;
 
+        // --- DATA PROCESSING (CUMULATIVE FOR S-CURVE) ---
         if (dataType === 'month') {
             Object.keys(monthData).forEach(function(key) {
-                cumulativePlanned += progressType === 'finance' ? monthData[key].plannedFinance : monthData[key]
-                    .plannedPhysical;
-                cumulativeAchieved += progressType === 'finance' ? monthData[key].achievedFinance : monthData[
-                    key].achievedPhysical;
+                cumulativePlanned += progressType === 'finance' ? monthData[key].plannedFinance : monthData[key].plannedPhysical;
+                cumulativeAchieved += progressType === 'finance' ? monthData[key].achievedFinance : monthData[key].achievedPhysical;
 
                 data.addRow([
                     key,
@@ -235,30 +232,42 @@
             });
         }
 
+        // --- CHART OPTIONS ---
         var options = {
             height: 600,
             backgroundColor: 'transparent',
-            legend: {
-                position: 'top'
-            },
+            legend: { position: 'top' },
             vAxis: {
                 format: "#'%'",
-                viewWindow: {
-                    min: 0,
-                    max: 100
-                }
+                viewWindow: { min: 0, max: 100 }
             },
             hAxis: {
                 title: dataType === 'month' ? 'Month' : 'Milestone'
             },
             colors: ['#4285F4', '#0F9D58'],
-            curveType: chartType === 'LineChart' ? 'function' : null
+            
+            // LOGIC: Only smooth the line if "SCurve" is selected. 
+            // Standard "LineChart" will now be straight lines.
+            curveType: (chartType === 'SCurve') ? 'function' : 'none',
+            
+            // Adding pointSize makes the S-Curve data points clearer
+            pointSize: 5,
+            lineWidth: 3
         };
 
+        // --- CHART SELECTION LOGIC ---
         var chart;
-        if (chartType === 'LineChart') chart = new google.visualization.LineChart(chartDiv);
-        else if (chartType === 'ColumnChart') chart = new google.visualization.ColumnChart(chartDiv);
-        else chart = new google.visualization.BarChart(chartDiv);
+        
+        // Both "LineChart" and "SCurve" use the LineChart visualization
+        if (chartType === 'LineChart' || chartType === 'SCurve') {
+            chart = new google.visualization.LineChart(chartDiv);
+        } 
+        else if (chartType === 'ColumnChart') {
+            chart = new google.visualization.ColumnChart(chartDiv);
+        } 
+        else {
+            chart = new google.visualization.BarChart(chartDiv);
+        }
 
         chart.draw(data, options);
     }
