@@ -189,7 +189,7 @@
     });
     google.charts.setOnLoadCallback(drawChart);
 
-    // Ensure these variables are parsed correctly from Blade
+    // Get data from Blade
     var monthData = @json($monthData);
     var milestoneData = @json($tableRows);
 
@@ -207,59 +207,62 @@
         var cumulativePlanned = 0;
         var cumulativeAchieved = 0;
 
-        // --- DATA PROCESSING (CUMULATIVE FOR S-CURVE) ---
+        // --- 1. DATA PROCESSING (Cumulative Logic) ---
         if (dataType === 'month') {
             Object.keys(monthData).forEach(function(key) {
                 cumulativePlanned += progressType === 'finance' ? monthData[key].plannedFinance : monthData[key].plannedPhysical;
                 cumulativeAchieved += progressType === 'finance' ? monthData[key].achievedFinance : monthData[key].achievedPhysical;
 
-                data.addRow([
-                    key,
-                    cumulativePlanned,
-                    cumulativeAchieved
-                ]);
+                data.addRow([key, cumulativePlanned, cumulativeAchieved]);
             });
         } else {
             milestoneData.forEach(function(ms) {
                 cumulativePlanned += progressType === 'finance' ? ms.plannedFinance : ms.plannedPhysical;
                 cumulativeAchieved += progressType === 'finance' ? ms.achievedFinance : ms.achievedPhysical;
 
-                data.addRow([
-                    ms.label,
-                    cumulativePlanned,
-                    cumulativeAchieved
-                ]);
+                data.addRow([ms.label, cumulativePlanned, cumulativeAchieved]);
             });
         }
 
-        // --- CHART OPTIONS ---
+        // --- 2. CHART OPTIONS ---
         var options = {
             height: 600,
+            // Use a transparent background so it blends with the page
             backgroundColor: 'transparent',
-            legend: { position: 'top' },
+            legend: { position: 'top', alignment: 'center' },
             vAxis: {
                 format: "#'%'",
-                viewWindow: { min: 0, max: 100 }
+                viewWindow: { min: 0, max: 105 }, // Slight padding at top
+                gridlines: { color: '#f3f4f6' }   // Light grid lines like the beautiful example
             },
             hAxis: {
-                title: dataType === 'month' ? 'Month' : 'Milestone'
+                title: dataType === 'month' ? 'Month' : 'Milestone',
+                gridlines: { color: 'transparent' } // Clean look (hide vertical lines)
             },
-            colors: ['#4285F4', '#0F9D58'],
+            colors: ['#3B82F6', '#10B981'], // Tailwind Blue-500 & Green-500
             
-            // LOGIC: Only smooth the line if "SCurve" is selected. 
-            // Standard "LineChart" will now be straight lines.
-            curveType: (chartType === 'SCurve') ? 'function' : 'none',
-            
-            // Adding pointSize makes the S-Curve data points clearer
-            pointSize: 5,
-            lineWidth: 3
+            // "Beautiful" Styling Settings:
+            curveType: (chartType === 'SCurve') ? 'function' : 'none', // Smooths the line for S-Curve
+            areaOpacity: (chartType === 'SCurve') ? 0.2 : 0.0,         // Adds the "Fill" effect only for S-Curve
+            lineWidth: 4,  // Thicker lines look more modern
+            pointSize: 6,  // Larger points
+            pointBackgroundColor: '#fff', // White center for points (cleaner look)
+            animation: {
+                startup: true,
+                duration: 1000,
+                easing: 'out'
+            }
         };
 
-        // --- CHART SELECTION LOGIC ---
         var chart;
-        
-        // Both "LineChart" and "SCurve" use the LineChart visualization
-        if (chartType === 'LineChart' || chartType === 'SCurve') {
+
+        // --- 3. CHART SELECTION LOGIC ---
+        if (chartType === 'SCurve') {
+            // S-Curve uses AreaChart to get the filled color look
+            chart = new google.visualization.AreaChart(chartDiv);
+        } 
+        else if (chartType === 'LineChart') {
+            // Standard LineChart (No fill)
             chart = new google.visualization.LineChart(chartDiv);
         } 
         else if (chartType === 'ColumnChart') {
