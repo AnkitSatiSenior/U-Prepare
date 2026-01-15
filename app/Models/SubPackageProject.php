@@ -260,10 +260,37 @@ class SubPackageProject extends Model
 
     protected function calculateEpcProgress(): float
     {
-        $plannedAmount = $this->epcEntries()->sum('amount');
-        $executedAmount = $this->physicalEpcProgresses()->selectRaw('COALESCE(SUM(physical_epc_progress.amount),0) as total')->value('total');
+        // 1. Get all EPC Items (activities/stages) with their latest progress
+        $epcItems = $this->epcEntries()
+            ->with([
+                'physicalEpcProgresses' => function ($query) {
+                    // We only need the latest entry to know current status of this item
+                    $query->orderBy('progress_submitted_date', 'desc');
+                },
+            ])
+            ->get();
 
-        return $plannedAmount > 0 ? round(($executedAmount / $plannedAmount) * 100, 2) : 0.0;
+        // 2. Calculate Total Planned Amount
+        $totalPlanned = $epcItems->sum('amount');
+
+        if ($totalPlanned <= 0) {
+            return 0.0;
+        }
+
+        // 3. Calculate Executed Amount (Weighted)
+        $executedAmount = $epcItems->sum(function ($item) {
+            // Get the latest progress update for this specific item
+            $latestUpdate = $item->physicalEpcProgresses->first();
+
+            // Use 0 if no progress recorded yet
+            $percent = $latestUpdate ? $latestUpdate->percent : 0;
+
+            // Formula: Item Value * (Completion % / 100)
+            return $item->amount * ($percent / 100);
+        });
+
+        // 4. Final Calculation
+        return round(($executedAmount / $totalPlanned) * 100, 2);
     }
 
     protected function calculateBoqProgressWithGST(): float
