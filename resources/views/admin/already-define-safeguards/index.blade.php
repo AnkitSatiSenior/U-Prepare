@@ -26,65 +26,75 @@
         @endif
 
         <div class="card shadow-sm mb-4 border-primary">
-            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">
-                    <i class="fas fa-filter me-2"></i> Filter Entries
-                </h5>
-                <a href="{{ route('admin.already-define-safeguards.index') }}" class="btn btn-sm btn-light text-primary">
-                    <i class="fas fa-sync-alt"></i> Reset
-                </a>
-            </div>
-            <div class="card-body bg-light">
-                <form action="{{ route('admin.already-define-safeguards.index') }}" method="GET">
-                    <div class="row g-3">
-                        <div class="col-md-3">
-                            <label class="form-label fw-bold">Compliance</label>
-                            <select name="safeguard_compliance_id" id="filter_compliance_id" class="form-select">
-                                <option value="">-- All Compliances --</option>
-                                @foreach ($safeguardCompliances as $item)
-                                    <option value="{{ $item->id }}" 
-                                        data-phases='@json($item->contraction_phases)'
-                                        {{ request('safeguard_compliance_id') == $item->id ? 'selected' : '' }}>
-                                        {{ $item->name }}
-                                    </option>
-                                @endforeach
-                            </select>
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-filter me-2"></i> Filter Entries
+        </h5>
+        <a href="{{ route('admin.already-define-safeguards.index') }}" class="btn btn-sm btn-light text-primary">
+            <i class="fas fa-sync-alt"></i> Reset
+        </a>
+    </div>
+    <div class="card-body bg-light">
+        <form action="{{ route('admin.already-define-safeguards.index') }}" method="GET">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Compliance</label>
+                    <select name="safeguard_compliance_id" id="filter_compliance_id" class="form-select">
+                        <option value="">-- All Compliances --</option>
+                        @foreach ($safeguardCompliances as $item)
+                            <option value="{{ $item->id }}" 
+                                data-phases='@json($item->contraction_phases)'
+                                {{ request('safeguard_compliance_id') == $item->id ? 'selected' : '' }}>
+                                {{ $item->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Phase</label>
+                    <select name="contraction_phase_id" id="filter_phase_id" class="form-select">
+                        <option value="">-- All Phases --</option>
+                        @foreach ($contractionPhases as $phase)
+                            <option value="{{ $phase->id }}" 
+                                {{ request('contraction_phase_id') == $phase->id ? 'selected' : '' }}>
+                                {{ $phase->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Category</label>
+                    <select name="category_id" class="form-select">
+                        <option value="">-- All Categories --</option>
+                        @foreach ($categories as $cat)
+                            <option value="{{ $cat->id }}" {{ request('category_id') == $cat->id ? 'selected' : '' }}>
+                                {{ $cat->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="col-md-3 d-flex align-items-end">
+                    <div class="d-flex w-100 gap-2 align-items-center">
+                        
+                        <div class="form-check form-switch mb-0 border p-2 rounded bg-white" style="min-width: 140px;">
+                            <input class="form-check-input cursor-pointer" type="checkbox" name="is_parent" value="1" id="is_parent" 
+                                {{ request('is_parent') ? 'checked' : '' }}>
+                            <label class="form-check-label fw-bold small cursor-pointer" for="is_parent">Only Parents</label>
                         </div>
 
-                        <div class="col-md-3">
-                            <label class="form-label fw-bold">Phase</label>
-                            <select name="contraction_phase_id" id="filter_phase_id" class="form-select">
-                                <option value="">-- All Phases --</option>
-                                @foreach ($contractionPhases as $phase)
-                                    <option value="{{ $phase->id }}" 
-                                        {{ request('contraction_phase_id') == $phase->id ? 'selected' : '' }}>
-                                        {{ $phase->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <div class="col-md-3">
-                            <label class="form-label fw-bold">Category</label>
-                            <select name="category_id" class="form-select">
-                                <option value="">-- All Categories --</option>
-                                @foreach ($categories as $cat)
-                                    <option value="{{ $cat->id }}" {{ request('category_id') == $cat->id ? 'selected' : '' }}>
-                                        {{ $cat->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <div class="col-md-3 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary w-100">
-                                <i class="fas fa-search me-1"></i> Search
-                            </button>
-                        </div>
+                        <button type="submit" class="btn btn-primary flex-grow-1">
+                            <i class="fas fa-search me-1"></i> Search
+                        </button>
                     </div>
-                </form>
+                </div>
+
             </div>
-        </div>
+        </form>
+    </div>
+</div>
 
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-success text-white">
