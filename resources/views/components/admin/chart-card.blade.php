@@ -4,9 +4,10 @@
     'headers' => [],
     'rows' => [],
     'labels' => [],
-    'data' => [], // ✅ old single dataset
-    'datasets' => [], // ✅ new multiple dataset support
-    'chartTypes' => ['PieChart', 'BarChart', 'ColumnChart', 'LineChart'],
+    'data' => [], 
+    'datasets' => [], 
+    /* 1. Added 'SCurve' to the default list */
+    'chartTypes' => ['PieChart', 'BarChart', 'ColumnChart', 'LineChart', 'SCurve'], 
     'excel' => true,
     'print' => true,
     'pageLength' => 10,
@@ -15,7 +16,6 @@
     'searchPlaceholder' => 'Search...',
     'resourceName' => 'entries',
 ])
-
 
 <div class="row">
     <div class="col-12">
@@ -32,41 +32,30 @@
 
             <div class="card-body">
                 <div class="row">
-                    <!-- Chart -->
                     <div class="col-md-12 mb-4">
                         <div id="{{ $id }}_chart" style="height:400px;"></div>
                     </div>
 
-                    <!-- Data Table Component -->
                     <div class="col-md-12">
                        <x-admin.data-table :id="$id . '_table'" :headers="$headers" :excel="$excel" :print="$print"
-    :pageLength="$pageLength" :lengthMenu="$lengthMenu" :lengthMenuLabels="$lengthMenuLabels"
-    :title="$title" :searchPlaceholder="$searchPlaceholder" :resourceName="$resourceName">
-    @foreach ($rows as $row)
-        <tr>
-            @foreach ($row as $col)
-                <td 
-                    @if(is_numeric($col))
-                        class="{{ ($col == 0 || $col === '0%') ? 'bg-light-danger ' : 'bg-light-success ' }}"
-                    @endif
-                >
-                    @if (is_array($col) && isset($col['url']))
-    <a href="{{ $col['url'] }}" class="text-primary fw-bold">
-        {{ $col['text'] }}
-    </a>
-@elseif(is_array($col))
-    {{ $col['text'] ?? '' }}
-@else
-    {{ $col }}
-@endif
-
-                </td>
-            @endforeach
-        </tr>
-    @endforeach
-</x-admin.data-table>
-
-
+                            :pageLength="$pageLength" :lengthMenu="$lengthMenu" :lengthMenuLabels="$lengthMenuLabels"
+                            :title="$title" :searchPlaceholder="$searchPlaceholder" :resourceName="$resourceName">
+                            @foreach ($rows as $row)
+                                <tr>
+                                    @foreach ($row as $col)
+                                        <td @if(is_numeric($col)) class="{{ ($col == 0 || $col === '0%') ? 'bg-light-danger ' : 'bg-light-success ' }}" @endif>
+                                            @if (is_array($col) && isset($col['url']))
+                                                <a href="{{ $col['url'] }}" class="text-primary fw-bold">{{ $col['text'] }}</a>
+                                            @elseif(is_array($col))
+                                                {{ $col['text'] ?? '' }}
+                                            @else
+                                                {{ $col }}
+                                            @endif
+                                        </td>
+                                    @endforeach
+                                </tr>
+                            @endforeach
+                        </x-admin.data-table>
                     </div>
                 </div>
             </div>
@@ -74,7 +63,6 @@
     </div>
 </div>
 
-<!-- Google Charts -->
 <script type="text/javascript">
     google.charts.load('current', { packages: ['corechart'] });
     google.charts.setOnLoadCallback(init_{{ $id }});
@@ -87,11 +75,10 @@
     function init_{{ $id }}() {
         if (!labels_{{ $id }}.length) return;
 
-        let headers = ['Department']; // first column (x-axis)
+        let headers = ['Department']; // X-Axis Label
         let rows = [];
 
         if (datasets_{{ $id }}.length) {
-            // ✅ multiple datasets
             headers.push(...datasets_{{ $id }}.map(ds => ds.label));
 
             labels_{{ $id }}.forEach((label, i) => {
@@ -102,27 +89,35 @@
                 rows.push(row);
             });
         } else {
-            // ✅ fallback to single dataset
             headers.push('Value');
             rows = labels_{{ $id }}.map((label, i) => [label, parseFloat(singleData_{{ $id }}[i] ?? 0)]);
         }
 
         data_{{ $id }} = google.visualization.arrayToDataTable([headers, ...rows]);
+        // Default to first chart type
         drawChart_{{ $id }}('{{ $chartTypes[0] ?? 'ColumnChart' }}');
     }
 
     function drawChart_{{ $id }}(chartType) {
         if (!data_{{ $id }}) return;
 
+        // Base Options
         const options = {
             title: '{{ $title }}',
             width: '100%',
             height: 400,
             legend: { position: 'top', maxLines: 3 },
-            isStacked: datasets_{{ $id }}.length > 1 // stack only when multiple datasets
+            isStacked: datasets_{{ $id }}.length > 1, 
+            animation: {
+                startup: true,
+                duration: 1000,
+                easing: 'out',
+            }
         };
 
         let chart;
+
+        // --- 2. SWITCH LOGIC UPDATED FOR S-CURVE ---
         switch (chartType) {
             case 'PieChart':
                 chart = new google.visualization.PieChart(document.getElementById('{{ $id }}_chart'));
@@ -136,8 +131,20 @@
                 break;
             case 'LineChart':
                 chart = new google.visualization.LineChart(document.getElementById('{{ $id }}_chart'));
+                // Standard straight lines
+                options.curveType = 'none'; 
+                break;
+            case 'SCurve':
+                // S-Curve is a LineChart with smoothing enabled
+                chart = new google.visualization.LineChart(document.getElementById('{{ $id }}_chart'));
+                options.curveType = 'function'; // This creates the "S" shape
+                options.pointSize = 5;          // Highlights the data points
+                options.lineWidth = 3;          // Thicker line for better visibility
                 break;
         }
-        chart.draw(data_{{ $id }}, options);
+
+        if (chart) {
+            chart.draw(data_{{ $id }}, options);
+        }
     }
 </script>
