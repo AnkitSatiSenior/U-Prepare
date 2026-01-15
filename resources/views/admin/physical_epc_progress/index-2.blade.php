@@ -36,42 +36,60 @@
             </div>
         @endif
         <!-- Stage Summary (Target vs Achieved) -->
-        @if ($targetByActivityStage->isNotEmpty())
-            <div class="row mb-3">
-                <div class="col-md-12">
-                    <div class="card shadow-sm">
-                        <div class="card-header bg-primary text-white">
-                            Stage Summary (Target vs Achieved)
-                        </div>
-                        <div class="card-body">
-                            <table class="table table-bordered text-center mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>Activity Name</th>
-                                        <th>Stage</th>
-                                        <th>Target (%)</th>
-                                        <th>Achieved (%)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($targetByActivityStage as $data)
-                                        @php
-                                            $key = $data->activity_name . '|' . $data->stage_name;
-                                            $achieved = $achievedByActivityStage[$key]->achieved_percent ?? 0;
-                                        @endphp
-                                        <tr>
-                                            <td>{{ $data->activity_name }}</td>
-                                            <td>{{ $data->stage_name }}</td>
-                                            <td>{{ $data->target_percent }}%</td>
-                                            <td>{{ $achieved }}%</td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+      @if ($targetByActivityStage->isNotEmpty())
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    Stage Summary (Target vs Achieved)
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered text-center mb-0">
+                        <thead>
+                            <tr>
+                                <th>Activity Name</th>
+                                <th>Stage</th>
+                                <th>Target (%)</th>
+                                <th>Achieved (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @php
+                                // 1. Initialize Total Variables
+                                $totalTarget = 0;
+                                $totalAchieved = 0;
+                            @endphp
+
+                            @foreach ($targetByActivityStage as $data)
+                                @php
+                                    $key = $data->activity_name . '|' . $data->stage_name;
+                                    $achieved = $achievedByActivityStage[$key]->achieved_percent ?? 0;
+
+                                    // 2. Accumulate Totals
+                                    $totalTarget += $data->target_percent;
+                                    $totalAchieved += $achieved;
+                                @endphp
+                                <tr>
+                                    <td>{{ $data->activity_name }}</td>
+                                    <td>{{ $data->stage_name }}</td>
+                                    <td>{{ $data->target_percent }}%</td>
+                                    <td>{{ $achieved }}%</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                        
+                        <tfoot>
+                            <tr class="bg-light font-weight-bold">
+                                <td colspan="2" class="text-right">Total</td>
+                                <td>{{ $totalTarget }}%</td>
+                                <td>{{ $totalAchieved }}%</td>
+                            </tr>
+                        </tfoot>
+                    </table>
                 </div>
             </div>
-        @endif
+        </div>
+    </div>
+@endif
     </div>
 </x-app-layout>
