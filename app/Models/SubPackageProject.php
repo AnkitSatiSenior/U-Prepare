@@ -208,10 +208,10 @@ class SubPackageProject extends Model
         return $this->hasManyThrough(
             PhysicalEpcProgress::class,
             EpcEntryData::class,
-            'sub_package_project_id', // FK on EpcEntryData
-            'epcentry_data_id', // FK on PhysicalEpcProgress
-            'id', // PK on SubPackageProject
-            'id', // PK on EpcEntryData
+            'sub_package_project_id', // Foreign key on EpcEntryData table
+            'epcentry_data_id', // Foreign key on PhysicalEpcProgress table
+            'id', // Local key on SubPackageProject table
+            'id', // Local key on EpcEntryData table
         );
     }
 
@@ -260,37 +260,37 @@ class SubPackageProject extends Model
 
     protected function calculateEpcProgress(): float
     {
-        // 1. Get all EPC Items (activities/stages) with their latest progress
-        $epcItems = $this->epcEntries()
+        // 1. Get all EPC entries (activities) with their *LATEST* progress update
+        $entries = $this->epcEntries()
             ->with([
-                'physicalEpcProgresses' => function ($query) {
-                    // We only need the latest entry to know current status of this item
-                    $query->orderBy('progress_submitted_date', 'desc');
+                'physicalEpcProgresses' => function ($q) {
+                    // Order by date descending so the first result is the latest status
+                    $q->orderBy('progress_submitted_date', 'desc')->orderBy('id', 'desc');
                 },
             ])
             ->get();
 
-        // 2. Calculate Total Planned Amount
-        $totalPlanned = $epcItems->sum('amount');
+        $totalPlannedValue = $entries->sum('amount');
 
-        if ($totalPlanned <= 0) {
+        // Prevent division by zero
+        if ($totalPlannedValue <= 0) {
             return 0.0;
         }
 
-        // 3. Calculate Executed Amount (Weighted)
-        $executedAmount = $epcItems->sum(function ($item) {
-            // Get the latest progress update for this specific item
-            $latestUpdate = $item->physicalEpcProgresses->first();
+        // 2. Calculate Earned Value (Weighted Progress)
+        $totalEarnedValue = $entries->sum(function ($entry) {
+            // Get the latest log (current status)
+            $latestUpdate = $entry->physicalEpcProgresses->first();
 
-            // Use 0 if no progress recorded yet
-            $percent = $latestUpdate ? $latestUpdate->percent : 0;
+            // If no progress exists, percent is 0
+            $currentPercent = $latestUpdate ? $latestUpdate->percent : 0;
 
-            // Formula: Item Value * (Completion % / 100)
-            return $item->amount * ($percent / 100);
+            // Formula: Activity Total Cost * (Percent Complete / 100)
+            return $entry->amount * ($currentPercent / 100);
         });
 
-        // 4. Final Calculation
-        return round(($executedAmount / $totalPlanned) * 100, 2);
+        // 3. Return overall percentage rounded to 2 decimals
+        return round(($totalEarnedValue / $totalPlannedValue) * 100, 2);
     }
 
     protected function calculateBoqProgressWithGST(): float
@@ -337,7 +337,14 @@ class SubPackageProject extends Model
 
     public function getHasPhysicalProgressAttribute(): bool
     {
-        return $this->type_of_procurement_name === 'EPC' ? $this->physicalEpcProgresses()->exists() : $this->physicalBoqProgresses()->exists();
+        // Check type safely (case-insensitive)
+        if (strcasecmp($this->type_of_procurement_name ?? '', 'EPC') === 0) {
+            // Check if ANY EPC progress logs exist
+            return $this->physicalEpcProgresses()->exists();
+        }
+
+        // Fallback to BOQ
+        return $this->physicalBoqProgresses()->exists();
     }
 
     /*
