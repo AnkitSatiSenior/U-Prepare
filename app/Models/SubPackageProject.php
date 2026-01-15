@@ -253,17 +253,60 @@ class SubPackageProject extends Model
         return $this->type_of_procurement_name === 'EPC' ? $this->calculateEpcProgress() : $this->calculateBoqProgressWithGST();
     }
 
-    public function getPhysicalProgressPercentageAttribute(): float
+    public function getPhysicalProgressPercentageAttribute()
     {
-        return $this->physicalProgressPercentage();
-    }
+        // Check procurement type safely
+        $type = strtolower($this->type_of_procurement_name ?? '');
 
+        if ($type === 'epc') {
+            return $this->calculateEpcProgress(); // Calls the FIXED function
+        }
+
+        // Default to BOQ (Item Rate)
+        return $this->calculateBoqProgress();
+    }
+protected function calculateBoqProgress(): float
+    {
+        // Sum of all executed BOQ amounts
+        $executedAmount = $this->physicalBoqProgresses()->sum('amount');
+        
+        // Use Contract Value as the baseline
+        $contractValue = $this->contract_value;
+
+        if ($contractValue <= 0) {
+            return 0.0;
+        }
+
+        // Logic: (Total Executed / Total Contract) * 100
+        $percent = ($executedAmount / $contractValue) * 100;
+
+        // Cap at 100% to handle potential data entry overages
+        return min(100, round($percent, 2));
+    }
     protected function calculateEpcProgress(): float
     {
-        $plannedAmount = $this->epcEntries()->sum('amount');
-        $executedAmount = $this->physicalEpcProgresses()->selectRaw('COALESCE(SUM(physical_epc_progress.amount),0) as total')->value('total');
+        // Eager load entries with their LATEST progress only to save performance
+        // (If already loaded by controller, this uses the relation)
+        $entries = $this->epcEntries;
 
-        return $plannedAmount > 0 ? round(($executedAmount / $plannedAmount) * 100, 2) : 0.0;
+        $totalPlannedValue = $entries->sum('amount');
+
+        if ($totalPlannedValue <= 0) {
+            return 0.0;
+        }
+
+        $totalEarnedValue = $entries->sum(function ($entry) {
+            // Find the latest progress entry for this specific item
+            // We use sortByDesc because the relation might be loaded unsorted
+            $latestUpdate = $entry->physicalEpcProgresses->sortByDesc('progress_submitted_date')->first();
+
+            $currentPercent = $latestUpdate ? $latestUpdate->percent : 0;
+
+            // Earned Value = Item Cost * (Completion % / 100)
+            return $entry->amount * ($currentPercent / 100);
+        });
+
+        return round(($totalEarnedValue / $totalPlannedValue) * 100, 2);
     }
 
     protected function calculateBoqProgressWithGST(): float
