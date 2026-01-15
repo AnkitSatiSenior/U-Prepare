@@ -82,10 +82,10 @@ class AlreadyDefineSafeguardEntryController extends Controller
     public function destroy($id)
     {
         $entry = AlreadyDefineSafeguardEntry::findOrFail($id);
-
-        DB::transaction(function () use ($entry) {
-            AlreadyDefineSafeguardEntry::where('safeguard_compliance_id', $entry->safeguard_compliance_id)->where('contraction_phase_id', $entry->contraction_phase_id)->where('item_description', $entry->item_description)->delete();
-        });
+        $entry->delete();
+        // DB::transaction(function () use ($entry) {
+        //     AlreadyDefineSafeguardEntry::where('safeguard_compliance_id', $entry->safeguard_compliance_id)->where('contraction_phase_id', $entry->contraction_phase_id)->where('item_description', $entry->item_description)->delete();
+        // });
 
         return redirect()->route('admin.already-define-safeguards.index')->with('success', 'Safeguard entries deleted successfully!');
     }
