@@ -921,57 +921,74 @@ class ReportController extends Controller
         $financeTotal = FinancialProgressUpdate::where('project_id', $projectId)->sum('finance_amount');
         return $contractValue > 0 ? round(($financeTotal / $contractValue) * 100, 2) : 0.0;
     }
-    private function calculatePhysicalProgress(SubPackageProject $sp, string $type): array
-    {
-        if ($type === 'epc') {
-            $updates = $sp
-                ->physicalEpcProgresses()
-                ->with('epcEntryData') // eager load
-                ->orderBy('progress_submitted_date', 'ASC')
-                ->get();
+   private function calculatePhysicalProgress(SubPackageProject $sp, string $type): array
+{
+    $percent = 0.0;
+    $submissions = collect();
 
-            $submissions = $updates
-                ->map(function ($u) {
-                    $entry = $u->epcEntryData;
-                    return [
-                        'percent' => round($u->percent, 2), // round to 2 decimals
-                        'date' => Carbon::parse($u->progress_submitted_date)->format('d-m-Y'),
-                        'item_description' => trim(($entry->activity_name ? $entry->activity_name . ' - ' : '') . ($entry->stage_name ?? '')),
-                    ];
-                })
-                ->filter(fn($entry) => isset($entry['percent']) && $entry['percent'] > 0) // <-- remove zero percent entries
-                ->values(); // reset array keys
+    if ($type === 'epc') {
+        // ---------------------------------------------------------
+        // EPC LOGIC: Based on 'percent' column
+        // ---------------------------------------------------------
+        $updates = $sp
+            ->physicalEpcProgresses()
+            ->with('epcEntryData')
+            ->orderBy('progress_submitted_date', 'ASC')
+            ->get();
 
-            // Overall EPC physical percent
-            $totalAmount = $updates->sum('amount');
-            $percent = $sp->contract_value > 0 ? round(($totalAmount / $sp->contract_value) * 100, 2) : 0.0;
-        } else {
-            // BOQ
-            $updates = $sp->physicalBoqProgresses()->with('boqEntryData')->orderBy('progress_submitted_date', 'ASC')->get();
+        $submissions = $updates
+            ->map(function ($u) {
+                $entry = $u->epcEntryData;
+                return [
+                    'percent' => round($u->percent, 2),
+                    'date' => Carbon::parse($u->progress_submitted_date)->format('d-m-Y'),
+                    'item_description' => trim(($entry->activity_name ? $entry->activity_name . ' - ' : '') . ($entry->stage_name ?? '')),
+                ];
+            })
+            ->filter(fn($entry) => isset($entry['percent']) && $entry['percent'] > 0)
+            ->values();
 
-            $submissions = $updates
-                ->map(function ($u) {
-                    $entry = $u->boqEntryData;
-                    return [
-                        'amount' => round($u->amount, 2),
-                        'date' => Carbon::parse($u->progress_submitted_date)->format('d-m-Y'),
-                        'item_description' => trim(($entry->sl_no ? $entry->sl_no . ' - ' : '') . ($entry->item_description ?? '')),
-                    ];
-                })
-                ->filter(fn($entry) => isset($entry['amount']) && $entry['amount'] > 0) // optional: filter zero amount entries
-                ->values();
+        // FIX: Sum the 'percent' column directly instead of calculating from amount
+        // ensuring it doesn't exceed 100%
+        $percent = min(100, round($updates->sum('percent'), 2));
 
-            $totalAmount = $updates->sum('amount');
-            $totalWithGST = $totalAmount * 1.18;
-            $percent = $sp->contract_value > 0 ? round(($totalWithGST / $sp->contract_value) * 100, 2) : 0.0;
-        }
+    } else {
+        // ---------------------------------------------------------
+        // BOQ LOGIC: Based on 'amount' / contract value
+        // ---------------------------------------------------------
+        $updates = $sp
+            ->physicalBoqProgresses()
+            ->with('boqEntryData')
+            ->orderBy('progress_submitted_date', 'ASC')
+            ->get();
 
-        return [
-            'percent' => $percent,
-            'submissions' => $submissions,
-            'last_date' => $submissions->last()['date'] ?? null,
-        ];
+        $submissions = $updates
+            ->map(function ($u) {
+                $entry = $u->boqEntryData;
+                return [
+                    'amount' => round($u->amount, 2),
+                    'date' => Carbon::parse($u->progress_submitted_date)->format('d-m-Y'),
+                    'item_description' => trim(($entry->sl_no ? $entry->sl_no . ' - ' : '') . ($entry->item_description ?? '')),
+                ];
+            })
+            ->filter(fn($entry) => isset($entry['amount']) && $entry['amount'] > 0)
+            ->values();
+
+        $totalAmount = $updates->sum('amount');
+        // If BOQ includes GST logic for physical weight, keep 1.18. 
+        // Otherwise, physical progress usually excludes tax. 
+        // Assuming your original logic intended to map financial value to physical %:
+        $totalWithGST = $totalAmount * 1.18; 
+        $percent = $sp->contract_value > 0 ? round(($totalWithGST / $sp->contract_value) * 100, 2) : 0.0;
+        $percent = min(100, $percent); // Cap at 100
     }
+
+    return [
+        'percent' => $percent,
+        'submissions' => $submissions,
+        'last_date' => $submissions->last()['date'] ?? null,
+    ];
+}
 
     private function calculateFinanceProgress(int $projectId, float $contractValue): array
     {
