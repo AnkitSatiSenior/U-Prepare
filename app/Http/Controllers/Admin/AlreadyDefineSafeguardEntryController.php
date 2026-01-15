@@ -58,7 +58,7 @@ public function index(Request $request)
         ->get();
 
     // 4. Load Dropdown Data
-    $safeguardCompliances = SafeguardCompliance::with('contraction_phases')->get(); // Eager load phases for JS
+    $safeguardCompliances = SafeguardCompliance::with('contractionPhases')->get(); // Eager load phases for JS
     $contractionPhases = ContractionPhase::all();
     $categories = SubCategory::orderBy('name')->get();
 
