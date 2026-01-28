@@ -66,6 +66,9 @@ use Illuminate\Support\Facades\Artisan;
 
 use Illuminate\Support\Facades\Mail;
 
+Route::get('/down', function(){
+    Artisan::call('down');
+});
 Route::get('/send-test-mail', function () {
     $to_email = 'yuvrajkohli8090ylt@gmail.com';
 
