@@ -70,9 +70,9 @@ Route::get('/up', function () {
     Artisan::call('up');
 });
 
-Route::get('/down', function(){
-    Artisan::call('down');
-});
+// Route::get('/down', function(){
+//     Artisan::call('down');
+// });
 
 Route::get('/send-test-mail', function () {
     $to_email = 'yuvrajkohli8090ylt@gmail.com';
