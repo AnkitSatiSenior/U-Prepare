@@ -21,6 +21,8 @@ use App\Models\SafeguardEntry;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
+
 
 class ReportController extends Controller
 {
@@ -120,7 +122,6 @@ class ReportController extends Controller
         }
 
         $subProjects = $subProjectsQuery->orderBy('name')->get();
-
         // Group sub-projects by package project to calculate avg progress
         $processed = $subProjects
             ->groupBy('project_id')
@@ -292,7 +293,11 @@ class ReportController extends Controller
     }
     private function calculateSafeguardProgress(SubPackageProject $sp, Request $request): array
     {
-        $compliances = DB::table('safeguard_entries')->join('safeguard_compliances', 'safeguard_entries.safeguard_compliance_id', '=', 'safeguard_compliances.id')->where('safeguard_entries.sub_package_project_id', $sp->id)->select('safeguard_compliances.id', 'safeguard_compliances.name', 'safeguard_compliances.contraction_phase_ids')->distinct()->get();
+        $compliances = DB::table('safeguard_entries')
+        ->join('safeguard_compliances', 'safeguard_entries.safeguard_compliance_id', '=', 'safeguard_compliances.id')
+        ->where('safeguard_entries.sub_package_project_id', $sp->id)
+        ->select('safeguard_compliances.id', 'safeguard_compliances.name', 'safeguard_compliances.contraction_phase_ids')
+        ->distinct()->get();
 
         $progress = [];
 
@@ -616,16 +621,74 @@ public function subProjectsReport(Request $request)
     });
 
     // 🔹 Build table headers
+        // $compliancePhaseHeaders = collect($subProjectsData)
+    //     ->flatMap(fn ($sp) =>
+    //         collect($sp['safeguards'])->flatMap(fn ($sg) =>
+    //             collect($sg['phases'])->map(
+    //                 fn ($ph) => $sg['compliance'] . ' – ' . $ph['phase']
+    //             )
+    //         )
+    //     )
+    //     ->unique()
+    //     ->values();
+    
+   
+
+    $complianceOrder = [
+        'Environmental' => 1,
+        'Social' => 2,
+    ];
+
+    $phaseOrder = [
+        'Pre Construction' => 1,
+        'During Construction' => 2,
+        'Post Construction' => 3,
+    ];
+
     $compliancePhaseHeaders = collect($subProjectsData)
-        ->flatMap(fn ($sp) =>
-            collect($sp['safeguards'])->flatMap(fn ($sg) =>
-                collect($sg['phases'])->map(
-                    fn ($ph) => $sg['compliance'] . ' – ' . $ph['phase']
-                )
-            )
-        )
-        ->unique()
+        ->flatMap(function ($sp) {
+            return collect($sp['safeguards'])->flatMap(function ($sg) {
+                return collect($sg['phases'])
+                    ->filter(function ($ph) use ($sg) {
+                        return !(
+                            $sg['compliance'] === 'Environmental' &&
+                            $ph['phase'] === 'Post Construction'
+                        );
+                    })
+                    ->map(function ($ph) use ($sg) {
+                        return [
+                            'compliance' => $sg['compliance'],
+                            'phase' => $ph['phase'],
+                            'label' => "{$sg['compliance']} – {$ph['phase']}"
+                        ];
+                    });
+            });
+        })
+        ->unique('label')
+        ->sortBy(function ($item) use ($complianceOrder, $phaseOrder) {
+            return [
+                $complianceOrder[$item['compliance']] ?? 99,
+                $phaseOrder[$item['phase']] ?? 99,
+            ];
+        })
+        ->pluck('label')
         ->values();
+
+
+    //Log::info('Ankit :', ['compliancePhaseHeaders' => $compliancePhaseHeaders]);
+
+    // $compliancePhaseHeaders = collect($subProjectsData)
+    // ->flatMap(fn ($sp) =>
+    //     collect($sp['safeguards'])->flatMap(fn ($sg) =>
+    //         collect($sg['phases'])
+    //             ->map(fn ($ph) => $sg['compliance'] . ' – ' . $ph['phase'])
+    //             ->reject(fn ($value) => $value === 'Environmental – Post Construction')
+    //     )
+    // )
+    // ->unique()
+    // ->values();
+
+
 
     // Dropdowns
     $departments = Department::orderBy('name')->get(['id', 'name']);
