@@ -34,9 +34,18 @@ class PackageProjectDocumentController extends Controller
 
         // Unified Social Safeguard Gallery
         $gallery = $this->getSocialSafeguardGallery($subProjectId, $complianceId, $phaseId);
+$socGallery = $this->getSocialSafeguardGallery($subProjectId, $complianceId, $phaseId);
 
-        return view('admin.package-projects.documents', compact('package', 'documents', 'subProjectDocs', 'gallery', 'subProjectId', 'complianceId', 'phaseId'));
-    }
+        // Define envGallery as empty array if you don't have logic for it yet, or fetch it similarly
+        $envGallery = []; 
+
+        return view('admin.package-projects.documents', compact(
+            'package', 'documents', 'subProjectDocs', 
+            'socGallery', 'envGallery', // ✅ Passed correctly
+            'subProjectId', 'complianceId', 'phaseId'
+        ));
+       
+        }
     public function subProjectDocuments($subProjectId)
     {
         $subProject = SubPackageProject::with(['packageProject', 'epcEntries.physicalEpcProgresses'])->findOrFail($subProjectId);
@@ -134,21 +143,20 @@ class PackageProjectDocumentController extends Controller
         return $subProjectDocs;
     }
 
-    /**
+   /**
      * Collect social safeguard gallery data
      */
     private function getSocialSafeguardGallery($subProjectId = null, $complianceId = null, $phaseId = null): array
     {
-        $query = SocialSafeguardEntry::with('safeguardEntry');
+        // 1. Change 'safeguardEntry' to 'masterSafeguard' (Matches your Model logic)
+        $query = SocialSafeguardEntry::with('masterSafeguard');
 
         if ($subProjectId) {
             $query->where('sub_package_project_id', $subProjectId);
         }
-
         if ($complianceId) {
             $query->where('social_compliance_id', $complianceId);
         }
-
         if ($phaseId) {
             $query->where('contraction_phase_id', $phaseId);
         }
@@ -157,27 +165,36 @@ class PackageProjectDocumentController extends Controller
 
         $gallery = [];
         foreach ($entries as $entry) {
-            $mediaIds = is_array($entry->photos_documents_case_studies) ? $entry->photos_documents_case_studies : json_decode($entry->photos_documents_case_studies, true);
+            // Decode media IDs
+            $mediaIds = is_array($entry->photos_documents_case_studies) 
+                ? $entry->photos_documents_case_studies 
+                : json_decode($entry->photos_documents_case_studies, true);
 
-            if (!$mediaIds) {
+            if (empty($mediaIds)) {
                 continue;
             }
 
+            // Fetch actual files
             $mediaFiles = MediaFile::whereIn('id', $mediaIds)->get();
             if ($mediaFiles->isEmpty()) {
                 continue;
             }
 
             $dateKey = Carbon::parse($entry->date_of_entry)->format('Y-m-d');
+            
+            // 2. Map the data correctly using masterSafeguard
             $gallery[$dateKey][] = [
                 'entry' => $entry,
                 'media' => $mediaFiles,
                 'remarks' => $entry->remarks,
                 'yes_no' => $entry->yes_no,
-                'item_description' => $entry->safeguardEntry?->item_description,
+                // ✅ FIX: Use masterSafeguard to get the description
+                'item_description' => $entry->masterSafeguard?->item_description ?? 'Description not found',
+                'phase' => $entry->contractionPhase?->name ?? 'N/A'
             ];
         }
 
         return $gallery;
     }
+
 }
