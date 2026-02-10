@@ -250,7 +250,7 @@
                         const displayDate = new Date(date).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
 
                         html += `<div class="mb-5">
-                                    <h5 class="border-start border-4 border-${themeColor} ps-3 mb-3 fw-bold text-dark">${displayDate}</h5>`;
+                                    <h5 class="border-start   ps-3 mb-3 fw-bold text-dark">${displayDate}</h5>`;
 
                         items.forEach((group, idx) => {
                             // Logic for Status Badge
@@ -264,7 +264,7 @@
                                 <div class="card-body">
                                     <div class="row">
                                         {{-- Left Side: Details --}}
-                                        <div class="col-md-5 border-end">
+                                        <div class="col-md-2 border-end">
                                             <div class="mb-2">
                                                 <h6 class="fw-bold text-dark mb-2">${group.item_description}</h6>
                                             </div>
