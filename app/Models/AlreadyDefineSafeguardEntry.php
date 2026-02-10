@@ -56,6 +56,11 @@ class AlreadyDefineSafeguardEntry extends Model
         return $this->belongsTo(SafeguardCompliance::class, 'safeguard_compliance_id');
     }
 
+     public function socialCompliance()
+    {
+        return $this->belongsTo(SafeguardCompliance::class, 'safeguard_compliance_id');
+    }
+
     /** Contraction Phase relationship */
     public function contractionPhase()
     {
