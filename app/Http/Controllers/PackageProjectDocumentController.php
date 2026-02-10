@@ -139,7 +139,7 @@ class PackageProjectDocumentController extends Controller
      */
     private function getSocialSafeguardGallery($subProjectId = null, $complianceId = null, $phaseId = null): array
     {
-        $query = SocialSafeguardEntry::with('masterSafeguard');
+        $query = SocialSafeguardEntry::with('masterSafeguard.safeguardCompliance');
 
         if ($subProjectId) {
             $query->where('sub_package_project_id', $subProjectId);
