@@ -173,8 +173,8 @@ class PackageProjectDocumentController extends Controller
     $entries = $query->orderBy('date_of_entry', 'desc')->get();
 
     $gallery = [];
+
     foreach ($entries as $entry) {
-        // Handle media IDs safely
         $mediaIds = is_array($entry->photos_documents_case_studies) 
             ? $entry->photos_documents_case_studies 
             : json_decode($entry->photos_documents_case_studies, true);
@@ -184,16 +184,19 @@ class PackageProjectDocumentController extends Controller
         $mediaFiles = MediaFile::whereIn('id', $mediaIds)->get();
         if ($mediaFiles->isEmpty()) continue;
 
+        // Grouping Keys
+        $complianceName = $entry->masterSafeguard?->safeguardCompliance?->name ?? 'Other Compliances';
+        $monthKey = Carbon::parse($entry->date_of_entry)->format('Y-m'); // "2024-02"
         $dateKey = Carbon::parse($entry->date_of_entry)->format('Y-m-d');
-        
-        $gallery[$dateKey][] = [
-            'entry' => $entry,
+
+        // Structure: Compliance -> Month -> Date -> Items
+        $gallery[$complianceName][$monthKey][$dateKey][] = [
+            'entry_id' => $entry->id,
             'media' => $mediaFiles,
             'remarks' => $entry->remarks,
             'yes_no' => $entry->yes_no,
             'item_description' => $entry->masterSafeguard?->item_description,
-            // ✅ Fix: Use correct relationship chain for the name
-            'complience_name' => $entry->masterSafeguard?->safeguardCompliance?->name ?? 'N/A',
+            'phase' => $entry->contractionPhase?->name ?? 'N/A'
         ];
     }
 
