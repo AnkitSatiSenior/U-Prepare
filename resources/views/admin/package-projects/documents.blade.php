@@ -248,7 +248,7 @@
                                     <div class="row">
                                         <div class="col-md-4 border-end">
                                             <h6 class="fw-bold text-dark">${item.item_description}</h6>
-                                            <div class="mt-2 text-muted small">
+                                            <div class="mt-2 text-muted h5">
                                                 <div><strong>Phase:</strong> ${item.phase}</div>
                                                 <div class="mt-1"><strong>Status:</strong> ${statusBadge}</div>
                                             </div>
