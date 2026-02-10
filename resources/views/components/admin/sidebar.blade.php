@@ -484,10 +484,7 @@
                                         </a></li>
                                 @endif
 
-                                @if (canRoute('admin.safeguard-global.index'))
-                                    <li><a href="{{ route('admin.safeguard-global.index') }}"><i
-                                                class="fa fa-globe"></i> Safeguard-Global</a></li>
-                                @endif
+                                
                                 @if (canRoute('admin.projects-category.index'))
                                     <li><a href="{{ route('admin.projects-category.index') }}"><i
                                                 class="fa fa-folder-open"></i> Procurement Categories</a></li>
