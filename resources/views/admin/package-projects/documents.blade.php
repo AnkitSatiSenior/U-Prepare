@@ -233,7 +233,7 @@
                         const displayDate = new Date(date).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' });
 
                         html += `<div class="mb-5">
-                                    <h5 class="border-start border-4 border-primary ps-3 mb-3 fw-bold text-dark bg-light py-2 rounded">${displayDate}</h5>`;
+                                    <h5 class="border-start  ps-3 mb-3 fw-bold text-dark bg-light py-2 rounded">${displayDate}</h5>`;
 
                         items.forEach(item => {
                             // Status Logic
