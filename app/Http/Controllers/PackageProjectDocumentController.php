@@ -15,28 +15,127 @@ class PackageProjectDocumentController extends Controller
     /**
      * Show package project documents and social safeguard gallery
      */
-    public function index(Request $request, $id)
-    {
-        $package = PackageProject::with([
-            'procurementDetail',
-            'workPrograms',
-            'subProjects.epcEntries.physicalEpcProgresses', // ✅ we’ll use accessor for mediaFiles
-        ])->findOrFail($id);
+  // In your Controller
 
-        // Package & SubProject documents
-        $documents = $this->getPackageDocuments($package);
-        $subProjectDocs = $this->getSubProjectDocuments($package);
+public function index(Request $request, $id)
+{
+    $package = PackageProject::with([
+        'procurementDetail',
+        'workPrograms',
+        'subProjects.epcEntries.physicalEpcProgresses', 
+    ])->findOrFail($id);
 
-        // Optional filters for safeguard gallery
-        $subProjectId = $request->input('sub_package_project_id');
-        $complianceId = $request->input('safeguard_compliance_id');
-        $phaseId = $request->input('contraction_phase_id');
+    $documents = $this->getPackageDocuments($package);
+    $subProjectDocs = $this->getSubProjectDocuments($package);
 
-        // Unified Social Safeguard Gallery
-        $gallery = $this->getSocialSafeguardGallery($subProjectId, $complianceId, $phaseId);
+    // Filters
+    $subProjectId = $request->input('sub_package_project_id');
+    $complianceId = $request->input('safeguard_compliance_id');
+    $phaseId = $request->input('contraction_phase_id');
 
-        return view('admin.package-projects.documents', compact('package', 'documents', 'subProjectDocs', 'gallery', 'subProjectId', 'complianceId', 'phaseId'));
+    // ✅ Get Split Galleries
+    $galleries = $this->getSafeguardGalleries($subProjectId, $complianceId, $phaseId);
+
+    return view('admin.package-projects.documents', [
+        'package' => $package,
+        'documents' => $documents,
+        'subProjectDocs' => $subProjectDocs,
+        // Pass them separately
+        'envGallery' => $galleries['environmental'],
+        'socGallery' => $galleries['social'],
+        'subProjectId' => $subProjectId,
+        'complianceId' => $complianceId,
+        'phaseId' => $phaseId
+    ]);
+}
+
+private function getSafeguardGalleries($subProjectId = null, $complianceId = null, $phaseId = null): array
+{
+    // 1. Fetch Entries
+    $query = SocialSafeguardEntry::with(['masterSafeguard', 'contractionPhase']);
+
+    if ($subProjectId) $query->where('sub_package_project_id', $subProjectId);
+    if ($complianceId) $query->where('social_compliance_id', $complianceId);
+    if ($phaseId) $query->where('contraction_phase_id', $phaseId);
+
+    $entries = $query->orderBy('date_of_entry', 'desc')->get();
+
+    // 2. Extract Media IDs
+    $allMediaIds = [];
+    foreach ($entries as $entry) {
+        $ids = $entry->photos_documents_case_studies;
+        if (is_string($ids)) {
+            $decoded = json_decode($ids, true);
+            $ids = (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) ? $decoded : explode(',', $ids);
+        }
+        if (is_array($ids)) {
+            $cleanIds = array_filter(array_map('intval', $ids));
+            $allMediaIds = array_merge($allMediaIds, $cleanIds);
+            $entry->temp_media_ids = $cleanIds; 
+        } else {
+            $entry->temp_media_ids = [];
+        }
     }
+
+    // 3. Fetch Media Files
+    $mediaFilesDict = MediaFile::whereIn('id', array_unique($allMediaIds))->get()->keyBy('id');
+
+    // 4. Initialize Result Arrays
+    $result = [
+        'environmental' => [],
+        'social' => []
+    ];
+
+    foreach ($entries as $entry) {
+        $entryMediaIds = $entry->temp_media_ids ?? [];
+        if (empty($entryMediaIds)) continue;
+
+        // Map Media
+        $mappedMedia = [];
+        foreach ($entryMediaIds as $mediaId) {
+            if (isset($mediaFilesDict[$mediaId])) {
+                $file = $mediaFilesDict[$mediaId];
+                $extension = strtolower(pathinfo($file->path, PATHINFO_EXTENSION));
+                $mimeType = strtolower($file->type ?? '');
+                $isImage = str_contains($mimeType, 'image') || in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
+
+                $mappedMedia[] = [
+                    'id' => $file->id,
+                    'full_url' => asset('storage/app/public/' . $file->path),
+                    'is_image' => $isImage,
+                    'extension' => $extension,
+                    'original_name' => $file->meta_data['name'] ?? basename($file->path),
+                ];
+            }
+        }
+
+        if (empty($mappedMedia)) continue;
+
+        // Determine Type (1 = Env, 2 = Social)
+        $sId = $entry->masterSafeguard->safeguard_compliance_id ?? 0;
+        
+        // Define data structure
+        $data = [
+            'id' => $entry->id,
+            'item_description' => $entry->masterSafeguard->item_description ?? 'Description Not Available',
+            'phase' => $entry->contractionPhase->name ?? 'N/A',
+            'yes_no' => (int) $entry->yes_no,
+            'remarks' => $entry->remarks,
+            'media' => $mappedMedia
+        ];
+        
+        $dateKey = \Carbon\Carbon::parse($entry->date_of_entry)->format('Y-m-d');
+
+        // Assign to specific array based on ID
+        if ($sId == 1) {
+            $result['environmental'][$dateKey][] = $data;
+        } elseif ($sId == 2) {
+            $result['social'][$dateKey][] = $data;
+        }
+    }
+
+    return $result;
+}
     public function subProjectDocuments($subProjectId)
     {
         $subProject = SubPackageProject::with(['packageProject', 'epcEntries.physicalEpcProgresses'])->findOrFail($subProjectId);
@@ -137,47 +236,5 @@ class PackageProjectDocumentController extends Controller
     /**
      * Collect social safeguard gallery data
      */
-    private function getSocialSafeguardGallery($subProjectId = null, $complianceId = null, $phaseId = null): array
-    {
-        $query = SocialSafeguardEntry::with('safeguardEntry');
 
-        if ($subProjectId) {
-            $query->where('sub_package_project_id', $subProjectId);
-        }
-
-        if ($complianceId) {
-            $query->where('social_compliance_id', $complianceId);
-        }
-
-        if ($phaseId) {
-            $query->where('contraction_phase_id', $phaseId);
-        }
-
-        $entries = $query->orderBy('date_of_entry', 'desc')->get();
-
-        $gallery = [];
-        foreach ($entries as $entry) {
-            $mediaIds = is_array($entry->photos_documents_case_studies) ? $entry->photos_documents_case_studies : json_decode($entry->photos_documents_case_studies, true);
-
-            if (!$mediaIds) {
-                continue;
-            }
-
-            $mediaFiles = MediaFile::whereIn('id', $mediaIds)->get();
-            if ($mediaFiles->isEmpty()) {
-                continue;
-            }
-
-            $dateKey = Carbon::parse($entry->date_of_entry)->format('Y-m-d');
-            $gallery[$dateKey][] = [
-                'entry' => $entry,
-                'media' => $mediaFiles,
-                'remarks' => $entry->remarks,
-                'yes_no' => $entry->yes_no,
-                'item_description' => $entry->safeguardEntry?->item_description,
-            ];
-        }
-
-        return $gallery;
-    }
 }
