@@ -175,6 +175,7 @@ class PackageProjectDocumentController extends Controller
                 'remarks' => $entry->remarks,
                 'yes_no' => $entry->yes_no,
                 'item_description' => $entry->masterSafeguard?->item_description,
+                'complience_name' => $entry->masterSafeguard?->safeguard_compliance_id->safeguardCompliance->name,
             ];
         }
 
