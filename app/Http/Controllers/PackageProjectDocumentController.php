@@ -16,27 +16,31 @@ class PackageProjectDocumentController extends Controller
      * Show package project documents and social safeguard gallery
      */
     public function index(Request $request, $id)
-    {
-        $package = PackageProject::with([
-            'procurementDetail',
-            'workPrograms',
-            'subProjects.epcEntries.physicalEpcProgresses', // ✅ we’ll use accessor for mediaFiles
-        ])->findOrFail($id);
+{
+    $package = PackageProject::with([
+        'procurementDetail',
+        'workPrograms',
+        'subProjects.epcEntries.physicalEpcProgresses', 
+    ])->findOrFail($id);
 
-        // Package & SubProject documents
-        $documents = $this->getPackageDocuments($package);
-        $subProjectDocs = $this->getSubProjectDocuments($package);
+    // ✅ STEP 1: Get ALL SubProject IDs for this specific Package
+    // This ensures we only search within this package's scope
+    $packageSubProjectIds = $package->subProjects->pluck('id')->toArray();
 
-        // Optional filters for safeguard gallery
-        $subProjectId = $request->input('sub_package_project_id');
-        $complianceId = $request->input('safeguard_compliance_id');
-        $phaseId = $request->input('contraction_phase_id');
+    // Package & SubProject documents
+    $documents = $this->getPackageDocuments($package);
+    $subProjectDocs = $this->getSubProjectDocuments($package);
 
-        // Unified Social Safeguard Gallery
-        $gallery = $this->getSocialSafeguardGallery($subProjectId, $complianceId, $phaseId);
+    // Inputs
+    $subProjectId = $request->input('sub_package_project_id');
+    $complianceId = $request->input('safeguard_compliance_id');
+    $phaseId = $request->input('contraction_phase_id');
 
-        return view('admin.package-projects.documents', compact('package', 'documents', 'subProjectDocs', 'gallery', 'subProjectId', 'complianceId', 'phaseId'));
-    }
+    // ✅ STEP 2: Pass $packageSubProjectIds to the gallery function
+    $gallery = $this->getSocialSafeguardGallery($packageSubProjectIds, $subProjectId, $complianceId, $phaseId);
+
+    return view('admin.package-projects.documents', compact('package', 'documents', 'subProjectDocs', 'gallery', 'subProjectId', 'complianceId', 'phaseId'));
+}
     public function subProjectDocuments($subProjectId)
     {
         $subProject = SubPackageProject::with(['packageProject', 'epcEntries.physicalEpcProgresses'])->findOrFail($subProjectId);
@@ -137,48 +141,62 @@ class PackageProjectDocumentController extends Controller
     /**
      * Collect social safeguard gallery data
      */
-    private function getSocialSafeguardGallery($subProjectId = null, $complianceId = null, $phaseId = null): array
-    {
-        $query = SocialSafeguardEntry::with('masterSafeguard.socialCompliance');
+    private function getSocialSafeguardGallery(array $packageSubProjectIds, $subProjectId = null, $complianceId = null, $phaseId = null): array
+{
+    // ✅ Fix: Use the correct relationship name 'safeguardCompliance'
+    $query = SocialSafeguardEntry::with('masterSafeguard.safeguardCompliance');
 
-        if ($subProjectId) {
+    // ✅ STEP 3: Apply the correct filtering logic
+    if ($subProjectId) {
+        // CASE A: User selected a specific Sub-Project
+        // Security check: Ensure the selected ID actually belongs to this package
+        if (in_array($subProjectId, $packageSubProjectIds)) {
             $query->where('sub_package_project_id', $subProjectId);
+        } else {
+            return []; // Return empty if trying to access unauthorized sub-project
         }
-
-        if ($complianceId) {
-            $query->where('social_compliance_id', $complianceId);
-        }
-
-        if ($phaseId) {
-            $query->where('contraction_phase_id', $phaseId);
-        }
-
-        $entries = $query->orderBy('date_of_entry', 'desc')->get();
-
-        $gallery = [];
-        foreach ($entries as $entry) {
-            $mediaIds = is_array($entry->photos_documents_case_studies) ? $entry->photos_documents_case_studies : json_decode($entry->photos_documents_case_studies, true);
-
-            if (!$mediaIds) {
-                continue;
-            }
-
-            $mediaFiles = MediaFile::whereIn('id', $mediaIds)->get();
-            if ($mediaFiles->isEmpty()) {
-                continue;
-            }
-
-            $dateKey = Carbon::parse($entry->date_of_entry)->format('Y-m-d');
-            $gallery[$dateKey][] = [
-                'entry' => $entry,
-                'media' => $mediaFiles,
-                'remarks' => $entry->remarks,
-                'yes_no' => $entry->yes_no,
-                'item_description' => $entry->masterSafeguard?->item_description,
-                'complience_name' => $entry->masterSafeguard?->socialCompliance?->name ?? 'N/A',
-            ];
-        }
-
-        return $gallery;
+    } else {
+        // CASE B: User selected "All" (or nothing)
+        // Fetch entries for ALL sub-projects in this package
+        $query->whereIn('sub_package_project_id', $packageSubProjectIds);
     }
+
+    // Apply other filters
+    if ($complianceId) {
+        $query->where('social_compliance_id', $complianceId);
+    }
+
+    if ($phaseId) {
+        $query->where('contraction_phase_id', $phaseId);
+    }
+
+    $entries = $query->orderBy('date_of_entry', 'desc')->get();
+
+    $gallery = [];
+    foreach ($entries as $entry) {
+        // Handle media IDs safely
+        $mediaIds = is_array($entry->photos_documents_case_studies) 
+            ? $entry->photos_documents_case_studies 
+            : json_decode($entry->photos_documents_case_studies, true);
+
+        if (empty($mediaIds)) continue;
+
+        $mediaFiles = MediaFile::whereIn('id', $mediaIds)->get();
+        if ($mediaFiles->isEmpty()) continue;
+
+        $dateKey = Carbon::parse($entry->date_of_entry)->format('Y-m-d');
+        
+        $gallery[$dateKey][] = [
+            'entry' => $entry,
+            'media' => $mediaFiles,
+            'remarks' => $entry->remarks,
+            'yes_no' => $entry->yes_no,
+            'item_description' => $entry->masterSafeguard?->item_description,
+            // ✅ Fix: Use correct relationship chain for the name
+            'complience_name' => $entry->masterSafeguard?->safeguardCompliance?->name ?? 'N/A',
+        ];
+    }
+
+    return $gallery;
+}
 }
