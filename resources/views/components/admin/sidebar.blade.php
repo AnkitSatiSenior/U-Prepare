@@ -445,10 +445,7 @@
                                     <li><a href="{{ route('admin.contractors.index') }}"><i
                                                 class="fa fa-user-tie"></i> Contractors</a></li>
                                 @endif
-                                @if (canRoute('admin.safeguard_entries.index'))
-                                    <li><a href="{{ route('admin.safeguard_entries.index') }}"><i
-                                                class="fa fa-list"></i> Safeguard Entries</a></li>
-                                @endif
+                                
                                 @if (canRoute('admin.safeguard-compliances.index'))
                                     <li><a href="{{ route('admin.safeguard-compliances.index') }}"><i
                                                 class="fa fa-check-circle"></i> Compliance</a></li>
