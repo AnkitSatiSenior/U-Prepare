@@ -139,7 +139,7 @@ class PackageProjectDocumentController extends Controller
      */
     private function getSocialSafeguardGallery($subProjectId = null, $complianceId = null, $phaseId = null): array
     {
-        $query = SocialSafeguardEntry::with('safeguardEntry');
+        $query = SocialSafeguardEntry::with('masterSafeguard');
 
         if ($subProjectId) {
             $query->where('sub_package_project_id', $subProjectId);
@@ -174,7 +174,7 @@ class PackageProjectDocumentController extends Controller
                 'media' => $mediaFiles,
                 'remarks' => $entry->remarks,
                 'yes_no' => $entry->yes_no,
-                'item_description' => $entry->safeguardEntry?->item_description,
+                'item_description' => $entry->masterSafeguard?->item_description,
             ];
         }
 
