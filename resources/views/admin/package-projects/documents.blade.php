@@ -238,9 +238,9 @@
                         items.forEach(item => {
                             // Status Logic
                             let statusBadge = '';
-                            if(item.yes_no === 1) statusBadge = '<span class="badge bg-success"><i class="fas fa-check-circle"></i> Yes</span>';
-                            else if(item.yes_no === 0) statusBadge = '<span class="badge bg-danger"><i class="fas fa-times-circle"></i> No</span>';
-                            else statusBadge = '<span class="badge bg-secondary">N/A</span>';
+                            if(item.yes_no === 1) statusBadge = '<span class="badge bg-success text-white"><i class="fas fa-check-circle"></i> Yes</span>';
+                            else if(item.yes_no === 0) statusBadge = '<span class="badge bg-danger text-white"><i class="fas fa-times-circle"></i> No</span>';
+                            else statusBadge = '<span class="badge bg-secondary text-white">N/A</span>';
 
                             html += `
                             <div class="card mb-3 border shadow-sm">
