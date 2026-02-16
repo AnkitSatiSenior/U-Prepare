@@ -60,20 +60,40 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($workPrograms as $i => $program)
-                                <tr>
-                                    <td>{{ $i + 1 }}</td>
-                                    <td>{{ $program->name_work_program }}</td>
-                                    <td>{{ $program->weightage }}%</td>
-                                    <td>{{ $program->days ?? 'N/A' }}</td>
-                                    <td>
-                                        {{ $program->start_date ? \Carbon\Carbon::parse($program->start_date)->format('d M Y') : 'N/A' }}
-                                    </td>
-                                    <td>
-                                        {{ $program->planned_date ? \Carbon\Carbon::parse($program->planned_date)->format('d M Y') : 'N/A' }}
-                                    </td>
-                                </tr>
-                            @endforeach
+                            @php 
+    // Initialize the tracker with the first program's start date
+    // If no start date exists for the first item, it defaults to today
+    $currentDate = $workPrograms->first() && $workPrograms->first()->start_date 
+        ? \Carbon\Carbon::parse($workPrograms->first()->start_date) 
+        : \Carbon\Carbon::now();
+@endphp
+
+@foreach ($workPrograms as $i => $program)
+    @php
+        // 1. Current Start Date is the running tracker
+        $startDate = $currentDate->copy();
+        
+        // 2. Calculate Planned Date (Start + Days)
+        $daysToAdd = (int)($program->days ?? 0);
+        $plannedDate = $startDate->copy()->addDays($daysToAdd);
+        
+        // 3. Update the tracker for the NEXT row in the loop
+        $currentDate = $plannedDate->copy();
+    @endphp
+
+    <tr>
+        <td>{{ $i + 1 }}</td>
+        <td>{{ $program->name_work_program }}</td>
+        <td>{{ $program->weightage }}%</td>
+        <td>{{ $program->days ?? 0 }}</td>
+        <td>
+            {{ $startDate->format('d M Y') }}
+        </td>
+        <td>
+            {{ $plannedDate->format('d M Y') }}
+        </td>
+    </tr>
+@endforeach
                         </tbody>
                     </table>   
                 @endif
