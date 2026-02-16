@@ -1,7 +1,6 @@
 <x-app-layout>
     <div class="container-fluid">
 
-        <!-- Header & Breadcrumb -->
         <x-admin.breadcrumb-header icon="fas fa-edit text-primary" title="Edit Procurement Work Programs"
             :breadcrumbs="[
                 ['route' => 'dashboard', 'label' => '<i class=\'fas fa-home\'></i> Dashboard'],
@@ -9,30 +8,24 @@
             ]" />
 
 
-        <!-- Server & Validation Errors -->
         <div id="alerts"></div>
 
-        <!-- Shared Start Date -->
         <div class="mb-3 row">
             <label for="sharedStartDate" class="col-sm-2 col-form-label fw-semibold">Shared Start Date</label>
             <div class="col-sm-4">
-                <input
-    type="date"
-    id="sharedStartDate"
-    class="form-control"
-    value="{{ \Carbon\Carbon::parse($workPrograms->first()->start_date)->format('Y-m-d') }}"
->
-
+                {{-- Validates that there is a date, otherwise defaults to today --}}
+                <input type="date" id="sharedStartDate" class="form-control"
+                    value="{{ $workPrograms->first() ? \Carbon\Carbon::parse($workPrograms->first()->start_date)->format('Y-m-d') : date('Y-m-d') }}">
             </div>
             <div class="col-sm-6 d-flex justify-content-end">
                 <a href="{{ route('admin.procurement-details.index') }}" class="btn btn-secondary me-2">
                     <i class="fas fa-arrow-left me-1"></i> Back
                 </a>
-                <button id="saveAll" class="btn btn-primary me-2" disabled>Save All (optional)</button>
+                {{-- Optional: A button to save all via AJAX could be implemented, but per row is standard here --}}
                 <button id="addRow" class="btn btn-success"><i class="fas fa-plus-circle me-1"></i> Add Row</button>
             </div>
-
         </div>
+
         <form
             action="{{ route('admin.procurement-work-programs.upload-documents', [$procurementWorkProgram->package_project_id, $procurementWorkProgram->procurement_details_id]) }}"
             method="POST" enctype="multipart/form-data">
@@ -84,8 +77,7 @@
         </form>
 
 
-        <!-- Card -->
-        <div class="card shadow-sm">
+        <div class="card shadow-sm mt-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <strong>Work Program Details</strong>
                 <small class="text-muted">Package: <span
@@ -122,6 +114,7 @@
                                         value="{{ $program->days }}">
                                 </td>
                                 <td>
+                                    {{-- Readonly by default recommendation since it's auto-calc, but kept editable as per request --}}
                                     <input type="date" name="planned_date" class="form-control planned-date-input"
                                         value="{{ optional($program->planned_date)->format('Y-m-d') }}">
                                 </td>
@@ -138,7 +131,6 @@
                                         </button>
                                     </div>
 
-                                    <!-- Hidden metadata -->
                                     <input type="hidden" class="package_project_id"
                                         value="{{ $program->package_project_id }}">
                                     <input type="hidden" class="procurement_details_id"
@@ -149,7 +141,6 @@
                     </tbody>
                 </table>
 
-                <!-- Empty state -->
                 @if ($workPrograms->isEmpty())
                     <div class="text-center py-4 text-muted">No work programs found for this package / procurement.
                     </div>
@@ -157,9 +148,11 @@
             </div>
         </div>
     </div>
+
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
         <div id="toastContainer"></div>
     </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // === CONSTANTS & ELEMENTS ===
@@ -168,7 +161,127 @@
             const tableBody = document.getElementById('workProgramTable');
             const toastContainer = document.getElementById('toastContainer');
 
-            // === UTILITIES ===
+            // === 1. DATE CALCULATION LOGIC (Waterfall/Sequential) ===
+            function recalculateAllDates() {
+                let currentStartDate = sharedStartDateInput.value;
+
+                const rows = tableBody.querySelectorAll('tr');
+
+                rows.forEach(row => {
+                    const daysInput = row.querySelector('.days-input');
+                    const plannedDateInput = row.querySelector('.planned-date-input');
+
+                    if (!daysInput || !plannedDateInput) return;
+
+                    const days = parseInt(daysInput.value, 10);
+
+                    if (!isNaN(days) && currentStartDate) {
+                        const base = new Date(currentStartDate);
+                        // Add Days to current start date
+                        base.setDate(base.getDate() + days);
+
+                        // Format YYYY-MM-DD
+                        const plannedDate = base.toISOString().slice(0, 10);
+                        plannedDateInput.value = plannedDate;
+
+                        // The planned date of this row becomes the start date of the NEXT row
+                        currentStartDate = plannedDate;
+                    } else {
+                        plannedDateInput.value = '';
+                        // If calculation breaks, next rows can't calculate
+                        currentStartDate = ''; 
+                    }
+                });
+            }
+
+            // Listen for Global Start Date changes
+            sharedStartDateInput.addEventListener('input', recalculateAllDates);
+
+            // === 2. ROW HANDLERS ===
+            function attachRowListeners(row) {
+                const daysInput = row.querySelector('.days-input');
+                const nameInput = row.querySelector('.name-input');
+                const weightageInput = row.querySelector('.weightage-input');
+
+                // Recalculate everything when "Days" changes in any row
+                if (daysInput) {
+                    daysInput.addEventListener('input', recalculateAllDates);
+                }
+
+                // AJAX Save
+                const saveBtn = row.querySelector('.save-row');
+                if (saveBtn) saveBtn.addEventListener('click', () => handleSaveRow(row, saveBtn.dataset.action));
+
+                // AJAX Delete
+                const deleteBtn = row.querySelector('.delete-row');
+                if (deleteBtn) deleteBtn.addEventListener('click', () => handleDeleteRow(row, deleteBtn.dataset.action));
+
+                // Validation Styling
+                [nameInput, weightageInput].forEach(el => {
+                    if (!el) return;
+                    el.addEventListener('input', () => {
+                        if (el.name === 'weightage') {
+                            const val = parseFloat(el.value);
+                            el.classList.toggle('is-invalid', isNaN(val) || val < 0 || val > 100);
+                        } else if (el.name === 'name_work_program') {
+                            el.classList.toggle('is-invalid', !el.value.trim());
+                        }
+                    });
+                });
+            }
+
+            // Initialize existing rows
+            tableBody.querySelectorAll('tr').forEach(attachRowListeners);
+            
+            // Run calculation immediately on page load to ensure consistency
+            recalculateAllDates();
+
+            // === 3. ADD ROW LOGIC ===
+            document.getElementById('addRow').addEventListener('click', function() {
+                // Find IDs from existing rows or use defaults if table is empty
+                let packageProjectId = '';
+                let procurementDetailsId = '';
+                
+                const existingRow = tableBody.querySelector('tr');
+                if (existingRow) {
+                    packageProjectId = existingRow.querySelector('.package_project_id').value;
+                    procurementDetailsId = existingRow.querySelector('.procurement_details_id').value;
+                } else {
+                    // Fallback if table is empty (You might want to pass these from PHP to JS variables)
+                    packageProjectId = "{{ $procurementWorkProgram->package_project_id ?? '' }}";
+                    procurementDetailsId = "{{ $procurementWorkProgram->procurement_details_id ?? '' }}";
+                }
+
+                const tempId = 'temp-' + Date.now();
+
+                const newRowHtml = `
+            <tr data-id="${tempId}">
+                <td><input type="text" name="name_work_program" class="form-control name-input" value=""></td>
+                <td><input type="number" name="weightage" step="0.01" min="0" max="100" 
+                           class="form-control weightage-input text-end" value=""></td>
+                <td><input type="number" name="days" min="0" class="form-control days-input" value="0"></td>
+                <td><input type="date" name="planned_date" class="form-control planned-date-input" value=""></td>
+                <td class="text-center">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-primary btn-sm save-row">
+                            <i class="fas fa-save"></i> Save
+                        </button>
+                        <button type="button" class="btn btn-danger btn-sm delete-row">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                    <input type="hidden" class="package_project_id" value="${packageProjectId}">
+                    <input type="hidden" class="procurement_details_id" value="${procurementDetailsId}">
+                </td>
+            </tr>
+        `;
+                tableBody.insertAdjacentHTML('beforeend', newRowHtml);
+                attachRowListeners(tableBody.querySelector(`tr[data-id="${tempId}"]`));
+                recalculateAllDates(); // Recalculate to set the date for new row
+                showToast('Row added. Fill details and click Save.', 'Info', true);
+            });
+
+            // === 4. UTILITIES (Toast & Validation) ===
             function showToast(message, title = '', isSuccess = true, timeout = 3000) {
                 const id = 'toast-' + Date.now();
                 const toastHtml = `
@@ -222,99 +335,12 @@
                     .replace(/'/g, '&#039;');
             }
 
-            // === DATE CALCULATION ===
-            function calculatePlannedDateForRow(row) {
-                const daysInput = row.querySelector('.days-input');
-                const plannedDateInput = row.querySelector('.planned-date-input');
-                const days = parseInt(daysInput.value, 10);
-                const startDate = sharedStartDateInput.value;
-
-                if (!isNaN(days) && startDate) {
-                    const base = new Date(startDate);
-                    base.setDate(base.getDate() + days);
-                    plannedDateInput.value = base.toISOString().split('T')[0];
-                } else if (!plannedDateInput.value) {
-                    plannedDateInput.value = '';
-                }
-            }
-
-            // === ROW HANDLERS ===
-            function attachRowListeners(row) {
-                const daysInput = row.querySelector('.days-input');
-                const nameInput = row.querySelector('.name-input');
-                const weightageInput = row.querySelector('.weightage-input');
-
-                if (daysInput) daysInput.addEventListener('input', () => calculatePlannedDateForRow(row));
-                sharedStartDateInput.addEventListener('input', () => calculatePlannedDateForRow(row));
-
-                const saveBtn = row.querySelector('.save-row');
-                if (saveBtn) saveBtn.addEventListener('click', () => handleSaveRow(row, saveBtn.dataset.action));
-
-                const deleteBtn = row.querySelector('.delete-row');
-                if (deleteBtn) deleteBtn.addEventListener('click', () => handleDeleteRow(row, deleteBtn.dataset
-                    .action));
-
-                // Validation UI
-                [nameInput, weightageInput].forEach(el => {
-                    if (!el) return;
-                    el.addEventListener('input', () => {
-                        if (el.name === 'weightage') {
-                            const val = parseFloat(el.value);
-                            el.classList.toggle('is-invalid', isNaN(val) || val < 0 || val > 100);
-                        } else if (el.name === 'name_work_program') {
-                            el.classList.toggle('is-invalid', !el.value.trim());
-                        }
-                    });
-                });
-            }
-
-            // Attach to existing rows
-            tableBody.querySelectorAll('tr').forEach(attachRowListeners);
-
-            // === ADD ROW ===
-            document.getElementById('addRow').addEventListener('click', function() {
-                const firstRow = tableBody.querySelector('tr');
-                if (!firstRow) {
-                    showToast('No package/procurement context found.', 'Error', false);
-                    return;
-                }
-
-                const packageProjectId = firstRow.querySelector('.package_project_id').value;
-                const procurementDetailsId = firstRow.querySelector('.procurement_details_id').value;
-                const tempId = 'temp-' + Date.now();
-
-                const newRowHtml = `
-            <tr data-id="${tempId}">
-                <td><input type="text" name="name_work_program" class="form-control name-input" value=""></td>
-                <td><input type="number" name="weightage" step="0.01" min="0" max="100" 
-                           class="form-control weightage-input text-end" value=""></td>
-                <td><input type="number" name="days" min="0" class="form-control days-input" value=""></td>
-                <td><input type="date" name="planned_date" class="form-control planned-date-input" value=""></td>
-                <td class="text-center">
-                    <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-primary btn-sm save-row">
-                            <i class="fas fa-save"></i> Save
-                        </button>
-                        <button type="button" class="btn btn-danger btn-sm delete-row">
-                            <i class="fas fa-trash"></i> Delete
-                        </button>
-                    </div>
-                    <input type="hidden" class="package_project_id" value="${packageProjectId}">
-                    <input type="hidden" class="procurement_details_id" value="${procurementDetailsId}">
-                </td>
-            </tr>
-        `;
-                tableBody.insertAdjacentHTML('beforeend', newRowHtml);
-                attachRowListeners(tableBody.querySelector(`tr[data-id="${tempId}"]`));
-                showToast('Row added locally. Remember to save.', 'Info', true);
-            });
-
-            // === SAVE SINGLE ROW ===
+            // === 5. AJAX ACTIONS ===
             function handleSaveRow(row, actionUrl) {
                 const id = row.dataset.id;
                 const name = row.querySelector('.name-input').value.trim();
                 const weightage = row.querySelector('.weightage-input').value;
-                const days = row.querySelector('.days-input').value || null;
+                const days = row.querySelector('.days-input').value || 0;
                 const planned_date = row.querySelector('.planned-date-input').value || null;
                 const packageProjectId = row.querySelector('.package_project_id').value;
                 const procurementDetailsId = row.querySelector('.procurement_details_id').value;
@@ -330,7 +356,6 @@
                 }
 
                 // Detect if it's a NEW row (no DB ID yet)
-                let method = 'PUT';
                 let url = actionUrl;
                 let postData = {
                     _token: csrfToken,
@@ -341,32 +366,28 @@
                 };
 
                 if (id.startsWith('temp-')) {
-                    // NEW — use storeSingle route
-                    method = 'POST';
                     url = "{{ route('admin.procurement-work-programs.store-single') }}";
                     postData.package_project_id = packageProjectId;
                     postData.procurement_details_id = procurementDetailsId;
                 } else {
-                    // EXISTING — use update
                     postData._method = 'PUT';
                 }
 
                 $.ajax({
                     url: url,
-                    method: 'POST', // Always POST; Laravel will handle _method for PUT
+                    method: 'POST',
                     data: postData,
                     success: function(response) {
                         if (response.success) {
                             showToast(response.message || 'Saved successfully', 'Success', true);
 
                             if (id.startsWith('temp-') && response.data?.id) {
-                                // Replace temp ID with DB ID and set correct URLs
                                 row.dataset.id = response.data.id;
+                                // Update action URLs for the saved row
                                 row.querySelector('.save-row').dataset.action =
-                                    "{{ url('procurement-work-programs/update-single') }}/" + response
-                                    .data.id;
+                                    "{{ url('admin/procurement-work-programs/update-single') }}/" + response.data.id;
                                 row.querySelector('.delete-row').dataset.action =
-                                    "{{ url('procurement-work-programs') }}/" + response.data.id;
+                                    "{{ url('admin/procurement-work-programs') }}/" + response.data.id;
                             }
                         } else {
                             showToast(response.message || 'Unable to save', 'Error', false);
@@ -382,12 +403,11 @@
                 });
             }
 
-
-            // === DELETE ROW ===
             function handleDeleteRow(row, actionUrl) {
                 const id = row.dataset.id;
                 if (id.startsWith('temp-')) {
                     row.remove();
+                    recalculateAllDates(); // Recalculate after remove
                     showToast('Unsaved row removed.', 'Info', true);
                     return;
                 }
@@ -404,6 +424,7 @@
                     success: function(response) {
                         if (response.success ?? true) {
                             row.remove();
+                            recalculateAllDates(); // Recalculate after delete
                             showToast(response.message || 'Deleted successfully.', 'Success', true);
                         } else {
                             showToast(response.message || 'Could not delete', 'Error', false);
@@ -416,6 +437,4 @@
             }
         });
     </script>
-
-
 </x-app-layout>
