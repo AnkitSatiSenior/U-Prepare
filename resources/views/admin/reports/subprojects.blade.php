@@ -105,18 +105,16 @@
                             </td>
                             <td class="text-end">₹{{ $sp['contractValue'] }}</td>
 
-                            <td class="{{ $sp['physicalPercent'] > 0 ? 'bg-success text-white' : 'bg-danger text-white' }} text-center"
-                                style="cursor: pointer">
+                            <td class="{{ $sp['physicalPercent'] > 0 ? 'bg-light-success align-middle' : 'bg-light-danger align-middle' }} 
+                            text-center   text-decoration-underline" style="cursor: pointer">
 
                                 {{-- If ITEM-WISE (BOQ), make it clickable --}}
                                 @if (strtolower($sp['type_of_procurement_name'] ?? '') === 'item-rate')
-                                    <a href="{{ url('/admin/physical_boq_progress_get') }}?sub_package_project_id={{ $sp['id'] }}"
-                                        class="text-white text-decoration-underline fw-bold">
+                                    <a href="{{ url('/admin/physical_boq_progress_get') }}?sub_package_project_id={{ $sp['id'] }}">
                                         {{ $sp['physicalPercent'] }}%
                                     </a>
                                 @elseif (strtolower($sp['type_of_procurement_name'] ?? '') === 'epc')
-                                    <a href="{{ url('/admin/physical-epc-report') }}?sub_package_project_id={{ $sp['id'] }}"
-                                        class="text-white text-decoration-underline fw-bold">
+                                    <a href="{{ url('/admin/physical-epc-report') }}?sub_package_project_id={{ $sp['id'] }}" >
                                         {{ $sp['physicalPercent'] }}%
                                     </a>
                                 @else
@@ -133,7 +131,8 @@
 
 
                             <td
-                                class="{{ $sp['financePercent'] > 0 ? 'bg-success text-white' : 'bg-danger text-white' }}">
+                                class="{{ $sp['financePercent'] > 0 ? 'bg-light-success-lte align-middle' : 'bg-light-danger-lte align-middle' }} 
+                                text-center   text-decoration-underline">
                                 {{ $sp['financePercent'] }}%
                             </td>
 
@@ -147,8 +146,11 @@
                                 @endphp
                                 <td data-sub-id="{{ $sp['id'] }}" data-comp-id="{{ $comp['id'] ?? '' }}"
                                     data-phase-id="{{ $phase['id'] ?? '' }}"
-                                    class="text-center {{ $percent > 0 ? 'bg-success text-white' : 'bg-danger text-white' }}">
-                                    {{ $percent !== null ? $percent . '%' : '0%' }}
+                                    class="text-center {{ $percent > 0 ? 'bg-light-success-lte align-middle' : 'bg-light-danger-lte align-middle' }} 
+                                    text-center text-decoration-underline">
+                                 
+                                            {{ $percent !== null ? $percent . '%' : '0%' }}
+                                        
                                 </td>
                             @endforeach
                         </tr>
