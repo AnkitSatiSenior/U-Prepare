@@ -10,7 +10,16 @@
     .table-success th {
         border-color: #218838 !important;
     }
+.bg-light-success-lte {
+background-color: #BBEFB6 !important;
+/* light green */
+}
 
+
+.bg-light-success-lte {
+background-color: #FBA6A2 !important;
+/* light red */
+}
     /* Default select */
 .form-select {
     display: block;
