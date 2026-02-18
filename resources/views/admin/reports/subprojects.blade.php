@@ -105,7 +105,7 @@
                             </td>
                             <td class="text-end">₹{{ $sp['contractValue'] }}</td>
 
-                            <td class="{{ $sp['physicalPercent'] > 0 ? 'bg-light-success align-middle' : 'bg-light-danger align-middle' }} 
+                            <td class="{{ $sp['physicalPercent'] > 0 ? 'bg-light-success-lte align-middle' : 'bg-light-danger-lte align-middle' }} 
                             text-center   text-decoration-underline" style="cursor: pointer">
 
                                 {{-- If ITEM-WISE (BOQ), make it clickable --}}
