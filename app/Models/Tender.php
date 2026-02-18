@@ -20,4 +20,13 @@ class Tender extends Model
         'close_date',
         'ip_address',
     ];
+
+    /**
+     * The attributes that should be cast.
+     * This converts the database string to a Carbon Date object.
+     */
+    protected $casts = [
+        'open_date' => 'datetime',
+        'close_date' => 'datetime',
+    ];
 }
