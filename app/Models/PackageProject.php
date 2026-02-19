@@ -36,6 +36,9 @@ class PackageProject extends Model
     const STATUS_CANCEL = 'Cancel';
     const STATUS_REBID = 'To be Rebid';
     const STATUS_REMOVED = 'Removed';
+    const STATUS_TAC_APPROVED ='TAC Approved';
+    const STATUS_TEC_APPROVED ='TEC Approved';
+    const STATUS_WARRANTY_CMC ='Warranty CMC';
 
     /**
      * Get all statuses in chronological/logical order for dropdowns
@@ -43,6 +46,9 @@ class PackageProject extends Model
     public static function getAllStatuses(): array
     {
         return [
+            self::STATUS_WARRANTY_CMC,
+            self::STATUS_TEC_APPROVED,
+            self::STATUS_TAC_APPROVED, 
             self::STATUS_DPR_PREPARATION,
             self::STATUS_TOR_SPECIFICATION_FINALIZED,
             self::STATUS_PENDING_PROCUREMENT,
