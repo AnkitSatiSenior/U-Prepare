@@ -115,10 +115,9 @@
                 <x-admin.data-table id="package-projects-table" :headers="[
                     'Package',
                     'Category',
-                    'Sanction Budge (₹)',
+                    'Contracts',
                     'District',
                     'Procurement',
-                    'Contracts',
                     'Status',
                     'Actions',
                 ]" :excel="true" :print="true"
@@ -246,7 +245,7 @@
                             </td>
 
                             <!-- Contracts -->
-                            <td class="align-middle">
+                            {{-- <td class="align-middle">
                                 @if ($project->contracts->isNotEmpty())
                                     <div class="dropdown">
                                         <button class="btn btn-sm btn-outline-info dropdown-toggle" type="button"
@@ -279,7 +278,7 @@
                                         <i class="fas fa-times-circle"></i> No Contracts
                                     </span>
                                 @endif
-                            </td>
+                            </td> --}}
 
                             <!-- Status -->
                             <td>
