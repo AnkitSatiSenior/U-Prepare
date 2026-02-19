@@ -80,7 +80,7 @@ Route::get('/send-test-mail', function () {
 
     Mail::raw('Hello! This is a test email from Laravel using Zoho SMTP.', function ($message) use ($to_email) {
         $message->to($to_email)
-                ->subject('Laravel Zoho SMTP Test Mail');
+            ->subject('Laravel Zoho SMTP Test Mail');
     });
 
     return 'Test email sent to ' . $to_email;
@@ -426,9 +426,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
             Route::resource('project', ProjectController::class);
             Route::resource('projects-category', ProjectsCategoryController::class);
             Route::resource('package-projects', PackageProjectController::class);
-            
 
-Route::resource('package-statuses', PackageStatusController::class)->except(['create', 'edit', 'show']);
+
+            Route::resource('package-statuses', PackageStatusController::class)->except(['create', 'edit', 'show']);
         });
     Route::get('admin/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
