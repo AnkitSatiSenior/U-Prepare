@@ -552,6 +552,55 @@ if (($scope ?? 'all') === 'all') {
                 </x-admin.data-table>
             </div>
         </div>
+        <div class="card shadow-sm mt-5">
+    <div class="card-header border-bottom">
+        <div class="fw-bold fs-5">Package Status Overview</div>
+    </div>
+    <div class="card-body">
+        <x-admin.data-table :headers="[
+            'Status',
+            'Department Breakdown',
+            'Total Projects',
+            'Total Contract Value (₹)',
+            'Total Contract Value (Cr)'
+        ]" id="package-status-table" :excel="true" :print="true"
+            :pageLength="10">
+            @foreach ($packageStatusStats as $stat)
+                <tr>
+                    <td class="fw-bold text-dark">{{ $stat['status_name'] }}</td>
+                    
+                    <td>
+                        @if(count($stat['departments']) > 0)
+                            <ul class="list-unstyled mb-0" style="font-size: 0.9em;">
+                                @foreach($stat['departments'] as $dept)
+                                    <li class="mb-1">
+                                        <span class="fw-bold text-secondary">{{ $dept['department_name'] }}:</span> 
+                                        {{ $dept['project_count'] }} {{ Str::plural('Project', $dept['project_count']) }} 
+                                        <span class="text-muted">({{ $dept['total_contract_value_cr'] }} Cr)</span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @else
+                            <span class="text-muted fst-italic">No projects</span>
+                        @endif
+                    </td>
+
+                    <td>
+                        <span class="badge {{ $stat['project_count'] > 0 ? 'bg-primary' : 'bg-secondary' }}">
+                            {{ $stat['project_count'] }}
+                        </span>
+                    </td>
+                    
+                    <td>₹ {{ number_format($stat['total_contract_value'], 2) }}</td>
+                    
+                    <td class="{{ $stat['total_contract_value_cr'] > 0 ? 'text-success fw-bold' : 'text-muted' }}">
+                        {{ $stat['total_contract_value_cr'] }} Cr
+                    </td>
+                </tr>
+            @endforeach
+        </x-admin.data-table>
+    </div>
+</div>
 
     </div>
 </x-app-layout>

@@ -2,11 +2,59 @@
 
 namespace App\Repositories;
 
-use App\Models\{Department, PackageComponent, PackageProject, Contract, TypeOfProcurement, SubCategory};
+use App\Models\{Department, PackageComponent, PackageProject, Contract, TypeOfProcurement, SubCategory, PackageStatus};
 use Illuminate\Support\Facades\Auth;
 
 class DashboardRepository
 {
+    /**
+     * Get Package Projects grouped by their Status (Count and Contract Value)
+     */
+    public function getPackageStatusStats($scope = 'all')
+    {
+        // 1. Get all active statuses dynamically from the PackageStatus model
+        $statuses = PackageStatus::where('is_active', true)
+            ->orderBy('order_by')
+            ->pluck('name');
+
+        // 2. Fetch projects with their contracts AND departments
+        $projects = PackageProject::with(['contracts', 'department'])
+            ->when($scope !== 'all', fn($q) => $q->where('department_id', $scope))
+            ->get();
+
+        // 3. Group the projects by their current status
+        $projectsByStatus = $projects->groupBy('status');
+
+        // 4. Map the data to ensure EVERY status is shown in the table
+        return $statuses->map(function ($statusName) use ($projectsByStatus) {
+            $statusProjects = $projectsByStatus->get($statusName, collect());
+
+            $projectCount = $statusProjects->count();
+            $totalContractValue = $statusProjects->flatMap->contracts->sum(fn($c) => (float) ($c->contract_value ?? 0));
+
+            // 5. Group by department for the breakdown
+            $departmentStats = $statusProjects->groupBy('department_id')->map(function ($deptProjects) {
+                $deptName = $deptProjects->first()->department->name ?? 'Unknown Department';
+                $count = $deptProjects->count();
+                $val = $deptProjects->flatMap->contracts->sum(fn($c) => (float) ($c->contract_value ?? 0));
+                
+                return [
+                    'department_name' => $deptName,
+                    'project_count' => $count,
+                    'total_contract_value' => $val,
+                    'total_contract_value_cr' => round($val / 10000000, 2),
+                ];
+            })->values()->toArray(); // Reset keys and convert to array
+
+            return [
+                'status_name' => $statusName,
+                'project_count' => $projectCount,
+                'total_contract_value' => $totalContractValue,
+                'total_contract_value_cr' => round($totalContractValue / 10000000, 2),
+                'departments' => $departmentStats,
+            ];
+        })->values();
+    }
     public function getTypeOfProcurementTableData($scope = 'all')
     {
         return TypeOfProcurement::with(['procurementDetails.packageProject.contracts'])

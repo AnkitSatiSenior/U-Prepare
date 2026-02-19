@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services;
 
 use App\Repositories\DashboardRepository;
@@ -36,6 +37,7 @@ class DashboardService
         $scope = $this->resolveScope($user);
 
         return [
+            // General Stats
             'departments' => $this->repo->getDepartmentsStats($scope),
             'departmentsPhysicalProgress' => $this->repo->getDepartmentsPhysicalProgress($scope),
             'departmentsFinancialProgress' => $this->repo->getDepartmentsFinancialProgress($scope),
@@ -45,8 +47,13 @@ class DashboardService
             'typeOfProcurement' => $this->repo->getTypeOfProcurementStats($scope),
             'subCategories' => $this->repo->getSubCategoryStats($scope),
             'packageProjectsSubProjectStats' => $this->repo->getPackageProjectsSubProjectStats($scope),
+            
+            // Category Counts
             'departmentCategoryCounts' => $this->repo->getDepartmentCategoryCounts($scope),
             'departmentCategorySubCategoryCounts' => $this->repo->getDepartmentCategorySubCategoryCounts($scope),
+
+            // Package Status Stats (New Addition)
+            'packageStatusStats' => $this->repo->getPackageStatusStats($scope),
 
             // Budget Data
             'departmentsBudget' => $this->repo->getDepartmentsBudget($scope),
