@@ -93,7 +93,7 @@
                                 @if (!empty($sp['package_number']) && !empty($sp['contract_id']) && !empty($sp['id']))
                                     <a href="{{ route('admin.contracts.subprojects.show', ['contract' => $sp['contract_id'], 'subProject' => $sp['id']]) }}"
                                         class="text-primary">
-                                        {{ $sp['package_number'] }}
+                                        {{ $sp['package_number'] }} {{ $sp['safeguard_exists'] ?? 'N/A' }}
                                     </a>
                                 @else
                                     {{ $sp['package_number'] ?? 'N/A' }}
