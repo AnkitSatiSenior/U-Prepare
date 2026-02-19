@@ -115,9 +115,10 @@
                 <x-admin.data-table id="package-projects-table" :headers="[
                     'Package',
                     'Category',
-                    'Contracts',
+                    'Sanction Budge (₹)',
                     'District',
                     'Procurement',
+                    'Contracts',
                     'Status',
                     'Actions',
                 ]" :excel="true" :print="true"
@@ -183,34 +184,9 @@
 
                             <!-- Budget -->
                             <td class="align-middle">
-                                @if ($project->contracts->isNotEmpty())
-                                
-                                  @foreach ($project->contracts as $contract)
-                                                <li class="list-group-item d-flex justify-content-between">
-                                                    <span class="fw-bold">Contract No</span>
-                                                    <span>{{ $contract->contract_number }}</span>
-                                                </li>
-                                                <li class="list-group-item d-flex justify-content-between">
-                                                    <span class="fw-bold">Contract Value</span>
-                                                    <span>₹ {{ number_format($contract->contract_value, 2) }}</span>
-                                                </li>
-                                                <li class="list-group-item d-flex justify-content-between">
-                                                    <span class="fw-bold">Firm</span>
-                                                    <span>{{ $contract->contractor?->company_name }}</span>
-                                                </li>
-                                                <li class="list-group-item d-flex justify-content-between">
-                                                    <span class="fw-bold">Sub-Projects</span>
-                                                    <span>{{ $contract->subProjects->count() }}</span>
-                                                </li>
-                                            @endforeach
-                                @else
-                                    <span class="badge bg-secondary">
-                                        <i class="fas fa-times-circle"></i> No Contracts
-                                    </span>
-                                @endif
-                                {{-- <div class="fw-bold text-success">
+                                <div class="fw-bold text-success">
                                     {{ formatPriceToCR($project->estimated_budget_incl_gst) }}
-                                </div> --}}
+                                </div>
                             </td>
 
                             <!-- District / Block -->
@@ -245,7 +221,7 @@
                             </td>
 
                             <!-- Contracts -->
-                            {{-- <td class="align-middle">
+                            <td class="align-middle">
                                 @if ($project->contracts->isNotEmpty())
                                     <div class="dropdown">
                                         <button class="btn btn-sm btn-outline-info dropdown-toggle" type="button"
@@ -264,7 +240,7 @@
                                                 </li>
                                                 <li class="list-group-item d-flex justify-content-between">
                                                     <span class="fw-bold">Firm</span>
-                                                    <span>{{ $contract->contractor?->company_name }}</span>
+                                                    <span>{{ $contract->contractor->company_name }}</span>
                                                 </li>
                                                 <li class="list-group-item d-flex justify-content-between">
                                                     <span class="fw-bold">Sub-Projects</span>
@@ -278,7 +254,7 @@
                                         <i class="fas fa-times-circle"></i> No Contracts
                                     </span>
                                 @endif
-                            </td> --}}
+                            </td>
 
                             <!-- Status -->
                             <td>
