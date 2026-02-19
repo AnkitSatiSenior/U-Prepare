@@ -40,6 +40,9 @@ class PackageProject extends Model
     const STATUS_TEC_APPROVED ='TEC Approved';
     const STATUS_WARRANTY_CMC ='Warranty CMC';
     const STATUS_PERFORMANCE_GUARANTEE = 'Performance Guarantee';
+    const STATUS_COMPLETED ='Completed';
+    const STATUS_DELIVERED ='Delivered';
+
 
     /**
      * Get all statuses in chronological/logical order for dropdowns
@@ -47,6 +50,8 @@ class PackageProject extends Model
     public static function getAllStatuses(): array
     {
         return [
+            self::STATUS_COMPLETED,
+            self::STATUS_DELIVERED,
             self::STATUS_PERFORMANCE_GUARANTEE,
             self::STATUS_WARRANTY_CMC,
             self::STATUS_TEC_APPROVED,
