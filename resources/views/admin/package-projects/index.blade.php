@@ -188,21 +188,16 @@
                            <div class="d-flex flex-column">
                                 <!-- Package Name -->
                                     @foreach ($project->contracts as $contract)
-                                    <a href="{{ route('admin.package-projects.show', $project->id) }}"
-                                    class="fw-bold text-primary text-truncate mb-1" style="max-width: 450px;"
-                                    title="{{ $project->package_name }}">
-                                        <span class="fw-bold">Contract No</span>
-                                        <span>{{ $contract->contract_number }}</span>
-                                    </a>
-                                    <small class="text-muted mb-2">
+                                    
+                                    <small class="fw-bold text-primary text-truncate mb-1">
                                      <span class="fw-bold">Contract Value</span>
                                         <span>₹ {{ number_format($contract->contract_value, 2) }}</span>
                                     </small>
-                                   <small class="text-muted mb-2">
+                                   <small class="fw-bold text-primary text-truncate mb-1">
                                           <span class="fw-bold">Firm</span>
                                         <span>{{ $contract->contractor->company_name }}</span>
                                    </small>
-                                    <small class="text-muted mb-2">
+                                    <small class="fw-bold text-primary text-truncate mb-1">
                                       <span class="fw-bold">Sub-Projects</span>
                                         <span>{{ $contract->subProjects->count() }}</span>
                                     </small>
