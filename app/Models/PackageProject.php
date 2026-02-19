@@ -7,16 +7,18 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany, HasOne};
-
+use App\Models\PackageStatus;
 class PackageProject extends Model
 {
     use SoftDeletes;
 
-    /*
-    |--------------------------------------------------------------------------
-    | Status Constants
-    |--------------------------------------------------------------------------
-    */
+   public static function getAllStatuses(): array
+    {
+        return PackageStatus::where('is_active', true)
+            ->orderBy('order_by')
+            ->pluck('name')
+            ->toArray();
+    }
     
    const STATUS_DPR_PREPARATION = 'DPR Preparation'; // Fixed spelling
     const STATUS_TOR_SPECIFICATION_FINALIZED = 'TOR / Specification Finalized';
@@ -42,43 +44,6 @@ class PackageProject extends Model
     const STATUS_PERFORMANCE_GUARANTEE = 'Performance Guarantee';
     const STATUS_COMPLETED ='Completed';
     const STATUS_DELIVERED ='Delivered';
-
-
-    /**
-     * Get all statuses in chronological/logical order for dropdowns
-     */
-    public static function getAllStatuses(): array
-    {
-        return [
-            self::STATUS_COMPLETED,
-            self::STATUS_DELIVERED,
-            self::STATUS_PERFORMANCE_GUARANTEE,
-            self::STATUS_WARRANTY_CMC,
-            self::STATUS_TEC_APPROVED,
-            self::STATUS_TAC_APPROVED, 
-            self::STATUS_DPR_PREPARATION,
-            self::STATUS_TOR_SPECIFICATION_FINALIZED,
-            self::STATUS_PENDING_PROCUREMENT,
-            self::STATUS_RFP_BID_DOCUMENTS_PUBLISHED,
-            self::STATUS_PREBID,
-            self::STATUS_TECHNICAL_EVALUATION,
-            self::STATUS_FINANCIAL_EVALUATION,
-            self::STATUS_LOA_ISSUED,
-            self::STATUS_PERFORMANCE_SECURITY,
-            self::STATUS_CONTRACT_SIGNED,
-            self::STATUS_PENDING_CONTRACT,
-            self::STATUS_PENDING_ACTIVITY,
-            self::STATUS_IN_PROGRESS,
-            self::STATUS_PRE_DISPATCH_INSPECTION,
-            self::STATUS_PAYMENT,
-            self::STATUS_CANCEL,
-            self::STATUS_REBID,
-            self::STATUS_REMOVED,
-        ];
-    }
-    
-    
-
 
 
 

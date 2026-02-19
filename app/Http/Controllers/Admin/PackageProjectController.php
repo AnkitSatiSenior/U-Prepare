@@ -206,7 +206,10 @@ class PackageProjectController extends Controller
             'districts' => GeographyDistrict::all(),
             'blocks' => GeographyBlock::all(),
             'components' => PackageComponent::all(),
-            'statuses' => [PackageProject::STATUS_PENDING_PROCUREMENT, PackageProject::STATUS_PENDING_CONTRACT, PackageProject::STATUS_PENDING_ACTIVITY, PackageProject::STATUS_IN_PROGRESS, PackageProject::STATUS_CANCEL, PackageProject::STATUS_REBID, PackageProject::STATUS_REMOVED],
+            'statuses' => \App\Models\PackageStatus::where('is_active', true)
+            ->orderBy('order_by')
+            ->pluck('name')
+            ->toArray(),
         ];
     }
 }
