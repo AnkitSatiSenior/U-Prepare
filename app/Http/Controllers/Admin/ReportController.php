@@ -570,7 +570,7 @@ public function subProjectsReport(Request $request)
             // Load DIRECT relations for the calculation logic
             'physicalBoqProgresses',
             'physicalEpcProgresses',
-            // Keep these if you need nested data elsewhere, otherwise the above two are sufficient for the calc
+            // Keep these if you need nested data elsewhere
             'boqEntries', 
             'epcEntries'
         ])
@@ -583,57 +583,55 @@ public function subProjectsReport(Request $request)
         $type = strtolower($sp->type_of_procurement_name ?? '');
         $physicalData = $this->calculatePhysicalProgressForReport($sp, $type);
 
-        // 🔹 2. Safeguard progress
-        $rawSafeguards = $sp->socialSafeguardProgress();
+        // 🔹 2. Safeguard progress (Conditional Logic)
+        $hasSafeguard = $sp->packageProject->safeguard_exists ?? false;
+        
+        $safeguards = [];
+        $safeguardExistsLabel = 'N/A';
 
-        $safeguards = collect($rawSafeguards)
-            ->map(function ($val, $cid) {
-                return [
-                    'id' => (int) $cid,
-                    'compliance' => $val['compliance'] ?? 'N/A',
-                    'phases' => collect($val['phases'] ?? [])
-                        ->map(fn ($ph) => [
-                            'id' => $ph['id'] ?? null,
-                            'phase' => $ph['phase'] ?? 'N/A',
-                            'percent' => (float) ($ph['percent'] ?? 0),
-                        ])
-                        ->values()
-                        ->toArray(),
-                ];
-            })
-            ->values()
-            ->toArray();
+        // Only process safeguard data if safeguard_exists is true
+        if ($hasSafeguard) {
+            $safeguardExistsLabel = 'Yes';
+            $rawSafeguards = $sp->socialSafeguardProgress();
+
+            $safeguards = collect($rawSafeguards)
+                ->map(function ($val, $cid) {
+                    return [
+                        'id' => (int) $cid,
+                        'compliance' => $val['compliance'] ?? 'N/A',
+                        'phases' => collect($val['phases'] ?? [])
+                            ->map(fn ($ph) => [
+                                'id' => $ph['id'] ?? null,
+                                'phase' => $ph['phase'] ?? 'N/A',
+                                'percent' => (float) ($ph['percent'] ?? 0),
+                            ])
+                            ->values()
+                            ->toArray(),
+                    ];
+                })
+                ->values()
+                ->toArray();
+        }
 
         return [
             'id' => $sp->id,
             'contract_id' => $sp->contract->id ?? null,
             'name' => $sp->name,
             'package_number' => $sp->packageProject->package_number ?? 'N/A',
+            'safeguard_exists' => $safeguardExistsLabel,
             'contractValue' => $sp->contract_value,
             'type_of_procurement_name' => $sp->type_of_procurement_name,
 
             // ✅ Use the calculated values
             'physicalPercent' => $physicalData['percent'],
-            
             'financePercent' => $sp->financial_progress_percentage,
-            'safeguards' => $safeguards,
+            
+            // Will be empty array if safeguard_exists is false/null
+            'safeguards' => $safeguards, 
         ];
     });
 
     // 🔹 Build table headers
-        // $compliancePhaseHeaders = collect($subProjectsData)
-    //     ->flatMap(fn ($sp) =>
-    //         collect($sp['safeguards'])->flatMap(fn ($sg) =>
-    //             collect($sg['phases'])->map(
-    //                 fn ($ph) => $sg['compliance'] . ' – ' . $ph['phase']
-    //             )
-    //         )
-    //     )
-    //     ->unique()
-    //     ->values();
-    
-   
-
     $complianceOrder = [
         'Environmental' => 1,
         'Social' => 2,
@@ -673,22 +671,6 @@ public function subProjectsReport(Request $request)
         })
         ->pluck('label')
         ->values();
-
-
-    //Log::info('Ankit :', ['compliancePhaseHeaders' => $compliancePhaseHeaders]);
-
-    // $compliancePhaseHeaders = collect($subProjectsData)
-    // ->flatMap(fn ($sp) =>
-    //     collect($sp['safeguards'])->flatMap(fn ($sg) =>
-    //         collect($sg['phases'])
-    //             ->map(fn ($ph) => $sg['compliance'] . ' – ' . $ph['phase'])
-    //             ->reject(fn ($value) => $value === 'Environmental – Post Construction')
-    //     )
-    // )
-    // ->unique()
-    // ->values();
-
-
 
     // Dropdowns
     $departments = Department::orderBy('name')->get(['id', 'name']);
