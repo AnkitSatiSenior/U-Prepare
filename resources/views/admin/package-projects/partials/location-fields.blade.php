@@ -9,8 +9,7 @@
                 <select name="district_id" id="district_id" class="form-control">
                     <option value="">Select District</option>
                     @foreach ($districts as $district)
-                        <option value="{{ $district->id }}" 
-                            @selected(old('district_id', $packageProject->district_id) == $district->id)>
+                        <option value="{{ $district->id }}" @selected(old('district_id', $packageProject->district_id) == $district->id)>
                             {{ $district->name }}
                         </option>
                     @endforeach
@@ -21,8 +20,7 @@
                 <select name="block_id" id="block_id" class="form-control">
                     <option value="">Select Block</option>
                     @foreach ($blocks as $block)
-                        <option value="{{ $block->id }}" 
-                            @selected(old('block_id', $packageProject->block_id) == $block->id)>
+                        <option value="{{ $block->id }}" @selected(old('block_id', $packageProject->block_id) == $block->id)>
                             {{ $block->name }}
                         </option>
                     @endforeach
@@ -33,8 +31,7 @@
                 <select name="vidhan_sabha_id" id="vidhan_sabha_id" class="form-control">
                     <option value="">Select Constituency</option>
                     @foreach ($constituencies as $constituency)
-                        <option value="{{ $constituency->id }}" 
-                            @selected(old('vidhan_sabha_id', $packageProject->vidhan_sabha_id) == $constituency->id)>
+                        <option value="{{ $constituency->id }}" @selected(old('vidhan_sabha_id', $packageProject->vidhan_sabha_id) == $constituency->id)>
                             {{ $constituency->name }}
                         </option>
                     @endforeach
@@ -45,8 +42,7 @@
                 <select name="lok_sabha_id" id="lok_sabha_id" class="form-control">
                     <option value="">Select Constituency</option>
                     @foreach ($assembly as $constituency)
-                        <option value="{{ $constituency->id }}" 
-                            @selected(old('lok_sabha_id', $packageProject->lok_sabha_id) == $constituency->id)>
+                        <option value="{{ $constituency->id }}" @selected(old('lok_sabha_id', $packageProject->lok_sabha_id) == $constituency->id)>
                             {{ $constituency->name }}
                         </option>
                     @endforeach
@@ -54,23 +50,15 @@
             </div>
             <div class="col-md-4 mb-3">
                 <label for="status" class="form-label">Status</label>
-                <select name="status" id="status" class="form-control">
-                    <option value="">Select Status</option>
-                    @foreach ([
-    \App\Models\PackageProject::STATUS_PENDING_PROCUREMENT,
-    \App\Models\PackageProject::STATUS_PENDING_CONTRACT,
-    \App\Models\PackageProject::STATUS_PENDING_ACTIVITY,
-    \App\Models\PackageProject::STATUS_IN_PROGRESS,
-    \App\Models\PackageProject::STATUS_CANCEL,
-    \App\Models\PackageProject::STATUS_REBID,
-    \App\Models\PackageProject::STATUS_REMOVED,
-] as $statusOption)
-    <option value="{{ $statusOption }}" 
-        @selected(old('status', $packageProject->status) === $statusOption)>
-        {{ $statusOption }}
-    </option>
-@endforeach
-                </select>
+                <select name="status" id="status" class="form-control select2">
+        <option value="">All Statuses</option>
+        @foreach (\App\Models\PackageProject::getAllStatuses() as $statusOption)
+            <option value="{{ $statusOption }}" 
+                @selected(request('status') == $statusOption || (isset($packageProject) && $packageProject->status == $statusOption))>
+                {{ $statusOption }}
+            </option>
+        @endforeach
+    </select>
             </div>
         </div>
     </div>

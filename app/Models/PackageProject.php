@@ -17,13 +17,57 @@ class PackageProject extends Model
     | Status Constants
     |--------------------------------------------------------------------------
     */
+    
+   const STATUS_DPR_PREPARATION = 'DPR Preparation'; // Fixed spelling
+    const STATUS_TOR_SPECIFICATION_FINALIZED = 'TOR / Specification Finalized';
     const STATUS_PENDING_PROCUREMENT = 'Pending for Procurement';
+    const STATUS_RFP_BID_DOCUMENTS_PUBLISHED = 'RFP Bid Documents Published';
+    const STATUS_PREBID = 'Pre-bid';
+    const STATUS_TECHNICAL_EVALUATION = 'Technical Evaluation';
+    const STATUS_FINANCIAL_EVALUATION = 'Financial Evaluation';
+    const STATUS_LOA_ISSUED = 'LOA Issued';
+    const STATUS_PERFORMANCE_SECURITY = 'Performance Security';
+    const STATUS_CONTRACT_SIGNED = 'Contract Signed';
     const STATUS_PENDING_CONTRACT = 'Pending for Contract';
     const STATUS_PENDING_ACTIVITY = 'Pending for Physical Activity';
     const STATUS_IN_PROGRESS = 'In Progress';
+    const STATUS_PRE_DISPATCH_INSPECTION = 'Pre-Dispatch Inspection';
+    const STATUS_PAYMENT = 'Payment'; // Changed to Title Case for UI consistency
     const STATUS_CANCEL = 'Cancel';
     const STATUS_REBID = 'To be Rebid';
     const STATUS_REMOVED = 'Removed';
+
+    /**
+     * Get all statuses in chronological/logical order for dropdowns
+     */
+    public static function getAllStatuses(): array
+    {
+        return [
+            self::STATUS_DPR_PREPARATION,
+            self::STATUS_TOR_SPECIFICATION_FINALIZED,
+            self::STATUS_PENDING_PROCUREMENT,
+            self::STATUS_RFP_BID_DOCUMENTS_PUBLISHED,
+            self::STATUS_PREBID,
+            self::STATUS_TECHNICAL_EVALUATION,
+            self::STATUS_FINANCIAL_EVALUATION,
+            self::STATUS_LOA_ISSUED,
+            self::STATUS_PERFORMANCE_SECURITY,
+            self::STATUS_CONTRACT_SIGNED,
+            self::STATUS_PENDING_CONTRACT,
+            self::STATUS_PENDING_ACTIVITY,
+            self::STATUS_IN_PROGRESS,
+            self::STATUS_PRE_DISPATCH_INSPECTION,
+            self::STATUS_PAYMENT,
+            self::STATUS_CANCEL,
+            self::STATUS_REBID,
+            self::STATUS_REMOVED,
+        ];
+    }
+    
+    
+
+
+
 
     /*
     |--------------------------------------------------------------------------
