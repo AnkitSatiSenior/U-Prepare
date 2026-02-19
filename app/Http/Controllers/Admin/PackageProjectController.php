@@ -46,7 +46,8 @@ class PackageProjectController extends Controller
             'procurementDetail:id,package_project_id,method_of_procurement,type_of_procurement_id,publication_date',
             'workPrograms:id,package_project_id,procurement_details_id,name_work_program,weightage,days,start_date,planned_date',
             'subProjects:id,project_id,name',
-            'contracts:id,project_id,contract_number,contract_value',
+            'contracts:id,project_id,contractor_id,contract_number,contract_value',
+'contracts.contractor:id,company_name',
         ])
             ->withCount('workPrograms')
             ->applyFilters($request->all())
