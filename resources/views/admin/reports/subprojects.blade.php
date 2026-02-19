@@ -137,22 +137,36 @@
                             </td>
 
                             {{-- Safeguard compliances & phases --}}
-                            @foreach ($compliancePhaseHeaders as $header)
-                                @php
-                                    [$compName, $phaseName] = explode(' – ', $header, 2);
-                                    $comp = collect($sp['safeguards'])->firstWhere('compliance', $compName);
-                                    $phase = $comp ? collect($comp['phases'])->firstWhere('phase', $phaseName) : null;
-                                    $percent = $phase['percent'] ?? null;
-                                @endphp
-                                <td data-sub-id="{{ $sp['id'] }}" data-comp-id="{{ $comp['id'] ?? '' }}"
-                                    data-phase-id="{{ $phase['id'] ?? '' }}"
-                                    class="text-center {{ $percent > 0 ? 'bg-light-success-lte align-middle' : 'bg-light-danger-lte align-middle' }} 
-                                    text-center text-decoration-underline">
-                                 
-                                            {{ $percent !== null ? $percent . '%' : '0%' }}
-                                        
-                                </td>
-                            @endforeach
+                            {{-- Safeguard compliances & phases --}}
+@foreach ($compliancePhaseHeaders as $header)
+    @php
+        // 1. Parse headers and match data
+        [$compName, $phaseName] = explode(' – ', $header, 2);
+        $comp = collect($sp['safeguards'])->firstWhere('compliance', $compName);
+        $phase = $comp ? collect($comp['phases'])->firstWhere('phase', $phaseName) : null;
+        $percent = $phase['percent'] ?? null;
+
+        // 2. Determine display text and background based on safeguard_exists
+        if (($sp['safeguard_exists'] ?? 'N/A') === 'N/A') {
+            $displayText = 'N/A';
+            $bgClass = ''; // Neutral background for N/A
+            $textClass = ''; // No underline for N/A
+        } else {
+            $displayText = $percent !== null ? $percent . '%' : '0%';
+            $bgClass = $percent > 0 ? 'bg-light-success-lte' : 'bg-light-danger-lte';
+            $textClass = 'text-decoration-underline';
+        }
+    @endphp
+
+    <td data-sub-id="{{ $sp['id'] }}" 
+        data-comp-id="{{ $comp['id'] ?? '' }}"
+        data-phase-id="{{ $phase['id'] ?? '' }}"
+        class="text-center align-middle {{ $bgClass }} {{ $textClass }}">
+        
+        {{ $displayText }}
+            
+    </td>
+@endforeach
                         </tr>
                     @endforeach
                 </x-admin.data-table>
