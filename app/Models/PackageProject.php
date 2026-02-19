@@ -138,6 +138,12 @@ class PackageProject extends Model
                 } elseif ($value == 0) {
                     $q->where('safeguard_exists', false);
                 }
+            })
+            // ✅ Cross-table filter for type_of_procurement_id
+            ->when($filters['type_of_procurement_id'] ?? null, function ($q, $value) {
+                $q->whereHas('procurementDetail', function ($subQuery) use ($value) {
+                    $subQuery->where('type_of_procurement_id', $value);
+                });
             });
     }
 
