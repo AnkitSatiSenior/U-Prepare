@@ -93,7 +93,7 @@
                                 @if (!empty($sp['package_number']) && !empty($sp['contract_id']) && !empty($sp['id']))
                                     <a href="{{ route('admin.contracts.subprojects.show', ['contract' => $sp['contract_id'], 'subProject' => $sp['id']]) }}"
                                         class="text-primary">
-                                        {{ $sp['package_number'] }} {{ $sp['safeguard_exists'] ?? 'N/A' }}
+                                        {{ $sp['package_number'] }} 
                                     </a>
                                 @else
                                     {{ $sp['package_number'] ?? 'N/A' }}
@@ -149,8 +149,8 @@
         // 2. Determine display text and background based on safeguard_exists
         if (($sp['safeguard_exists'] ?? 'N/A') === 'N/A') {
             $displayText = 'N/A';
-            $bgClass = ''; // Neutral background for N/A
-            $textClass = ''; // No underline for N/A
+            $bgClass = 'bg-light-success-lte'; // Neutral background for N/A
+            $textClass = 'text-decoration-underline'; // No underline for N/A
         } else {
             $displayText = $percent !== null ? $percent . '%' : '0%';
             $bgClass = $percent > 0 ? 'bg-light-success-lte' : 'bg-light-danger-lte';
