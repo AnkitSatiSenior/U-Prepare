@@ -195,15 +195,15 @@
                                         <span>{{ $contract->contract_number }}</span>
                                     </a>
                                     <small class="text-muted mb-2">
-                                    <i class="fas fa-hashtag me-1"></i> <span class="fw-bold">Contract Value</span>
+                                     <span class="fw-bold">Contract Value</span>
                                         <span>₹ {{ number_format($contract->contract_value, 2) }}</span>
                                     </small>
                                    <small class="text-muted mb-2">
-                                    <i class="fas fa-hashtag me-1"></i>      <span class="fw-bold">Firm</span>
+                                          <span class="fw-bold">Firm</span>
                                         <span>{{ $contract->contractor->company_name }}</span>
                                    </small>
                                     <small class="text-muted mb-2">
-                                    <i class="fas fa-hashtag me-1"></i>  <span class="fw-bold">Sub-Projects</span>
+                                      <span class="fw-bold">Sub-Projects</span>
                                         <span>{{ $contract->subProjects->count() }}</span>
                                     </small>
                                     @endforeach
