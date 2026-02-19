@@ -10,6 +10,7 @@ use App\Http\Controllers\ContractorController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\PackageProjectAssignmentController;
 use App\Http\Controllers\Admin\ContractController;
+use App\Http\Controllers\PackageStatusController;
 use App\Http\Controllers\EpcEntryDataController;
 use App\Http\Controllers\Admin\UserSafeguardSubpackageController;
 use App\Http\Controllers\SafeguardEntryController;
@@ -425,6 +426,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
             Route::resource('project', ProjectController::class);
             Route::resource('projects-category', ProjectsCategoryController::class);
             Route::resource('package-projects', PackageProjectController::class);
+            
+
+Route::resource('package-statuses', PackageStatusController::class)->except(['create', 'edit', 'show']);
         });
     Route::get('admin/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 

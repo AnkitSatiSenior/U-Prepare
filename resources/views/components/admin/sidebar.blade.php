@@ -483,7 +483,10 @@
                                                 class="fa fa-vial me-2"></i> Test Types
                                         </a></li>
                                 @endif
-
+@if (canRoute('admin.package-statuses.index'))
+                                    <li><a href="{{ route('admin.package-statuses.index') }}"><i
+                                                class="fa fa-check-circle"></i> Package Statuses</a></li>
+                                @endif
                                 
                                 @if (canRoute('admin.projects-category.index'))
                                     <li><a href="{{ route('admin.projects-category.index') }}"><i
@@ -546,6 +549,7 @@
                                     <li><a href="{{ route('admin.navbar-items.index') }}"><i class="fa fa-bars"></i>
                                             Navbar Items</a></li>
                                 @endif
+                                
                             </ul>
                         </li>
                     @endif
