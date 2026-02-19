@@ -184,9 +184,34 @@
 
                             <!-- Budget -->
                             <td class="align-middle">
-                                <div class="fw-bold text-success">
+                                @if ($project->contracts->isNotEmpty())
+                                
+                                  @foreach ($project->contracts as $contract)
+                                                <li class="list-group-item d-flex justify-content-between">
+                                                    <span class="fw-bold">Contract No</span>
+                                                    <span>{{ $contract->contract_number }}</span>
+                                                </li>
+                                                <li class="list-group-item d-flex justify-content-between">
+                                                    <span class="fw-bold">Contract Value</span>
+                                                    <span>₹ {{ number_format($contract->contract_value, 2) }}</span>
+                                                </li>
+                                                <li class="list-group-item d-flex justify-content-between">
+                                                    <span class="fw-bold">Firm</span>
+                                                    <span>{{ $contract->contractor?->company_name }}</span>
+                                                </li>
+                                                <li class="list-group-item d-flex justify-content-between">
+                                                    <span class="fw-bold">Sub-Projects</span>
+                                                    <span>{{ $contract->subProjects->count() }}</span>
+                                                </li>
+                                            @endforeach
+                                @else
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-times-circle"></i> No Contracts
+                                    </span>
+                                @endif
+                                {{-- <div class="fw-bold text-success">
                                     {{ formatPriceToCR($project->estimated_budget_incl_gst) }}
-                                </div>
+                                </div> --}}
                             </td>
 
                             <!-- District / Block -->
