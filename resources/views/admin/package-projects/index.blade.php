@@ -113,10 +113,10 @@
                 <x-admin.data-table id="package-projects-table" :headers="[
                     'Package',
                     'Category',
-                    'Sanction Budge (₹)',
+                    'Contracts',
                     'District',
                     'Procurement',
-                    'Contracts',
+                    
                     'Status',
                     'Actions',
                 ]" :excel="true" :print="true" title="Package Projects Export"
@@ -248,40 +248,7 @@
                         </td>
 
                         <!-- Contracts -->
-                        <td class="align-middle">
-                            @if ($project->contracts->isNotEmpty())
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-outline-info dropdown-toggle" type="button"
-                                    data-bs-toggle="dropdown">
-                                    {{ $project->contracts->count() }} Contract(s)
-                                </button>
-                                <ul class="dropdown-menu shadow-sm p-2" style="min-width: 300px;">
-                                    @foreach ($project->contracts as $contract)
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span class="fw-bold">Contract No</span>
-                                        <span>{{ $contract->contract_number }}</span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span class="fw-bold">Contract Value</span>
-                                        <span>₹ {{ number_format($contract->contract_value, 2) }}</span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span class="fw-bold">Firm</span>
-                                        <span>{{ $contract->contractor->company_name }}</span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span class="fw-bold">Sub-Projects</span>
-                                        <span>{{ $contract->subProjects->count() }}</span>
-                                    </li>
-                                    @endforeach
-                                </ul>
-                            </div>
-                            @else
-                            <span class="badge bg-secondary">
-                                <i class="fas fa-times-circle"></i> No Contracts
-                            </span>
-                            @endif
-                        </td>
+                       
 
                         <!-- Status -->
                         <td>
