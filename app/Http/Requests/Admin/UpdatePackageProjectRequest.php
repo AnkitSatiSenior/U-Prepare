@@ -46,8 +46,7 @@ class UpdatePackageProjectRequest extends FormRequest
 
             'status' => [
                 'nullable',
-                'string',
-                'in:Pending for Procurement,Pending for Contract,Pending for Physical Activity,In Progress,Cancel,To be Rebid,Removed'
+                'string'
             ],
         ];
     }
