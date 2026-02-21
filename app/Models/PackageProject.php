@@ -278,4 +278,8 @@ class PackageProject extends Model
     {
         return optional($this->procurementDetail?->typeOfProcurement)->name === 'item-wise';
     }
+    public function activityLogs()
+    {
+        return $this->morphMany(ActivityLog::class, 'model');
+    }
 }

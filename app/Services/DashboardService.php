@@ -4,6 +4,10 @@ namespace App\Services;
 
 use App\Repositories\DashboardRepository;
 
+
+use App\Models\PackageProject;
+use App\Models\ActivityLog;
+
 class DashboardService
 {
     protected $repo;
@@ -70,5 +74,52 @@ class DashboardService
 
             'scope' => $scope,
         ];
+    }
+    public function getPackageMatrixReport($departmentId = null)
+    {
+        // 1. Fetch the packages you want to report on
+        $query = PackageProject::query()
+            ->select('id', 'package_name', 'estimated_budget_incl_gst', 'status')
+            ->with('activityLogs'); // Eager load the logs to prevent N+1 queries
+
+        if ($departmentId) {
+            $query->where('department_id', $departmentId);
+        }
+
+        $packages = $query->get();
+
+        // 2. Map the data to include historical statuses
+        return $packages->map(function ($package) {
+            $achievedStatuses = [];
+
+            // Always add the current status
+            if ($package->status) {
+                $achievedStatuses[] = $package->status;
+            }
+
+            // Loop through logs to find historical statuses
+            foreach ($package->activityLogs as $log) {
+                $changes = $log->changes;
+
+                // Check the 'new' status string in the JSON payload
+                if (isset($changes['new']['status'])) {
+                    $achievedStatuses[] = $changes['new']['status'];
+                }
+                
+                // Check the 'old' status just in case
+                if (isset($changes['old']['status'])) {
+                    $achievedStatuses[] = $changes['old']['status'];
+                }
+            }
+
+            return [
+                'id'              => $package->id,
+                'package_name'    => $package->package_name,
+                'estimated_value' => $package->estimated_budget_incl_gst,
+                'current_status'  => $package->status,
+                // Use array_unique to remove duplicates, and array_values to reset keys
+                'history'         => array_values(array_unique($achievedStatuses)), 
+            ];
+        });
     }
 }

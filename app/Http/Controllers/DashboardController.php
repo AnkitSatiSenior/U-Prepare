@@ -30,4 +30,11 @@ class DashboardController extends Controller
         }
         return $query->get();
     }
+    public function statusReportReport(Request $request)
+    {
+        // You can pass a specific department ID if filtering for UKFES
+        $reportData = $this->dashboard->getPackageMatrixReport();
+
+        return view('admin.reports.status-matrix', compact('reportData'));
+    }
 }
