@@ -564,6 +564,46 @@
                 </x-admin.data-table>
             </div>
         </div> --}}
+        <div class="card-body">
+    <x-admin.data-table :headers="[
+            'S.No.',
+            'Name of Package',
+            'Estimated Value / Contract Value',
+            'Bid Published',
+            'Under Financial Evaluation',
+            'Under Technical Evaluation',
+            'LOA Issued',
+            'Contract Signed',
+            'PDI Completed',
+            'Delivery Completed',
+            'Payment Complete'
+        ]" id="package-status-matrix-table" :excel="true" :print="true" :pageLength="10">
+        
+        @foreach($reportData as $index => $row)
+            @php
+                // Helper function to check if a status was achieved in history
+                $hasStatus = function($statusName) use ($row) {
+                    return in_array($statusName, $row['history']) ? '☑ ✓' : '☐';
+                };
+            @endphp
+            <tr>
+                <td>{{ $index + 1 }}</td>
+                <td>{{ $row['package_name'] }}</td>
+                <td>{{ number_format($row['estimated_value'], 2) }}</td>
+                
+                <td class="text-center">{{ $hasStatus(\App\Models\PackageProject::STATUS_RFP_BID_DOCUMENTS_PUBLISHED) }}</td>
+                <td class="text-center">{{ $hasStatus(\App\Models\PackageProject::STATUS_FINANCIAL_EVALUATION) }}</td>
+                <td class="text-center">{{ $hasStatus(\App\Models\PackageProject::STATUS_TECHNICAL_EVALUATION) }}</td>
+                <td class="text-center">{{ $hasStatus(\App\Models\PackageProject::STATUS_LOA_ISSUED) }}</td>
+                <td class="text-center">{{ $hasStatus(\App\Models\PackageProject::STATUS_CONTRACT_SIGNED) }}</td>
+                <td class="text-center">{{ $hasStatus(\App\Models\PackageProject::STATUS_PRE_DISPATCH_INSPECTION) }}</td>
+                <td class="text-center">{{ $hasStatus(\App\Models\PackageProject::STATUS_DELIVERED) }}</td>
+                <td class="text-center">{{ $hasStatus(\App\Models\PackageProject::STATUS_PAYMENT) }}</td>
+            </tr>
+        @endforeach
+        
+    </x-admin.data-table>
+</div>
 
     </div>
 </x-app-layout>

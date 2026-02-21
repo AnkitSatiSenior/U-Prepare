@@ -79,7 +79,8 @@ class DashboardService
     {
         // 1. Fetch the packages you want to report on
         $query = PackageProject::query()
-            ->select('id', 'package_name', 'estimated_budget_incl_gst', 'status')
+            // Make sure to include department_id if you are filtering by it
+            ->select('id', 'package_name', 'estimated_budget_incl_gst', 'status', 'department_id') 
             ->with('activityLogs'); // Eager load the logs to prevent N+1 queries
 
         if ($departmentId) {
@@ -92,33 +93,43 @@ class DashboardService
         return $packages->map(function ($package) {
             $achievedStatuses = [];
 
-            // Always add the current status
-            if ($package->status) {
+            // 1. Grab the current status
+            if (!empty($package->status)) {
                 $achievedStatuses[] = $package->status;
             }
 
-            // Loop through logs to find historical statuses
-            foreach ($package->activityLogs as $log) {
-                $changes = $log->changes;
+            // 2. Loop through logs to find historical statuses
+            if ($package->activityLogs) {
+                foreach ($package->activityLogs as $log) {
+                    // Ensure $changes is an array (in case it is stored as a JSON string in DB)
+                    $changes = is_string($log->changes) ? json_decode($log->changes, true) : $log->changes;
 
-                // Check the 'new' status string in the JSON payload
-                if (isset($changes['new']['status'])) {
-                    $achievedStatuses[] = $changes['new']['status'];
-                }
-                
-                // Check the 'old' status just in case
-                if (isset($changes['old']['status'])) {
-                    $achievedStatuses[] = $changes['old']['status'];
+                    if (is_array($changes)) {
+                        // Check the 'new' status string in the JSON payload
+                        // (Also checking 'attributes' as a fallback if you ever use Spatie Activitylog)
+                        if (isset($changes['new']['status'])) {
+                            $achievedStatuses[] = $changes['new']['status'];
+                        } elseif (isset($changes['attributes']['status'])) { 
+                            $achievedStatuses[] = $changes['attributes']['status'];
+                        }
+                        
+                        // Check the 'old' status just in case
+                        if (isset($changes['old']['status'])) {
+                            $achievedStatuses[] = $changes['old']['status'];
+                        }
+                    }
                 }
             }
+
+            // Clean up the array: remove empty values, remove duplicates, and reset keys
+            $uniqueStatuses = array_values(array_unique(array_filter($achievedStatuses)));
 
             return [
                 'id'              => $package->id,
                 'package_name'    => $package->package_name,
                 'estimated_value' => $package->estimated_budget_incl_gst,
                 'current_status'  => $package->status,
-                // Use array_unique to remove duplicates, and array_values to reset keys
-                'history'         => array_values(array_unique($achievedStatuses)), 
+                'history'         => $uniqueStatuses, 
             ];
         });
     }
