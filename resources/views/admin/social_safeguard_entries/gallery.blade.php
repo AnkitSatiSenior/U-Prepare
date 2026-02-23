@@ -102,7 +102,7 @@
                     items.forEach((group, idx) => {
                         html += `
                         <div class="mb-3 p-3 border rounded bg-white shadow-sm h2">
-                            <p><strong>Item:</strong> ${group.master_name ?? 'N/A'}</p>
+                            <p><strong> Item:</strong> ${group.master_name ?? 'N/A'}</p>
                             <p><strong>Status:</strong> ${
                                 group.yes_no === 1 ? '✅ Yes' :
                                 group.yes_no === 2 ? '❌ No' : '⚪ N/A'
