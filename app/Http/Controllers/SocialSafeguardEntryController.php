@@ -308,37 +308,43 @@ class SocialSafeguardEntryController extends Controller
         $phaseId = $validated['contraction_phase_id'] ?? null;
 
         // Query with relation
-        $query = SocialSafeguardEntry::with('safeguardEntry')->where('sub_package_project_id', $subProject->id)->where('social_compliance_id', $compliance->id);
+       $query = SocialSafeguardEntry::with(['safeguardEntry', 'masterSafeguard'])
+        ->where('sub_package_project_id', $subProject->id)
+        ->where('social_compliance_id', $compliance->id);
 
-        if ($phaseId) {
-            $query->where('contraction_phase_id', $phaseId);
-        }
+    if ($phaseId) {
+        $query->where('contraction_phase_id', $phaseId);
+    }
 
-        $entries = $query->orderBy('date_of_entry', 'desc')->get();
+    $entries = $query->orderBy('date_of_entry', 'desc')->get();
 
-        // Group media by date
-        $gallery = [];
-        foreach ($entries as $entry) {
-            $photoIds = is_array($entry->photos_documents_case_studies) ? $entry->photos_documents_case_studies : json_decode($entry->photos_documents_case_studies, true);
+    $gallery = [];
+    foreach ($entries as $entry) {
+        $photoIds = is_array($entry->photos_documents_case_studies) 
+            ? $entry->photos_documents_case_studies 
+            : json_decode($entry->photos_documents_case_studies, true);
 
-            if (!empty($photoIds)) {
-                $mediaFiles = MediaFile::whereIn('id', (array) $photoIds)->get();
+        if (!empty($photoIds)) {
+            $mediaFiles = MediaFile::whereIn('id', (array) $photoIds)->get();
 
-                if ($mediaFiles->isNotEmpty()) {
-                    $dateKey = \Carbon\Carbon::parse($entry->date_of_entry)->format('Y-m-d');
-                    $gallery[$dateKey][] = [
-                        'entry' => $entry,
-                        'media' => $mediaFiles,
-                        'remarks' => $entry->remarks,
-                        'yes_no' => $entry->yes_no,
-                        'item_description' => $entry->safeguardEntry?->item_description,
-                    ];
-                }
+            if ($mediaFiles->isNotEmpty()) {
+                $dateKey = \Carbon\Carbon::parse($entry->date_of_entry)->format('Y-m-d');
+                $gallery[$dateKey][] = [
+                    'entry' => $entry,
+                    'media' => $mediaFiles,
+                    'remarks' => $entry->remarks,
+                    'yes_no' => $entry->yes_no,
+                    'item_description' => $entry->safeguardEntry?->item_description,
+                    // ADD THESE TWO LINES:
+                    'master_id' => $entry->already_define_safeguard_entry_id,
+                    'master_name' => $entry->masterSafeguard?->name, 
+                ];
             }
         }
-
-        return view('admin.social_safeguard_entries.gallery', compact('subProject', 'compliance', 'gallery', 'phaseId'));
     }
+
+    return view('admin.social_safeguard_entries.gallery', compact('subProject', 'compliance', 'gallery', 'phaseId'));
+}
 
     /**
      * Custom authorization for safeguard compliance access
