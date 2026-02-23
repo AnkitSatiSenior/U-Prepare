@@ -337,7 +337,7 @@ class SocialSafeguardEntryController extends Controller
                     'item_description' => $entry->safeguardEntry?->item_description,
                     // ADD THESE TWO LINES:
                     'master_id' => $entry->already_define_safeguard_entry_id,
-                    'master_name' => $entry->masterSafeguard?->name, 
+                    'master_name' => $entry->masterSafeguard?->item_description, 
                 ];
             }
         }

@@ -103,7 +103,7 @@
                         html += `
                         <div class="mb-3 p-3 border rounded bg-white shadow-sm h2">
                             <p><strong>Master ID:</strong> <span class="badge bg-primary">#${group.master_id ?? 'N/A'}</span></p>
-    <p><strong>Master Safeguard:</strong> ${group.master_name ?? 'N/A'}</p>
+    <p><strong>Master Safeguard:</strong> ${group.item_description ?? 'N/A'}</p>
     <p><strong>Item:</strong> ${group.item_description ?? 'N/A'}</p>
                             <p><strong>Status:</strong> ${
                                 group.yes_no === 1 ? '✅ Yes' :
