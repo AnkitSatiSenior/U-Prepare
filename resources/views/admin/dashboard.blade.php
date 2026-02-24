@@ -548,13 +548,11 @@
 @endphp
 <style>
     .text-success {
-        color: #28a745 !important; /* Professional Green */
+        color: #28a745 !important;
+        font-size: 30px !important;
         font-weight: bold;
     }
-    .text-muted {
-        color: #6c757d !important; /* Subtle Grey */
-        opacity: 0.5;
-    }
+    
     .status-icon {
         font-size: 1.2rem;
         display: inline-flex;
