@@ -548,19 +548,7 @@
         return '<span class="status-icon text-muted">○</span>';
     };
 @endphp
-<style>
-    .text-success {
-        color: #28a745 !important;
-        font-size: 30px !important;
-        font-weight: bold;
-    }
-    
-    .status-icon {
-        font-size: 1.2rem;
-        display: inline-flex;
-        align-items: center;
-    }
-</style>
+
             <tr>
                 <td>{{ $index + 1 }}</td>
                 <td>{{ $row['package_name'] }}</td>
