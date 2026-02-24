@@ -517,54 +517,48 @@
             </div>
         </div>
        
-        <div class="card-body">
+       <div class="card-body">
     <x-admin.data-table :headers="[
             'S.No.',
+            'Department', // New Column
             'Name of Package',
-            'Estimated Value / Contract Value',
+            'Estimated Value',
             'Bid Published',
-            'Under Financial Evaluation',
-            'Under Technical Evaluation',
+            'Financial Eval.',
+            'Technical Eval.',
             'LOA Issued',
             'Contract Signed',
-            'PDI Completed',
-            'Delivery Completed',
-            'Payment Complete'
+            'PDI',
+            'Delivered',
+            'Payment'
         ]" id="package-status-matrix-table" :excel="true" :print="true" :pageLength="10">
         
         @foreach($reportData as $index => $row)
             @php
-    // Helper function with CSS classes for coloring
-    $hasStatus = function($statusName) use ($row) {
-        $found = in_array($statusName, $row['history']);
-        
-        if ($found) {
-            // Returns a green checkmark
-            return '<span class="status-icon text-success"><i class="fa-solid fa-check" style="
-    font-size: 30px;
-"></i></span>';
-        }
-        // Returns a muted/grey empty circle
-        return '<span class="status-icon text-muted">○</span>';
-    };
-@endphp
+                $hasStatus = function($statusName) use ($row) {
+                    $found = in_array($statusName, $row['history']);
+                    return $found 
+                        ? '<span class="text-success"><i class="fa-solid fa-circle-check" style="font-size: 20px;"></i></span>' 
+                        : '<span class="text-muted" style="opacity: 0.3;">○</span>';
+                };
+            @endphp
 
             <tr>
                 <td>{{ $index + 1 }}</td>
+                <td class="font-weight-bold">{{ $row['department_name'] }}</td> {{-- Department Name --}}
                 <td>{{ $row['package_name'] }}</td>
                 <td>{{ number_format($row['estimated_value'], 2) }}</td>
                 
-                <td class="text-center" style="min-width: 100px;">{!! $hasStatus(\App\Models\PackageProject::STATUS_RFP_BID_DOCUMENTS_PUBLISHED) !!}</td>
-<td class="text-center" style="min-width: 100px;">{!! $hasStatus(\App\Models\PackageProject::STATUS_FINANCIAL_EVALUATION) !!}</td>
-<td class="text-center" style="min-width: 100px;">{!! $hasStatus(\App\Models\PackageProject::STATUS_TECHNICAL_EVALUATION) !!}</td>
-<td class="text-center" style="min-width: 100px;">{!! $hasStatus(\App\Models\PackageProject::STATUS_LOA_ISSUED) !!}</td>
-<td class="text-center" style="min-width: 100px;">{!! $hasStatus(\App\Models\PackageProject::STATUS_CONTRACT_SIGNED) !!}</td>
-<td class="text-center" style="min-width: 100px;">{!! $hasStatus(\App\Models\PackageProject::STATUS_PRE_DISPATCH_INSPECTION) !!}</td>
-<td class="text-center" style="min-width: 100px;">{!! $hasStatus(\App\Models\PackageProject::STATUS_DELIVERED) !!}</td>
-<td class="text-center" style="min-width: 100px;">{!! $hasStatus(\App\Models\PackageProject::STATUS_PAYMENT) !!}</td>
+                <td class="text-center">{!! $hasStatus(\App\Models\PackageProject::STATUS_RFP_BID_DOCUMENTS_PUBLISHED) !!}</td>
+                <td class="text-center">{!! $hasStatus(\App\Models\PackageProject::STATUS_FINANCIAL_EVALUATION) !!}</td>
+                <td class="text-center">{!! $hasStatus(\App\Models\PackageProject::STATUS_TECHNICAL_EVALUATION) !!}</td>
+                <td class="text-center">{!! $hasStatus(\App\Models\PackageProject::STATUS_LOA_ISSUED) !!}</td>
+                <td class="text-center">{!! $hasStatus(\App\Models\PackageProject::STATUS_CONTRACT_SIGNED) !!}</td>
+                <td class="text-center">{!! $hasStatus(\App\Models\PackageProject::STATUS_PRE_DISPATCH_INSPECTION) !!}</td>
+                <td class="text-center">{!! $hasStatus(\App\Models\PackageProject::STATUS_DELIVERED) !!}</td>
+                <td class="text-center">{!! $hasStatus(\App\Models\PackageProject::STATUS_PAYMENT) !!}</td>
             </tr>
         @endforeach
-        
     </x-admin.data-table>
 </div>
 

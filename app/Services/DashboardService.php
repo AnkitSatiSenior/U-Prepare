@@ -75,62 +75,57 @@ class DashboardService
             'scope' => $scope,
         ];
     }
-    public function getPackageMatrixReport($departmentId = null)
-    {
-        // 1. Fetch the packages you want to report on
-        $query = PackageProject::query()
-            // Make sure to include department_id if you are filtering by it
-            ->select('id', 'package_name', 'estimated_budget_incl_gst', 'status', 'department_id') 
-            ->with('activityLogs'); // Eager load the logs to prevent N+1 queries
+   public function getPackageMatrixReport($user)
+{
+    // 1. Resolve scope based on the logged-in user
+    $scope = $this->resolveScope($user);
 
-        if ($departmentId) {
-            $query->where('department_id', $departmentId);
+    // 2. Build the query
+    $query = PackageProject::query()
+        ->select('id', 'package_name', 'estimated_budget_incl_gst', 'status', 'department_id') 
+        // Eager load department (to get the name) and activity logs
+        ->with(['department:id,name', 'activityLogs']); 
+
+    // 3. Apply department filter if not 'all'
+    if ($scope !== 'all') {
+        $query->where('department_id', $scope);
+    }
+
+    $packages = $query->get();
+
+    // 4. Map the data
+    return $packages->map(function ($package) {
+        $achievedStatuses = [];
+
+        // Add current status
+        if (!empty($package->status)) {
+            $achievedStatuses[] = $package->status;
         }
 
-        $packages = $query->get();
+        // Extract historical statuses from logs
+        if ($package->activityLogs) {
+            foreach ($package->activityLogs as $log) {
+                $changes = is_string($log->changes) ? json_decode($log->changes, true) : $log->changes;
 
-        // 2. Map the data to include historical statuses
-        return $packages->map(function ($package) {
-            $achievedStatuses = [];
+                if (is_array($changes)) {
+                    // Check various keys where status might be stored
+                    $newStatus = $changes['new']['status'] ?? $changes['attributes']['status'] ?? null;
+                    if ($newStatus) $achievedStatuses[] = $newStatus;
 
-            // 1. Grab the current status
-            if (!empty($package->status)) {
-                $achievedStatuses[] = $package->status;
-            }
-
-            // 2. Loop through logs to find historical statuses
-            if ($package->activityLogs) {
-                foreach ($package->activityLogs as $log) {
-                    // Ensure $changes is an array (in case it is stored as a JSON string in DB)
-                    $changes = is_string($log->changes) ? json_decode($log->changes, true) : $log->changes;
-
-                    if (is_array($changes)) {
-                        // Check the 'new' status string in the JSON payload
-                        // (Also checking 'attributes' as a fallback if you ever use Spatie Activitylog)
-                        if (isset($changes['new']['status'])) {
-                            $achievedStatuses[] = $changes['new']['status'];
-                        } elseif (isset($changes['attributes']['status'])) { 
-                            $achievedStatuses[] = $changes['attributes']['status'];
-                        }
-                        
-                        // Check the 'old' status just in case
-                        if (isset($changes['old']['status'])) {
-                            $achievedStatuses[] = $changes['old']['status'];
-                        }
-                    }
+                    $oldStatus = $changes['old']['status'] ?? null;
+                    if ($oldStatus) $achievedStatuses[] = $oldStatus;
                 }
             }
+        }
 
-            // Clean up the array: remove empty values, remove duplicates, and reset keys
-            $uniqueStatuses = array_values(array_unique(array_filter($achievedStatuses)));
-
-            return [
-                'id'              => $package->id,
-                'package_name'    => $package->package_name,
-                'estimated_value' => $package->estimated_budget_incl_gst,
-                'current_status'  => $package->status,
-                'history'         => $uniqueStatuses, 
-            ];
-        });
-    }
+        return [
+            'id'              => $package->id,
+            'package_name'    => $package->package_name,
+            'department_name' => $package->department->name ?? 'N/A', // Added department name
+            'estimated_value' => $package->estimated_budget_incl_gst,
+            'current_status'  => $package->status,
+            'history'         => array_values(array_unique(array_filter($achievedStatuses))), 
+        ];
+    });
+}
 }
