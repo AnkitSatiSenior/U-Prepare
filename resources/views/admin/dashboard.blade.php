@@ -540,7 +540,7 @@
         
         if ($found) {
             // Returns a green checkmark
-            return '<span class="status-icon text-success">● <small>✓</small></span>';
+            return '<span class="status-icon text-success"><i class="fa-solid fa-check"></i></span>';
         }
         // Returns a muted/grey empty circle
         return '<span class="status-icon text-muted">○</span>';
