@@ -566,14 +566,14 @@
                 <td>{{ $row['package_name'] }}</td>
                 <td>{{ number_format($row['estimated_value'], 2) }}</td>
                 
-                <td class="text-center">{{ $hasStatus(\App\Models\PackageProject::STATUS_RFP_BID_DOCUMENTS_PUBLISHED) }}</td>
-                <td class="text-center">{{ $hasStatus(\App\Models\PackageProject::STATUS_FINANCIAL_EVALUATION) }}</td>
-                <td class="text-center">{{ $hasStatus(\App\Models\PackageProject::STATUS_TECHNICAL_EVALUATION) }}</td>
-                <td class="text-center">{{ $hasStatus(\App\Models\PackageProject::STATUS_LOA_ISSUED) }}</td>
-                <td class="text-center">{{ $hasStatus(\App\Models\PackageProject::STATUS_CONTRACT_SIGNED) }}</td>
-                <td class="text-center">{{ $hasStatus(\App\Models\PackageProject::STATUS_PRE_DISPATCH_INSPECTION) }}</td>
-                <td class="text-center">{{ $hasStatus(\App\Models\PackageProject::STATUS_DELIVERED) }}</td>
-                <td class="text-center">{{ $hasStatus(\App\Models\PackageProject::STATUS_PAYMENT) }}</td>
+                <td class="text-center" style="min-width: 100px;">{!! $hasStatus(\App\Models\PackageProject::STATUS_RFP_BID_DOCUMENTS_PUBLISHED) !!}</td>
+<td class="text-center" style="min-width: 100px;">{!! $hasStatus(\App\Models\PackageProject::STATUS_FINANCIAL_EVALUATION) !!}</td>
+<td class="text-center" style="min-width: 100px;">{!! $hasStatus(\App\Models\PackageProject::STATUS_TECHNICAL_EVALUATION) !!}</td>
+<td class="text-center" style="min-width: 100px;">{!! $hasStatus(\App\Models\PackageProject::STATUS_LOA_ISSUED) !!}</td>
+<td class="text-center" style="min-width: 100px;">{!! $hasStatus(\App\Models\PackageProject::STATUS_CONTRACT_SIGNED) !!}</td>
+<td class="text-center" style="min-width: 100px;">{!! $hasStatus(\App\Models\PackageProject::STATUS_PRE_DISPATCH_INSPECTION) !!}</td>
+<td class="text-center" style="min-width: 100px;">{!! $hasStatus(\App\Models\PackageProject::STATUS_DELIVERED) !!}</td>
+<td class="text-center" style="min-width: 100px;">{!! $hasStatus(\App\Models\PackageProject::STATUS_PAYMENT) !!}</td>
             </tr>
         @endforeach
         
