@@ -15,29 +15,34 @@ class DashboardController extends Controller
         $this->dashboard = $dashboard;
     }
 
-    public function index(Request $request)
-    {
-        $user = Auth::user();
-        
-        // Grab 'scope' from the URL parameters, default to 'all'
-        $scope = $request->input('scope', 'all'); 
+   public function index(Request $request)
+{
+    $user = Auth::user();
+    
+    $scope = $request->input('scope', 'all'); 
 
-        // 1. Get the main dashboard data (this contains $contractsStatus, etc.)
-        $data = $this->dashboard->getDashboardData($user);
-        
-        // 2. Add the report data to the array
-        $data['reportData'] = $this->dashboard->getPackageMatrixReport();
+    $data = $this->dashboard->getDashboardData($user);
+    
+    // FIX: Pass $user here
+    $data['reportData'] = $this->dashboard->getPackageMatrixReport($user);
 
-        // 3. Add department stats to the array
-        $departmentQuery = Department::withProjectAndContractStats()->withFinancialStats();
-        if ($scope !== 'all') {
-            $departmentQuery->where('id', $scope);
-        }
-        $data['departmentStats'] = $departmentQuery->get();
-
-        // 4. Return the view with the combined $data array
-        return view('admin.dashboard', $data);
+    $departmentQuery = Department::withProjectAndContractStats()->withFinancialStats();
+    if ($scope !== 'all') {
+        $departmentQuery->where('id', $scope);
     }
+    $data['departmentStats'] = $departmentQuery->get();
+
+    return view('admin.dashboard', $data);
+}
+
+public function statusReportReport(Request $request)
+{
+    // FIX: Get user and pass it to the service
+    $user = Auth::user();
+    $reportData = $this->dashboard->getPackageMatrixReport($user);
+
+    return view('admin.reports.status-matrix', compact('reportData'));
+}
     public function getDepartmentsStatsOther($scope = 'all')
     {
         $query = Department::withProjectAndContractStats()->withFinancialStats();
@@ -46,11 +51,5 @@ class DashboardController extends Controller
         }
         return $query->get();
     }
-    public function statusReportReport(Request $request)
-    {
-        // You can pass a specific department ID if filtering for UKFES
-        $reportData = $this->dashboard->getPackageMatrixReport();
-
-        return view('admin.reports.status-matrix', compact('reportData'));
-    }
+   
 }
