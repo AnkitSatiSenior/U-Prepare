@@ -518,48 +518,149 @@
         </div>
        
        <div class="card-body">
-    <x-admin.data-table :headers="[
-            'S.No.',
-            'Department', // New Column
-            'Name of Package',
-            'Estimated Value',
-            'Bid Published',
-            'Financial Eval.',
-            'Technical Eval.',
-            'LOA Issued',
-            'Contract Signed',
-            'PDI',
-            'Delivered',
-            'Payment'
-        ]" id="package-status-matrix-table" :excel="true" :print="true" :pageLength="10">
-        
-        @foreach($reportData as $index => $row)
-            @php
-                $hasStatus = function($statusName) use ($row) {
-                    $found = in_array($statusName, $row['history']);
-                    return $found 
-                        ? '<span class="text-success"><i class="fa-solid fa-circle-check" style="font-size: 20px;"></i></span>' 
-                        : '<span class="text-muted" style="opacity: 0.3;">○</span>';
-                };
-            @endphp
+        <div class="row mb-3">
+    <div class="col-md-4">
+        <label class="form-label fw-bold">Filter by Department</label>
+        <select id="departmentFilter" class="form-select form-select-sm">
+            <option value="">All Departments</option>
+        </select>
+    </div>
 
-            <tr>
-                <td>{{ $index + 1 }}</td>
-                <td class="font-weight-bold">{{ $row['department_name'] }}</td> {{-- Department Name --}}
-                <td>{{ $row['package_name'] }}</td>
-                <td>{{ number_format($row['estimated_value'], 2) }}</td>
-                
-                <td class="text-center">{!! $hasStatus(\App\Models\PackageProject::STATUS_RFP_BID_DOCUMENTS_PUBLISHED) !!}</td>
-                <td class="text-center">{!! $hasStatus(\App\Models\PackageProject::STATUS_FINANCIAL_EVALUATION) !!}</td>
-                <td class="text-center">{!! $hasStatus(\App\Models\PackageProject::STATUS_TECHNICAL_EVALUATION) !!}</td>
-                <td class="text-center">{!! $hasStatus(\App\Models\PackageProject::STATUS_LOA_ISSUED) !!}</td>
-                <td class="text-center">{!! $hasStatus(\App\Models\PackageProject::STATUS_CONTRACT_SIGNED) !!}</td>
-                <td class="text-center">{!! $hasStatus(\App\Models\PackageProject::STATUS_PRE_DISPATCH_INSPECTION) !!}</td>
-                <td class="text-center">{!! $hasStatus(\App\Models\PackageProject::STATUS_DELIVERED) !!}</td>
-                <td class="text-center">{!! $hasStatus(\App\Models\PackageProject::STATUS_PAYMENT) !!}</td>
+    <div class="col-md-8 text-end">
+        <div class="dropdown">
+            <button class="btn btn-dark btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="fas fa-columns me-1"></i> Columns
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" id="columnToggleDropdown"></ul>
+        </div>
+    </div>
+</div>
+<script>
+$(document).ready(function () {
+
+    const table = $('#packageStatusTable').DataTable({
+        responsive: true,
+        order: [],
+        pageLength: 10,
+        lengthMenu: [[5, 10, 25, 50, -1], ['5', '10', '25', '50', 'All']],
+        dom:
+            '<"row mb-2"<"col-md-6"l><"col-md-6"f>>' +
+            '<"row mb-2"<"col-md-12"B>>' +
+            '<"row"<"col-md-12"tr>>' +
+            '<"row mt-2"<"col-md-6"i><"col-md-6"p>>',
+        buttons: [
+            {
+                extend: 'excelHtml5',
+                text: '<i class="fas fa-file-excel me-1"></i> Excel',
+                className: 'btn btn-success btn-sm'
+            },
+            {
+                extend: 'print',
+                text: '<i class="fas fa-print me-1"></i> Print',
+                className: 'btn btn-primary btn-sm'
+            }
+        ],
+        language: {
+            searchPlaceholder: "Search records...",
+            search: "_INPUT_"
+        },
+        initComplete: function () {
+
+            const api = this.api();
+            const departmentColumn = 1;
+            const departmentSelect = $('#departmentFilter');
+
+            // Populate Department Dropdown
+            const departments = new Set();
+            api.column(departmentColumn).data().each(function (d) {
+                departments.add(d.trim());
+            });
+
+            [...departments].sort().forEach(function (dept) {
+                departmentSelect.append(`<option value="${dept}">${dept}</option>`);
+            });
+
+            // Department Filter
+            departmentSelect.on('change', function () {
+                const val = $.fn.dataTable.util.escapeRegex($(this).val());
+                api.column(departmentColumn)
+                    .search(val ? '^' + val + '$' : '', true, false)
+                    .draw();
+            });
+
+            // Column Toggle
+            api.columns().every(function (index) {
+                const column = this;
+                const title = $(column.header()).text();
+                const checked = column.visible() ? 'checked' : '';
+
+                $('#columnToggleDropdown').append(`
+                    <li>
+                        <label class="dropdown-item">
+                            <input type="checkbox" class="me-2 column-toggle"
+                                   data-column="${index}" ${checked}>
+                            ${title}
+                        </label>
+                    </li>
+                `);
+            });
+
+            $(document).on('change', '.column-toggle', function () {
+                const column = api.column($(this).data('column'));
+                column.visible(!column.visible());
+            });
+        }
+    });
+
+});
+</script>
+    <div class="table-responsive">
+    <table id="packageStatusTable" class="table table-striped table-bordered w-100">
+        <thead class="table-success text-white">
+            <tr class="text-center">
+                <th>S.No.</th>
+                <th>Department</th>
+                <th>Name of Package</th>
+                <th>Estimated Value</th>
+                <th>Bid Published</th>
+                <th>Financial Eval.</th>
+                <th>Technical Eval.</th>
+                <th>LOA Issued</th>
+                <th>Contract Signed</th>
+                <th>PDI</th>
+                <th>Delivered</th>
+                <th>Payment</th>
             </tr>
-        @endforeach
-    </x-admin.data-table>
+        </thead>
+
+        <tbody>
+            @foreach($reportData as $index => $row)
+                @php
+                    $hasStatus = function($status) use ($row) {
+                        return in_array($status, $row['history'])
+                            ? '<span class="text-success"><i class="fa-solid fa-circle-check fs-5"></i></span>'
+                            : '<span class="text-muted" style="opacity:0.3;">○</span>';
+                    };
+                @endphp
+                <tr class="text-center">
+                    <td>{{ $index + 1 }}</td>
+                    <td class="fw-bold">{{ $row['department_name'] }}</td>
+                    <td class="text-start">{{ $row['package_name'] }}</td>
+                    <td>{{ number_format($row['estimated_value'], 2) }}</td>
+
+                    <td>{!! $hasStatus(\App\Models\PackageProject::STATUS_RFP_BID_DOCUMENTS_PUBLISHED) !!}</td>
+                    <td>{!! $hasStatus(\App\Models\PackageProject::STATUS_FINANCIAL_EVALUATION) !!}</td>
+                    <td>{!! $hasStatus(\App\Models\PackageProject::STATUS_TECHNICAL_EVALUATION) !!}</td>
+                    <td>{!! $hasStatus(\App\Models\PackageProject::STATUS_LOA_ISSUED) !!}</td>
+                    <td>{!! $hasStatus(\App\Models\PackageProject::STATUS_CONTRACT_SIGNED) !!}</td>
+                    <td>{!! $hasStatus(\App\Models\PackageProject::STATUS_PRE_DISPATCH_INSPECTION) !!}</td>
+                    <td>{!! $hasStatus(\App\Models\PackageProject::STATUS_DELIVERED) !!}</td>
+                    <td>{!! $hasStatus(\App\Models\PackageProject::STATUS_PAYMENT) !!}</td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
+</div>
 </div>
 
     </div>
