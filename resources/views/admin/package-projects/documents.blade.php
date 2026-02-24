@@ -75,12 +75,12 @@
             </div>
         @endforelse
 
-        {{-- ---------------- Social Safeguard Gallery ---------------- --}}
+        {{-- ---------------- Safeguard Gallery ---------------- --}}
 @if(!empty($gallery))
 <div class="card shadow-sm border mb-4" id="soc-gallery-root">
     <div class="card-header bg-white py-3 border-bottom border-primary border-2">
         <h5 class="mb-0 text-primary fw-bold">
-            <i class="fas fa-users me-2"></i> Social Safeguard Gallery
+            <i class="fas fa-users me-2"></i> Safeguard Gallery
         </h5>
     </div>
     
