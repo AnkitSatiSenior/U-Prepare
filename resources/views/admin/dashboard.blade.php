@@ -534,11 +534,33 @@
         
         @foreach($reportData as $index => $row)
             @php
-                // Helper function to check if a status was achieved in history
-                $hasStatus = function($statusName) use ($row) {
-                    return in_array($statusName, $row['history']) ? '☑ ✓' : '☐';
-                };
-            @endphp
+    // Helper function with CSS classes for coloring
+    $hasStatus = function($statusName) use ($row) {
+        $found = in_array($statusName, $row['history']);
+        
+        if ($found) {
+            // Returns a green checkmark
+            return '<span class="status-icon text-success">● <small>✓</small></span>';
+        }
+        // Returns a muted/grey empty circle
+        return '<span class="status-icon text-muted">○</span>';
+    };
+@endphp
+<style>
+    .text-success {
+        color: #28a745 !important; /* Professional Green */
+        font-weight: bold;
+    }
+    .text-muted {
+        color: #6c757d !important; /* Subtle Grey */
+        opacity: 0.5;
+    }
+    .status-icon {
+        font-size: 1.2rem;
+        display: inline-flex;
+        align-items: center;
+    }
+</style>
             <tr>
                 <td>{{ $index + 1 }}</td>
                 <td>{{ $row['package_name'] }}</td>
