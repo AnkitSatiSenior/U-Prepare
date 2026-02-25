@@ -381,6 +381,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
             Route::put('/procurement-work-programs/update-single/{id}', [ProcurementWorkProgramController::class, 'updateSingle'])->name('procurement-work-programs.update-single');
             Route::resource('contractors', ContractorController::class);
             Route::resource('contracts', ContractController::class);
+             Route::resource('procurement-details', ProcurementDetailController::class)->except(['create', 'store']);
             Route::prefix('package-projects/{packageProject}/procurement-details')->group(function () {
                 Route::get('create', [ProcurementDetailController::class, 'create'])->name('procurement-details.create');
                 Route::post('/', [ProcurementDetailController::class, 'store'])->name('procurement-details.store');
@@ -390,7 +391,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
             Route::get('media-files', [MediaFileController::class, 'index'])->name('media.index');
             Route::get('/physical-epc-report', [PhysicalEpcProgressController::class, 'index3'])->name('physicalprogress.index3');
             Route::get('/safeguard-entries-all', [SafeguardEntryController::class, 'index2'])->name('safeguard_entries.index2');
-            Route::resource('procurement-details', ProcurementDetailController::class)->except(['create', 'store']);
+           
             Route::post('safeguard_entries/import', [SafeguardEntryController::class, 'import'])->name('safeguard_entries.import');
             Route::post('safeguard_entries/bulk-delete-entry', [SafeguardEntryController::class, 'bulkDelete'])->name('safeguard_entries.bulkDelete.entry');
             Route::resource('safeguard_entries', SafeguardEntryController::class);
