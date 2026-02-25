@@ -6,29 +6,72 @@
     RewriteEngine On
 
     # =====================================================
-    # Handle Authorization Header
+    # 1. BLOCK ACCESS TO SENSITIVE HIDDEN FILES (e.g., .env, .git)
+    # =====================================================
+    RewriteCond %{SCRIPT_FILENAME} -d [OR]
+    RewriteCond %{SCRIPT_FILENAME} -f
+    RewriteRule "(^|/)\." - [F]
+
+    # =====================================================
+    # 2. HANDLE AUTHORIZATION & TOKENS
+    # =====================================================
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-    # Handle X-XSRF-Token Header
     RewriteCond %{HTTP:x-xsrf-token} .
     RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
 
     # =====================================================
-    # Redirect Trailing Slashes If Not A Folder...
+    # 3. REDIRECT TRAILING SLASHES IF NOT A FOLDER
+    # =====================================================
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [L,R=301]
 
     # =====================================================
-    # Serve /storage/... from storage/app/public/...
+    # 4. SECURE LOCAL STORAGE SERVING
+    # =====================================================
     RewriteCond %{REQUEST_URI} ^/storage/(.*)$
     RewriteCond %{REQUEST_URI} !^/storage/app/public/
     RewriteRule ^storage/(.*)$ ../storage/app/public/$1 [L]
 
     # =====================================================
-    # Send All Other Requests To Laravel Front Controller
+    # 5. SEND ALL OTHER REQUESTS TO LARAVEL FRONT CONTROLLER
+    # =====================================================
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+    # =====================================================
+    # 6. STRIP SERVER SIGNATURES (Reduce Info Leakage)
+    # =====================================================
+    Header always unset X-Powered-By
+    Header always unset Server
+    Header always unset X-Pingback
+    # Note: 'panel: hpanel' and 'platform: hostinger' are injected 
+    # upstream by Hostinger's load balancer and cannot be removed here.
+
+    # =====================================================
+    # 7. ADD ESSENTIAL SECURITY HEADERS
+    # =====================================================
+    # Prevent browsers from guessing the file type (MIME-sniffing)
+    Header always set X-Content-Type-Options "nosniff"
+    
+    # Prevent Clickjacking by stopping your site from being loaded in iframes elsewhere
+    Header always set X-Frame-Options "SAMEORIGIN"
+    
+    # Force older browsers to enable their XSS protection
+    Header always set X-XSS-Protection "1; mode=block"
+    
+    # Force HTTPS (HSTS) - Tells browsers to strictly use HTTPS for 1 year
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=HTTPS
+    
+    # Restrict referrer data sent to other websites for privacy
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    
+    # Basic Content Security Policy (Optional but highly recommended)
+    # Upgrade insecure HTTP requests to HTTPS automatically
+    Header always set Content-Security-Policy "upgrade-insecure-requests"
 </IfModule>
