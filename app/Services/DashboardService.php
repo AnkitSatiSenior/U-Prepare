@@ -3,10 +3,8 @@
 namespace App\Services;
 
 use App\Repositories\DashboardRepository;
-
-
 use App\Models\PackageProject;
-use App\Models\ActivityLog;
+use App\Models\PackageStatus;
 
 class DashboardService
 {
@@ -51,7 +49,7 @@ class DashboardService
             'typeOfProcurement' => $this->repo->getTypeOfProcurementStats($scope),
             'subCategories' => $this->repo->getSubCategoryStats($scope),
             'packageProjectsSubProjectStats' => $this->repo->getPackageProjectsSubProjectStats($scope),
-            
+
             // Category Counts
             'departmentCategoryCounts' => $this->repo->getDepartmentCategoryCounts($scope),
             'departmentCategorySubCategoryCounts' => $this->repo->getDepartmentCategorySubCategoryCounts($scope),
@@ -75,57 +73,63 @@ class DashboardService
             'scope' => $scope,
         ];
     }
-   public function getPackageMatrixReport($user)
-{
-    // 1. Resolve scope based on the logged-in user
-    $scope = $this->resolveScope($user);
+    public function getPackageMatrixReport($user): array
+    {
+        // 1. Resolve Scope
+        $scope = $this->resolveScope($user);
 
-    // 2. Build the query
-    $query = PackageProject::query()
-        ->select('id', 'package_name', 'estimated_budget_incl_gst', 'status', 'department_id') 
-        // Eager load department (to get the name) and activity logs
-        ->with(['department:id,name', 'activityLogs']); 
+        // 2. Fetch all ACTIVE dynamic statuses, ordered correctly
+        $activeStatuses = PackageStatus::where('is_active', true)
+            ->orderBy('order_by')
+            ->pluck('name')
+            ->toArray();
 
-    // 3. Apply department filter if not 'all'
-    if ($scope !== 'all') {
-        $query->where('department_id', $scope);
-    }
+        // 3. Build the query
+        $query = PackageProject::query()
+            ->select('id', 'package_name', 'estimated_budget_incl_gst', 'status', 'department_id')
+            ->with(['department:id,name', 'activityLogs'])
+            ->when($scope !== 'all', fn($q) => $q->where('department_id', $scope));
 
-    $packages = $query->get();
+        $packages = $query->get();
 
-    // 4. Map the data
-    return $packages->map(function ($package) {
-        $achievedStatuses = [];
+        // 4. Map the data
+        $mappedPackages = $packages->map(function ($package) {
+            $achievedStatuses = [];
 
-        // Add current status
-        if (!empty($package->status)) {
-            $achievedStatuses[] = $package->status;
-        }
+            // Add current status
+            if (!empty($package->status)) {
+                $achievedStatuses[] = $package->status;
+            }
 
-        // Extract historical statuses from logs
-        if ($package->activityLogs) {
-            foreach ($package->activityLogs as $log) {
-                $changes = is_string($log->changes) ? json_decode($log->changes, true) : $log->changes;
+            // Extract historical statuses from logs safely
+            if ($package->activityLogs) {
+                foreach ($package->activityLogs as $log) {
+                    $changes = is_string($log->changes) ? json_decode($log->changes, true) : $log->changes;
 
-                if (is_array($changes)) {
-                    // Check various keys where status might be stored
-                    $newStatus = $changes['new']['status'] ?? $changes['attributes']['status'] ?? null;
-                    if ($newStatus) $achievedStatuses[] = $newStatus;
+                    if (is_array($changes)) {
+                        $newStatus = $changes['new']['status'] ?? $changes['attributes']['status'] ?? null;
+                        if ($newStatus) $achievedStatuses[] = $newStatus;
 
-                    $oldStatus = $changes['old']['status'] ?? null;
-                    if ($oldStatus) $achievedStatuses[] = $oldStatus;
+                        $oldStatus = $changes['old']['status'] ?? null;
+                        if ($oldStatus) $achievedStatuses[] = $oldStatus;
+                    }
                 }
             }
-        }
 
+            return [
+                'id'              => $package->id,
+                'package_name'    => $package->package_name,
+                'department_name' => $package->department->name ?? 'N/A',
+                'estimated_value' => $package->estimated_budget_incl_gst,
+                'current_status'  => $package->status,
+                'history'         => array_values(array_unique(array_filter($achievedStatuses))),
+            ];
+        });
+
+        // Return a structured array with both the Columns (Statuses) and the Rows (Packages)
         return [
-            'id'              => $package->id,
-            'package_name'    => $package->package_name,
-            'department_name' => $package->department->name ?? 'N/A', // Added department name
-            'estimated_value' => $package->estimated_budget_incl_gst,
-            'current_status'  => $package->status,
-            'history'         => array_values(array_unique(array_filter($achievedStatuses))), 
+            'statuses' => $activeStatuses,
+            'packages' => $mappedPackages,
         ];
-    });
-}
+    }
 }

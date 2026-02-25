@@ -522,52 +522,44 @@
             </div>
             
             <div class="table-responsive">
-                <table id="packageStatusTable" class="table table-striped table-bordered w-100">
-                    <thead class="table-success text-white">
-                        <tr class="text-center">
-                            <th>S.No.</th>
-                            <th>Department</th>
-                            <th>Name of Package</th>
-                            <th>Estimated Value</th>
-                            <th>Bid Published</th>
-                            <th>Financial Eval.</th>
-                            <th>Technical Eval.</th>
-                            <th>LOA Issued</th>
-                            <th>Contract Signed</th>
-                            <th>PDI</th>
-                            <th>Delivered</th>
-                            <th>Payment</th>
-                        </tr>
-                    </thead>
+    <table id="packageStatusTable" class="table table-striped table-bordered w-100">
+        <thead class="table-success text-white">
+            <tr class="text-center align-middle">
+                <th>S.No.</th>
+                <th>Department</th>
+                <th>Name of Package</th>
+                <th>Estimated Value</th>
+                
+                @foreach($reportStatuses as $status)
+                    <th>{{ $status }}</th>
+                @endforeach
+            </tr>
+        </thead>
 
-                    <tbody>
-                        @foreach($reportData as $index => $row)
-                        @php
-                        $hasStatus = function($status) use ($row) {
-                        return in_array($status, $row['history'])
-                        ? '<span class="text-success"><i class="fa-solid fa-circle-check fs-5"></i></span>'
-                        : '<span class="text-muted" style="opacity:0.3;">○</span>';
-                        };
-                        @endphp
-                        <tr class="text-center">
-                            <td>{{ $index + 1 }}</td>
-                            <td class="fw-bold">{{ $row['department_name'] }}</td>
-                            <td class="text-start">{{ $row['package_name'] }}</td>
-                            <td>{{ number_format($row['estimated_value'], 2) }}</td>
+        <tbody>
+            @foreach($reportData as $index => $row)
+                @php
+                    // Helper function to check if a status exists in the package's history
+                    $hasStatus = function($statusToCheck) use ($row) {
+                        return in_array($statusToCheck, $row['history'])
+                            ? '<span class="text-success" title="Achieved"><i class="fa-solid fa-circle-check fs-5"></i></span>'
+                            : '<span class="text-muted" style="opacity:0.3;" title="Pending">○</span>';
+                    };
+                @endphp
+                <tr class="text-center align-middle">
+                    <td>{{ $index + 1 }}</td>
+                    <td class="fw-bold">{{ $row['department_name'] }}</td>
+                    <td class="text-start">{{ $row['package_name'] }}</td>
+                    <td>{{ number_format($row['estimated_value'], 2) }}</td>
 
-                            <td>{!! $hasStatus(\App\Models\PackageProject::STATUS_RFP_BID_DOCUMENTS_PUBLISHED) !!}</td>
-                            <td>{!! $hasStatus(\App\Models\PackageProject::STATUS_FINANCIAL_EVALUATION) !!}</td>
-                            <td>{!! $hasStatus(\App\Models\PackageProject::STATUS_TECHNICAL_EVALUATION) !!}</td>
-                            <td>{!! $hasStatus(\App\Models\PackageProject::STATUS_LOA_ISSUED) !!}</td>
-                            <td>{!! $hasStatus(\App\Models\PackageProject::STATUS_CONTRACT_SIGNED) !!}</td>
-                            <td>{!! $hasStatus(\App\Models\PackageProject::STATUS_PRE_DISPATCH_INSPECTION) !!}</td>
-                            <td>{!! $hasStatus(\App\Models\PackageProject::STATUS_DELIVERED) !!}</td>
-                            <td>{!! $hasStatus(\App\Models\PackageProject::STATUS_PAYMENT) !!}</td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
+                    @foreach($reportStatuses as $status)
+                        <td>{!! $hasStatus($status) !!}</td>
+                    @endforeach
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
+</div>
         </div>
 
     </div>
