@@ -491,7 +491,8 @@
                         <tr class="text-center align-middle">
                             <th>S.No.</th>
                             <th>Department</th>
-                            <th style="width: 100%; padding-right:20px">Name of Package</th>
+                            <th style="    width: 560px !important;
+    padding-right: 627px !important;">Name of Package</th>
                             <th>Estimated Value</th>
 
                             @foreach($reportStatuses as $status)
