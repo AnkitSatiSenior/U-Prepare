@@ -1,22 +1,7 @@
 <x-app-layout>
     <div class="container py-4">
 
-        <div class="mt-4">
-            @if (auth()->user() && is_null(auth()->user()->password_updated_at))
-            <div class="alert alert-warning alert-dismissible fade show m-0 p-0 d-flex justify-content-between align-items-center"
-                role="alert">
-                <div class="flex-grow-1 px-2 py-2">
-                    <strong>⚠️ Security Notice:</strong> Please update your password in your
-                    <a href="{{ route('profile.show') }}" class="alert-link">Profile</a>.
-                    If you have already updated, you can ignore this message.
-                </div>
-                <button type="button" class="btn btn-close p-2 me-2" data-bs-dismiss="alert" aria-label="Close">
-                    <i class="fa fa-window-close" aria-hidden="true"></i>
-                </button>
-            </div>
-            @endif
-
-        </div>
+       
         {{-- ======================
         Dashboard Stats Cards
         ======================= --}}
