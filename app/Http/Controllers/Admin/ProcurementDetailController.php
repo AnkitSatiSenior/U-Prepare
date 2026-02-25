@@ -55,44 +55,39 @@ class ProcurementDetailController extends Controller
     /**
      * Store new procurement details.
      */
-  public function store(Request $request, PackageProject $packageProject)
-{
-    // Check if procurement details already exist
-    if ($packageProject->procurementDetail()->exists()) {
-        return redirect()
-            ->route('admin.procurement-details.show', $packageProject->procurementDetail)
-            ->with('warning', 'Procurement details already exist.');
-    }
-
-    // Validate incoming request
-    $validated = $this->validateProcurementDetails($request);
-
-    try {
-        // Handle file upload if exists
-        if ($request->hasFile('publication_document')) {
-            $validated['publication_document_path'] = $this->storePublicationDocument($request);
+    public function store(Request $request, PackageProject $packageProject)
+    {
+        if ($packageProject->procurementDetail()->exists()) {
+            return redirect()
+                ->route('admin.procurement-details.show', $packageProject->procurementDetail)
+                ->with('warning', 'Procurement details already exist.');
         }
 
-        // Create procurement detail
-        $procurementDetail = $packageProject->procurementDetail()->create($validated);
+        $validated = $this->validateProcurementDetails($request);
 
-        return redirect()
-            ->route('admin.procurement-details.show', $procurementDetail)
-            ->with('success', 'Procurement details created successfully.');
+        try {
+            $this->handleFileUploads($request, $validated);
 
-    } catch (\Exception $e) {
-        // Log detailed error for debugging
-        Log::error('Failed to create procurement details', [
-            'package_project_id' => $packageProject->id,
-            'request_data' => $request->except(['publication_document']),
-            'exception_message' => $e->getMessage(),
-            'exception_trace' => $e->getTraceAsString(),
-        ]);
+            $procurementDetail = $packageProject->procurementDetail()->create($validated);
 
-        return back()->withInput()->with('error', 'Failed to create procurement details. Please try again.');
+            return redirect()
+                ->route('admin.procurement-details.show', $procurementDetail)
+                ->with('success', 'Procurement details created successfully.');
+
+        } catch (\Exception $e) {
+            Log::error('Failed to create procurement details', [
+                'package_project_id' => $packageProject->id,
+                // Exclude file uploads from log to prevent massive log entries
+                'request_data' => $request->except([
+                    'publication_document', 'technical_eval_document', 
+                    'financial_eval_document', 'loa_issued_document'
+                ]),
+                'exception_message' => $e->getMessage(),
+            ]);
+
+            return back()->withInput()->with('error', 'Failed to create procurement details. Please try again.');
+        }
     }
-}
-
 
     /**
      * Display a procurement detail.
@@ -136,10 +131,8 @@ class ProcurementDetailController extends Controller
         $validated = $this->validateProcurementDetails($request);
 
         try {
-            if ($request->hasFile('publication_document')) {
-                $this->deleteExistingDocument($procurementDetail);
-                $validated['publication_document_path'] = $this->storePublicationDocument($request);
-            }
+            // Pass the existing model so old files get deleted when replaced
+            $this->handleFileUploads($request, $validated, $procurementDetail);
 
             $procurementDetail->update($validated);
 
@@ -161,7 +154,8 @@ class ProcurementDetailController extends Controller
         try {
             $packageProjectId = $procurementDetail->package_project_id;
 
-            $this->deleteExistingDocument($procurementDetail);
+            // Delete all associated documents from storage
+            $this->deleteExistingDocuments($procurementDetail);
             $procurementDetail->delete();
 
             return redirect()
@@ -182,8 +176,20 @@ class ProcurementDetailController extends Controller
         return $request->validate([
             'method_of_procurement'      => 'required|string|max:255',
             'type_of_procurement_id'     => 'required|exists:type_of_procurements,id',
+            
+            // Dates
             'publication_date'           => 'nullable|date',
-            'publication_document'       => 'nullable|file|mimes:pdf,doc,docx',
+            'technical_eval_date'        => 'nullable|date',
+            'financial_eval_date'        => 'nullable|date',
+            'loa_issued_date'            => 'nullable|date',
+            
+            // Documents
+            'publication_document'       => 'nullable|file|mimes:pdf,doc,docx|max:10240', // optional max size (10MB)
+            'technical_eval_document'    => 'nullable|file|mimes:pdf,doc,docx|max:10240',
+            'financial_eval_document'    => 'nullable|file|mimes:pdf,doc,docx|max:10240',
+            'loa_issued_document'        => 'nullable|file|mimes:pdf,doc,docx|max:10240',
+            
+            // Financials & Validity
             'tender_fee'                 => 'nullable|numeric|min:0',
             'earnest_money_deposit'      => 'nullable|numeric|min:0',
             'bid_validity_days'          => 'nullable|integer|min:0',
@@ -192,21 +198,45 @@ class ProcurementDetailController extends Controller
     }
 
     /**
-     * Store publication document.
+     * Handle upload of multiple documents automatically.
      */
-    protected function storePublicationDocument(Request $request): string
+    protected function handleFileUploads(Request $request, array &$validated, ?ProcurementDetail $existingDetail = null): void
     {
-        return $request->file('publication_document')->store('procurement_docs', 'public');
+        $fileFields = [
+            'publication_document'    => 'publication_document_path',
+            'technical_eval_document' => 'technical_eval_document_path',
+            'financial_eval_document' => 'financial_eval_document_path',
+            'loa_issued_document'     => 'loa_issued_document_path',
+        ];
+
+        foreach ($fileFields as $inputField => $dbColumn) {
+            if ($request->hasFile($inputField)) {
+                // If updating, delete the old file first
+                if ($existingDetail && $existingDetail->$dbColumn) {
+                    Storage::disk('public')->delete($existingDetail->$dbColumn);
+                }
+                
+                $validated[$dbColumn] = $request->file($inputField)->store('procurement_docs', 'public');
+            }
+        }
     }
 
     /**
-     * Delete existing document.
+     * Delete all existing documents associated with the record.
      */
-    protected function deleteExistingDocument(ProcurementDetail $procurementDetail): void
+    protected function deleteExistingDocuments(ProcurementDetail $procurementDetail): void
     {
-        if ($procurementDetail->publication_document_path && 
-            Storage::disk('public')->exists($procurementDetail->publication_document_path)) {
-            Storage::disk('public')->delete($procurementDetail->publication_document_path);
+        $documentPaths = [
+            $procurementDetail->publication_document_path,
+            $procurementDetail->technical_eval_document_path,
+            $procurementDetail->financial_eval_document_path,
+            $procurementDetail->loa_issued_document_path,
+        ];
+
+        foreach ($documentPaths as $path) {
+            if ($path && Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
+            }
         }
     }
 }

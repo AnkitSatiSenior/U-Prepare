@@ -11,10 +11,16 @@ class ProcurementDetail extends Model
 
     protected $fillable = [
         'package_project_id',
-        'type_of_procurement_id', // use foreign key here
+        'type_of_procurement_id',
         'method_of_procurement',
         'publication_date',
         'publication_document_path',
+        'technical_eval_date',
+        'technical_eval_document_path',
+        'financial_eval_date',
+        'financial_eval_document_path',
+        'loa_issued_date',
+        'loa_issued_document_path',
         'tender_fee',
         'earnest_money_deposit',
         'bid_validity_days',
@@ -23,6 +29,9 @@ class ProcurementDetail extends Model
 
     protected $casts = [
         'publication_date'       => 'date',
+        'technical_eval_date'    => 'date',
+        'financial_eval_date'    => 'date',
+        'loa_issued_date'        => 'date',
         'tender_fee'             => 'decimal:2',
         'earnest_money_deposit'  => 'decimal:2',
         'bid_validity_days'      => 'integer',
