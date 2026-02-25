@@ -527,7 +527,7 @@
             <tr class="text-center align-middle">
                 <th>S.No.</th>
                 <th>Department</th>
-                <th>Name of Package</th>
+                <th style="width: 30%">Name of Package</th>
                 <th>Estimated Value</th>
                 
                 @foreach($reportStatuses as $status)
