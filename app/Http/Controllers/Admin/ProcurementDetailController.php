@@ -38,7 +38,7 @@ class ProcurementDetailController extends Controller
     {
         if ($packageProject->procurementDetail()->exists()) {
             return redirect()
-                ->route('admin.procurement-details.show', $packageProject->procurementDetail)
+                ->route('admin.procurement-details.index', $packageProject->procurementDetail)
                 ->with('warning', 'Procurement details already exist for this package project.');
         }
 
@@ -59,7 +59,7 @@ class ProcurementDetailController extends Controller
     {
         if ($packageProject->procurementDetail()->exists()) {
             return redirect()
-                ->route('admin.procurement-details.show', $packageProject->procurementDetail)
+                ->route('admin.procurement-details.index', $packageProject->procurementDetail)
                 ->with('warning', 'Procurement details already exist.');
         }
 
@@ -71,7 +71,7 @@ class ProcurementDetailController extends Controller
             $procurementDetail = $packageProject->procurementDetail()->create($validated);
 
             return redirect()
-                ->route('admin.procurement-details.show', $procurementDetail)
+                ->route('admin.procurement-details.index')
                 ->with('success', 'Procurement details created successfully.');
 
         } catch (\Exception $e) {
@@ -137,7 +137,7 @@ class ProcurementDetailController extends Controller
             $procurementDetail->update($validated);
 
             return redirect()
-                ->route('admin.procurement-details.show', $procurementDetail)
+                ->route('admin.procurement-details.index')
                 ->with('success', 'Procurement details updated successfully.');
 
         } catch (\Exception $e) {
