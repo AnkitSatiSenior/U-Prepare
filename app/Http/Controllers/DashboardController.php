@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Services\DashboardService;
 use Illuminate\Http\Request;
 use App\Models\{Department, PackageComponent, PackageProject, Contract, TypeOfProcurement, SubCategory};
+use Yajra\DataTables\Facades\DataTables;
 
 class DashboardController extends Controller
 {
@@ -21,12 +22,25 @@ class DashboardController extends Controller
         $user = Auth::user();
         $scope = $request->input('scope', 'all');
 
+        // 1. INTERCEPT YAJRA AJAX REQUEST
+        if ($request->ajax() && $request->has('draw')) {
+            $matrixReport = $this->dashboard->getPackageMatrixReport($user);
+            
+            return DataTables::of(collect($matrixReport['packages']))
+                ->addIndexColumn() // Auto-generates DT_RowIndex (S.No)
+                ->editColumn('estimated_value', function ($row) {
+                    return number_format($row['estimated_value'], 2);
+                })
+                // No need to inject HTML here. We send the raw history array to the frontend.
+                ->make(true);
+        }
+
+        // 2. NORMAL PAGE LOAD
         $data = $this->dashboard->getDashboardData($user);
 
-        // Extract the new structured report data
+        // We only need the statuses to build the dynamic table headers
         $matrixReport = $this->dashboard->getPackageMatrixReport($user);
         $data['reportStatuses'] = $matrixReport['statuses'];
-        $data['reportData']     = $matrixReport['packages'];
 
         $departmentQuery = Department::withProjectAndContractStats()->withFinancialStats();
         if ($scope !== 'all') {
@@ -36,6 +50,7 @@ class DashboardController extends Controller
 
         return view('admin.dashboard', $data);
     }
+    
 
     public function statusReportReport(Request $request)
     {

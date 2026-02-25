@@ -462,113 +462,89 @@
         {{-- ======================
         Package SubProject Progress
         ======================= --}}
-        <div class="card shadow-sm mt-5">
-            <div class="card-header border-bottom">
-                <div class="fw-bold fs-5">Package SubProject Progress</div>
-            </div>
-            <div class="card-body">
-                <x-admin.data-table :headers="[
-                    'Package No.',
-                    'Package Name',
-                    'Avg Financial Progress %',
-                    'Avg Physical Progress %',
-                    'Total SubProjects',
-                    'Gallery',
-                ]" id="subprojects-table" :excel="true" :print="true" :pageLength="10">
-                    @foreach ($packageProjectsSubProjectStats as $stats)
-                    <tr>
-                        <td>{{ $stats['package_number'] }}</td>
-                        <td class="truncate-cell" title="{{ $stats['package_name'] }}">
-                            {{ $stats['package_name'] }}
-                        </td>
-                        <td
-                            class="{{ ($stats['avg_financial_progress'] ?? 0) == 0 ? 'bg-light-danger' : 'bg-light-success' }}">
-                            {{ $stats['avg_financial_progress'] ?? 0 }}%
-                        </td>
-                        <td
-                            class="{{ ($stats['avg_physical_progress'] ?? 0) == 0 ? 'bg-light-danger' : 'bg-light-success' }}">
-                            {{ $stats['avg_physical_progress'] ?? 0 }}%
-                        </td>
-                        <td>{{ $stats['total_subprojects'] }}</td>
-                        <td>
-                            <a href="{{ route('admin.package-projects.documents', $stats['id']) }}"
-                                class="btn btn-sm btn-primary">
-                                View Gallery
-                            </a>
-                        </td>
-                    </tr>
-                    @endforeach
-                </x-admin.data-table>
-            </div>
-        </div>
-
         <div class="card-body">
             <div class="row mb-3">
                 <div class="col-md-4">
                     <label class="form-label fw-bold">Filter by Department</label>
-                    <select id="departmentFilter" class="form-select form-select-sm">
+                    <select id="departmentFilter" class="form-select form-select-sm shadow-sm">
                         <option value="">All Departments</option>
+                        @foreach($departmentStats as $dept)
+                        <option value="{{ $dept->name }}">{{ $dept->name }}</option>
+                        @endforeach
                     </select>
                 </div>
 
                 <div class="col-md-8 text-end">
                     <div class="dropdown">
-                        <button class="btn btn-dark btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-columns me-1"></i> Columns
+                        <button class="btn btn-dark btn-sm dropdown-toggle shadow-sm" type="button"
+                            data-bs-toggle="dropdown">
+                            <i class="fas fa-columns me-1"></i> Toggle Columns
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end" id="columnToggleDropdown"></ul>
+                        <ul class="dropdown-menu dropdown-menu-end shadow" id="columnToggleDropdown"></ul>
                     </div>
                 </div>
             </div>
-            
+
             <div class="table-responsive">
-    <table id="packageStatusTable" class="table table-striped table-bordered w-100">
-        <thead class="table-success text-white">
-            <tr class="text-center align-middle">
-                <th>S.No.</th>
-                <th>Department</th>
-                <th style="width: 30%">Name of Package</th>
-                <th>Estimated Value</th>
-                
-                @foreach($reportStatuses as $status)
-                    <th>{{ $status }}</th>
-                @endforeach
-            </tr>
-        </thead>
+                <table id="packageStatusTable" class="table table-striped table-bordered w-100">
+                    <thead class="table-success text-white">
+                        <tr class="text-center align-middle">
+                            <th>S.No.</th>
+                            <th>Department</th>
+                            <th style="width: 100%; padding-right:20px">Name of Package</th>
+                            <th>Estimated Value</th>
 
-        <tbody>
-            @foreach($reportData as $index => $row)
-                @php
-                    // Helper function to check if a status exists in the package's history
-                    $hasStatus = function($statusToCheck) use ($row) {
-                        return in_array($statusToCheck, $row['history'])
-                            ? '<span class="text-success" title="Achieved"><i class="fa-solid fa-circle-check fs-5"></i></span>'
-                            : '<span class="text-muted" style="opacity:0.3;" title="Pending">○</span>';
-                    };
-                @endphp
-                <tr class="text-center align-middle">
-                    <td>{{ $index + 1 }}</td>
-                    <td class="fw-bold">{{ $row['department_name'] }}</td>
-                    <td class="text-start">{{ $row['package_name'] }}</td>
-                    <td>{{ number_format($row['estimated_value'], 2) }}</td>
-
-                    @foreach($reportStatuses as $status)
-                        <td>{!! $hasStatus($status) !!}</td>
-                    @endforeach
-                </tr>
-            @endforeach
-        </tbody>
-    </table>
-</div>
+                            @foreach($reportStatuses as $status)
+                            <th>{{ $status }}</th>
+                            @endforeach
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
         </div>
 
     </div>
-   <script>
-        $(document).ready(function () {
-    
+    <script>
+    $(document).ready(function () {
+        
+        // Define columns dynamically to match Yajra backend
+        const tableColumns = [
+            { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
+            { data: 'department_name', name: 'department_name', className: 'fw-bold text-center' },
+            { data: 'package_name', name: 'package_name', className: 'text-start' },
+            { data: 'estimated_value', name: 'estimated_value', className: 'text-center' },
+            
+            // Loop through PHP statuses to create the DataTable columns dynamically
+            @foreach($reportStatuses as $status)
+            {
+                data: 'history',
+                name: 'status_{{ Str::slug($status) }}',
+                orderable: false,
+                searchable: false,
+                className: 'text-center',
+                render: function (data, type, row) {
+                    if (data && data.includes("{{ $status }}")) {
+                        return '<span class="text-success" title="Achieved"><i class="fa-solid fa-circle-check fs-5"></i></span>';
+                    }
+                    return '<span class="text-muted" style="opacity:0.3;" title="Pending">○</span>';
+                }
+            },
+            @endforeach
+        ];
+
         const table = $('#packageStatusTable').DataTable({
+            processing: true,
+            serverSide: true, 
+            ajax: {
+                url: "{{ route('admin.dashboard') }}", 
+                type: 'GET'
+                // We do NOT need custom data objects here anymore. 
+                // Yajra natively understands table.column().search()
+            },
+            columns: tableColumns,
             responsive: true,
-            order: [],
+            order: [], // Let the data load exactly as it is sorted from the backend
             pageLength: 10,
             lengthMenu: [[5, 10, 25, 50, -1], ['5', '10', '25', '50', 'All']],
             dom:
@@ -577,69 +553,50 @@
                 '<"row"<"col-md-12"tr>>' +
                 '<"row mt-2"<"col-md-6"i><"col-md-6"p>>',
             buttons: [
-                {
-                    extend: 'excelHtml5',
-                    text: '<i class="fas fa-file-excel me-1"></i> Excel',
-                    className: 'btn btn-success btn-sm'
-                },
-                {
-                    extend: 'print',
-                    text: '<i class="fas fa-print me-1"></i> Print',
-                    className: 'btn btn-primary btn-sm'
-                }
+                { extend: 'excelHtml5', text: '<i class="fas fa-file-excel me-1"></i> Excel', className: 'btn btn-success btn-sm' },
+                { extend: 'print', text: '<i class="fas fa-print me-1"></i> Print', className: 'btn btn-primary btn-sm' }
             ],
             language: {
-                searchPlaceholder: "Search records...",
+                searchPlaceholder: "Search overall...",
                 search: "_INPUT_"
             },
             initComplete: function () {
-    
                 const api = this.api();
-                const departmentColumn = 1;
-                const departmentSelect = $('#departmentFilter');
-    
-                // Populate Department Dropdown
-                const departments = new Set();
-                api.column(departmentColumn).data().each(function (d) {
-                    departments.add(d.trim());
-                });
-    
-                [...departments].sort().forEach(function (dept) {
-                    departmentSelect.append(`<option value="${dept}">${dept}</option>`);
-                });
-    
-                // Department Filter
-                departmentSelect.on('change', function () {
-                    const val = $.fn.dataTable.util.escapeRegex($(this).val());
-                    api.column(departmentColumn)
-                        .search(val ? '^' + val + '$' : '', true, false)
-                        .draw();
-                });
-    
-                // Column Toggle
+
+                // Generate Column Visibility Toggles dynamically
                 api.columns().every(function (index) {
                     const column = this;
-                    const title = $(column.header()).text();
+                    const title = $(column.header()).text().trim();
                     const checked = column.visible() ? 'checked' : '';
-    
-                    $('#columnToggleDropdown').append(`
-                        <li>
-                            <label class="dropdown-item">
-                                <input type="checkbox" class="me-2 column-toggle"
-                                       data-column="${index}" ${checked}>
-                                ${title}
-                            </label>
-                        </li>
-                    `);
+
+                    if (title) { // Prevent empty headers from showing in dropdown
+                        $('#columnToggleDropdown').append(`
+                            <li>
+                                <label class="dropdown-item">
+                                    <input type="checkbox" class="me-2 form-check-input column-toggle"
+                                           data-column="${index}" ${checked}>
+                                    ${title}
+                                </label>
+                            </li>
+                        `);
+                    }
                 });
-    
+
                 $(document).on('change', '.column-toggle', function () {
                     const column = api.column($(this).data('column'));
                     column.visible(!column.visible());
                 });
             }
         });
-    
-     });
+
+        // ==========================================
+        // DYNAMIC YAJRA FILTERING
+        // ==========================================
+        $('#departmentFilter').on('change', function () {
+            // Column 1 is 'department_name'. This tells Yajra to filter only this column.
+            let selectedDepartment = $(this).val();
+            table.column(1).search(selectedDepartment).draw();
+        });
+    });
 </script>
 </x-app-layout>
