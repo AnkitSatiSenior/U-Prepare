@@ -158,7 +158,7 @@
                     @endforeach
 
                     <div class="d-flex justify-content-end border-top pt-4 mt-4">
-                        <a href="{{ route('admin.procurement-details.show', $procurementDetail) }}" class="btn btn-light me-2 px-4">
+                        <a href="{{ route('admin.procurement-details.index') }}" class="btn btn-light me-2 px-4">
                             <i class="fas fa-times me-1"></i> Cancel
                         </a>
                         <button type="submit" class="btn btn-primary px-4 shadow-sm">

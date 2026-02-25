@@ -155,7 +155,7 @@
                     @endforeach
 
                     <div class="d-flex justify-content-end border-top pt-4 mt-4">
-                        <a href="{{ route('admin.package-projects.show', $packageProject) }}" class="btn btn-light me-3 px-4 shadow-sm border">
+                        <a href="{{ route('admin.package-projects.index') }}" class="btn btn-light me-3 px-4 shadow-sm border">
                             <i class="fas fa-times me-1"></i> Cancel
                         </a>
                         <button type="submit" class="btn btn-success px-4 shadow-sm">
