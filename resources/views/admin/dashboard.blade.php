@@ -462,22 +462,28 @@
         {{-- ======================
         Package SubProject Progress
         ======================= --}}
+
+
+
+
+
         <div class="card-body">
-            <div class="row mb-3">
+            <div class="row mb-3 align-items-end">
                 <div class="col-md-4">
                     <label class="form-label fw-bold">Filter by Department</label>
-                    <select id="departmentFilter" class="form-select form-select-sm shadow-sm">
+                    <select id="departmentFilter" class="form-select shadow-sm">
                         <option value="">All Departments</option>
+                        @if(isset($departmentStats))
                         @foreach($departmentStats as $dept)
                         <option value="{{ $dept->name }}">{{ $dept->name }}</option>
                         @endforeach
+                        @endif
                     </select>
                 </div>
 
-                <div class="col-md-8 text-end">
+                <div class="col-md-8 text-end mt-3 mt-md-0">
                     <div class="dropdown">
-                        <button class="btn btn-dark btn-sm dropdown-toggle shadow-sm" type="button"
-                            data-bs-toggle="dropdown">
+                        <button class="btn btn-dark dropdown-toggle shadow-sm" type="button" data-bs-toggle="dropdown">
                             <i class="fas fa-columns me-1"></i> Toggle Columns
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow" id="columnToggleDropdown"></ul>
@@ -486,14 +492,14 @@
             </div>
 
             <div class="table-responsive">
-                <table id="packageStatusTable" class="table table-striped table-bordered w-100">
+                <table id="packageStatusTable"
+                    class="table table-striped table-bordered table-hover w-100 align-middle">
                     <thead class="table-success text-white">
                         <tr class="text-center align-middle">
-                            <th>S.No.</th>
-                            <th>Department</th>
-                            <th style="    width: 560px !important;
-    padding-right: 627px !important;">Name of Package</th>
-                            <th>Estimated Value</th>
+                            <th width="5%">S.No.</th>
+                            <th width="15%">Department</th>
+                            <th style="width: 100% !important;padding-right: 458px !important;" >Name of Package</th>
+                            <th width="10%">Estimated Value</th>
 
                             @foreach($reportStatuses as $status)
                             <th>{{ $status }}</th>
@@ -505,75 +511,80 @@
             </div>
         </div>
 
-    </div>
-    <script>
-    $(document).ready(function () {
+        <script>
+            $(document).ready(function () {
         
-        // Define columns dynamically to match Yajra backend
+        // Build the Columns Array
         const tableColumns = [
-            { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
-            { data: 'department_name', name: 'department_name', className: 'fw-bold text-center' },
-            { data: 'package_name', name: 'package_name', className: 'text-start' },
-            { data: 'estimated_value', name: 'estimated_value', className: 'text-center' },
+            { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center align-middle fw-bold' },
+            { data: 'department_name', name: 'department_name', className: 'fw-bold text-center align-middle' },
+            { data: 'package_name', name: 'package_name', className: 'text-start align-middle' },
+            { data: 'estimated_value', name: 'estimated_value', className: 'text-end align-middle fw-semibold' },
             
-            // Loop through PHP statuses to create the DataTable columns dynamically
+            // Generate Dynamic Status Columns
+// Generate Dynamic Status Columns
             @foreach($reportStatuses as $status)
             {
-                data: 'history',
+                // Both name and data match the exact flattened column from the controller
                 name: 'status_{{ Str::slug($status) }}',
-                orderable: false,
+                data: 'status_{{ Str::slug($status) }}', 
+                orderable: true,   // Yajra can natively sort this 1 or 0 now!
                 searchable: false,
-                className: 'text-center',
+                className: 'text-center align-middle',
                 render: function (data, type, row) {
-                    if (data && data.includes("{{ $status }}")) {
-                        return '<span class="text-success" title="Achieved"><i class="fa-solid fa-circle-check fs-5"></i></span>';
+                    // Data is now a strict integer: 1 (Achieved) or 0 (Pending)
+                    if (data === 1) {
+                        if (type === 'sort' || type === 'type') return 1; 
+                        return '<span class="d-none">1</span><span class="text-success" title="Achieved"><i class="fa-solid fa-circle-check fs-5"></i></span>';
                     }
-                    return '<span class="text-muted" style="opacity:0.3;" title="Pending">○</span>';
+                    if (type === 'sort' || type === 'type') return 0;
+                    return '<span class="d-none">0</span><span class="text-muted" style="opacity:0.3;" title="Pending">○</span>';
                 }
             },
             @endforeach
         ];
 
+        // Initialize DataTable
         const table = $('#packageStatusTable').DataTable({
             processing: true,
             serverSide: true, 
             ajax: {
-                url: "{{ route('admin.dashboard') }}", 
+                // Uses the current URL natively. Works for both dashboard and report views.
+                url: window.location.href, 
                 type: 'GET'
-                // We do NOT need custom data objects here anymore. 
-                // Yajra natively understands table.column().search()
             },
             columns: tableColumns,
             responsive: true,
-            order: [], // Let the data load exactly as it is sorted from the backend
+            order: [], // Default state: no initial column sort, rely on backend collection order
             pageLength: 10,
             lengthMenu: [[5, 10, 25, 50, -1], ['5', '10', '25', '50', 'All']],
             dom:
-                '<"row mb-2"<"col-md-6"l><"col-md-6"f>>' +
-                '<"row mb-2"<"col-md-12"B>>' +
+                '<"row mb-3"<"col-md-6 d-flex align-items-center"l><"col-md-6"f>>' +
+                '<"row mb-3"<"col-md-12 text-end"B>>' +
                 '<"row"<"col-md-12"tr>>' +
-                '<"row mt-2"<"col-md-6"i><"col-md-6"p>>',
+                '<"row mt-3"<"col-md-5"i><"col-md-7"p>>',
             buttons: [
-                { extend: 'excelHtml5', text: '<i class="fas fa-file-excel me-1"></i> Excel', className: 'btn btn-success btn-sm' },
-                { extend: 'print', text: '<i class="fas fa-print me-1"></i> Print', className: 'btn btn-primary btn-sm' }
+                { extend: 'excelHtml5', text: '<i class="fas fa-file-excel me-1"></i> Export to Excel', className: 'btn btn-success btn-sm shadow-sm' },
+                { extend: 'print', text: '<i class="fas fa-print me-1"></i> Print Report', className: 'btn btn-primary btn-sm shadow-sm' }
             ],
             language: {
-                searchPlaceholder: "Search overall...",
-                search: "_INPUT_"
+                searchPlaceholder: "Search records...",
+                search: "<i class='fas fa-search'></i>",
+                processing: '<i class="fas fa-spinner fa-spin fa-2x fa-fw text-primary"></i><span class="sr-only">Loading...</span>'
             },
             initComplete: function () {
                 const api = this.api();
 
-                // Generate Column Visibility Toggles dynamically
+                // Build Column Visibility Dropdown
                 api.columns().every(function (index) {
                     const column = this;
                     const title = $(column.header()).text().trim();
                     const checked = column.visible() ? 'checked' : '';
 
-                    if (title) { // Prevent empty headers from showing in dropdown
+                    if (title && title !== 'S.No.') { // Don't allow hiding S.No.
                         $('#columnToggleDropdown').append(`
                             <li>
-                                <label class="dropdown-item">
+                                <label class="dropdown-item user-select-none" style="cursor: pointer;">
                                     <input type="checkbox" class="me-2 form-check-input column-toggle"
                                            data-column="${index}" ${checked}>
                                     ${title}
@@ -590,14 +601,13 @@
             }
         });
 
-        // ==========================================
-        // DYNAMIC YAJRA FILTERING
-        // ==========================================
+        // Trigger Yajra Filtering when Department Dropdown Changes
         $('#departmentFilter').on('change', function () {
-            // Column 1 is 'department_name'. This tells Yajra to filter only this column.
             let selectedDepartment = $(this).val();
+            // Assuming Department is column index 1
             table.column(1).search(selectedDepartment).draw();
         });
     });
-</script>
+        </script>
+    </div>
 </x-app-layout>
