@@ -173,8 +173,8 @@ class MediaFileController extends Controller
             $media = MediaFile::findOrFail($id);
 
             // Delete file from storage
-            if (Storage::disk('public')->exists($media->path)) {
-                Storage::disk('public')->delete($media->path);
+            if (Storage::disk('s3')->exists($media->path)) {
+                Storage::disk('s3')->delete($media->path);
                 Log::info('Media file deleted from storage', [
                     'media_id' => $id,
                     'path' => $media->path,
@@ -227,8 +227,8 @@ class MediaFileController extends Controller
             $file = MediaFile::findOrFail($id);
 
             // Delete physical file if it exists
-            if (Storage::disk('public')->exists($file->path)) {
-                Storage::disk('public')->delete($file->path);
+            if (Storage::disk('s3')->exists($file->path)) {
+                Storage::disk('s3')->delete($file->path);
             }
 
             // Delete DB record

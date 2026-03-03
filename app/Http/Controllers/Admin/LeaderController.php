@@ -55,8 +55,8 @@ class LeaderController extends Controller
         ]);
 
         if ($request->hasFile('img')) {
-            if ($leader->img && Storage::disk('public')->exists($leader->img)) {
-                Storage::disk('public')->delete($leader->img);
+            if ($leader->img && Storage::disk('s3')->exists($leader->img)) {
+                Storage::disk('s3')->delete($leader->img);
             }
             $data['img'] = $request->file('img')->store('leaders', 'public');
         }
@@ -68,8 +68,8 @@ class LeaderController extends Controller
 
     public function destroy(Leader $leader)
     {
-        if ($leader->img && Storage::disk('public')->exists($leader->img)) {
-            Storage::disk('public')->delete($leader->img);
+        if ($leader->img && Storage::disk('s3')->exists($leader->img)) {
+            Storage::disk('s3')->delete($leader->img);
         }
 
         $leader->delete();

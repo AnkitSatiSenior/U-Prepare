@@ -56,7 +56,7 @@ class VideoController extends Controller
 
         if ($request->hasFile('img')) {
             if ($video->img) {
-                Storage::disk('public')->delete($video->img);
+                Storage::disk('s3')->delete($video->img);
             }
             $validated['img'] = $request->file('img')->store('videos', 'public');
         }
@@ -69,7 +69,7 @@ class VideoController extends Controller
     public function destroy(Video $video)
     {
         if ($video->img) {
-            Storage::disk('public')->delete($video->img);
+            Storage::disk('s3')->delete($video->img);
         }
 
         $video->delete();

@@ -56,8 +56,8 @@ class AdminNewsController extends Controller
         ]);
 
         if ($request->hasFile('file')) {
-            if ($news->file && Storage::disk('public')->exists($news->file)) {
-                Storage::disk('public')->delete($news->file);
+            if ($news->file && Storage::disk('s3')->exists($news->file)) {
+                Storage::disk('s3')->delete($news->file);
             }
             $validated['file'] = $request->file('file')->store('uploads/news', 'public');
         }
@@ -69,8 +69,8 @@ class AdminNewsController extends Controller
 
     public function destroy(News $news)
     {
-        if ($news->file && Storage::disk('public')->exists($news->file)) {
-            Storage::disk('public')->delete($news->file);
+        if ($news->file && Storage::disk('s3')->exists($news->file)) {
+            Storage::disk('s3')->delete($news->file);
         }
         $news->delete();
 

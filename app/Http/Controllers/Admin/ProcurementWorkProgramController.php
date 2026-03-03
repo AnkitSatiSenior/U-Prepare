@@ -286,15 +286,15 @@ class ProcurementWorkProgramController extends Controller
         }
 
         if ($request->hasFile('procurement_bid_document')) {
-            if ($procurementWorkProgram->procurement_bid_document && Storage::disk('public')->exists($procurementWorkProgram->procurement_bid_document)) {
-                Storage::disk('public')->delete($procurementWorkProgram->procurement_bid_document);
+            if ($procurementWorkProgram->procurement_bid_document && Storage::disk('s3')->exists($procurementWorkProgram->procurement_bid_document)) {
+                Storage::disk('s3')->delete($procurementWorkProgram->procurement_bid_document);
             }
             $validated['procurement_bid_document'] = $request->file('procurement_bid_document')->store('procurement_docs', 'public');
         }
 
         if ($request->hasFile('pre_bid_minutes_document')) {
-            if ($procurementWorkProgram->pre_bid_minutes_document && Storage::disk('public')->exists($procurementWorkProgram->pre_bid_minutes_document)) {
-                Storage::disk('public')->delete($procurementWorkProgram->pre_bid_minutes_document);
+            if ($procurementWorkProgram->pre_bid_minutes_document && Storage::disk('s3')->exists($procurementWorkProgram->pre_bid_minutes_document)) {
+                Storage::disk('s3')->delete($procurementWorkProgram->pre_bid_minutes_document);
             }
             $validated['pre_bid_minutes_document'] = $request->file('pre_bid_minutes_document')->store('procurement_docs', 'public');
         }

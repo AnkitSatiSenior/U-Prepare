@@ -122,8 +122,8 @@ class UserController extends Controller
         }
 
         if ($request->hasFile('profile_photo')) {
-            if ($user->profile_photo_path && Storage::disk('public')->exists($user->profile_photo_path)) {
-                Storage::disk('public')->delete($user->profile_photo_path);
+            if ($user->profile_photo_path && Storage::disk('s3')->exists($user->profile_photo_path)) {
+                Storage::disk('s3')->delete($user->profile_photo_path);
             }
             $data['profile_photo_path'] = $request->file('profile_photo')->store('profile-photos', 'public');
         }

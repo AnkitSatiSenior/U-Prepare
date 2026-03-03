@@ -400,7 +400,7 @@ class PhysicalEpcProgressController extends Controller
             $mediaFiles = MediaFile::whereIn('id', $imageIds)->get();
 
             foreach ($mediaFiles as $mediaFile) {
-                Storage::disk('public')->delete($mediaFile->path);
+                Storage::disk('s3')->delete($mediaFile->path);
                 $mediaFile->delete();
             }
         }

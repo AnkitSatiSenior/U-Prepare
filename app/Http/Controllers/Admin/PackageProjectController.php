@@ -142,8 +142,8 @@ class PackageProjectController extends Controller
              * ✅ Handle DEC Document
              */
             if ($request->hasFile('dec_document_path')) {
-                if (!empty($packageProject->dec_document_path) && Storage::disk('public')->exists($packageProject->dec_document_path)) {
-                    Storage::disk('public')->delete($packageProject->dec_document_path);
+                if (!empty($packageProject->dec_document_path) && Storage::disk('s3')->exists($packageProject->dec_document_path)) {
+                    Storage::disk('s3')->delete($packageProject->dec_document_path);
                 }
 
                 $data['dec_document_path'] = $request->file('dec_document_path')->store('package-projects/dec-documents', 'public');
@@ -153,8 +153,8 @@ class PackageProjectController extends Controller
              * ✅ Handle HPC Document
              */
             if ($request->hasFile('hpc_document_path')) {
-                if (!empty($packageProject->hpc_document_path) && Storage::disk('public')->exists($packageProject->hpc_document_path)) {
-                    Storage::disk('public')->delete($packageProject->hpc_document_path);
+                if (!empty($packageProject->hpc_document_path) && Storage::disk('s3')->exists($packageProject->hpc_document_path)) {
+                    Storage::disk('s3')->delete($packageProject->hpc_document_path);
                 }
 
                 $data['hpc_document_path'] = $request->file('hpc_document_path')->store('package-projects/hpc-documents', 'public');
@@ -186,7 +186,7 @@ class PackageProjectController extends Controller
     {
         $documents = array_filter([$packageProject->dec_document_path, $packageProject->hpc_document_path]);
         if (!empty($documents)) {
-            Storage::disk('public')->delete($documents);
+            Storage::disk('s3')->delete($documents);
         }
 
         $packageProject->delete();

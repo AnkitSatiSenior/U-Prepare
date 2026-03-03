@@ -62,8 +62,8 @@ class SlideController extends Controller
         // Handle image update
         if ($request->hasFile('img')) {
             // Delete old image if exists
-            if ($slide->img && Storage::disk('public')->exists($slide->img)) {
-                Storage::disk('public')->delete($slide->img);
+            if ($slide->img && Storage::disk('s3')->exists($slide->img)) {
+                Storage::disk('s3')->delete($slide->img);
             }
             $data['img'] = $request->file('img')->store('slides', 'public');
         }
@@ -76,8 +76,8 @@ class SlideController extends Controller
     public function destroy(Slide $slide)
     {
         // Delete image from storage
-        if ($slide->img && Storage::disk('public')->exists($slide->img)) {
-            Storage::disk('public')->delete($slide->img);
+        if ($slide->img && Storage::disk('s3')->exists($slide->img)) {
+            Storage::disk('s3')->delete($slide->img);
         }
 
         $slide->delete();

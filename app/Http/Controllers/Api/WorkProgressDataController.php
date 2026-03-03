@@ -258,8 +258,8 @@ class WorkProgressDataController extends Controller
             $mediaFiles = MediaFile::whereIn('id', $progress->images)->get();
 
             foreach ($mediaFiles as $media) {
-                if (Storage::disk('public')->exists(str_replace('storage/', '', $media->path))) {
-                    Storage::disk('public')->delete(str_replace('storage/', '', $media->path));
+                if (Storage::disk('s3')->exists(str_replace('storage/', '', $media->path))) {
+                    Storage::disk('s3')->delete(str_replace('storage/', '', $media->path));
                 }
                 $media->delete();
             }

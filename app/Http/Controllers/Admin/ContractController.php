@@ -495,8 +495,8 @@ class ContractController extends Controller
 
     private function deleteContractFile($path)
     {
-        if ($path && Storage::disk('public')->exists($path)) {
-            Storage::disk('public')->delete($path);
+        if ($path && Storage::disk('s3')->exists($path)) {
+            Storage::disk('s3')->delete($path);
         }
     }
 

@@ -363,7 +363,7 @@ public function physicalProgress(Request $request)
         }
         $mediaFiles = MediaFile::whereIn('id', $mediaIds)->get();
         foreach ($mediaFiles as $file) {
-            Storage::disk('public')->delete($file->path);
+            Storage::disk('s3')->delete($file->path);
             $file->delete();
         }
     }

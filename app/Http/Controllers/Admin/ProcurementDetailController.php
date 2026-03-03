@@ -213,7 +213,7 @@ class ProcurementDetailController extends Controller
             if ($request->hasFile($inputField)) {
                 // If updating, delete the old file first
                 if ($existingDetail && $existingDetail->$dbColumn) {
-                    Storage::disk('public')->delete($existingDetail->$dbColumn);
+                    Storage::disk('s3')->delete($existingDetail->$dbColumn);
                 }
                 
                 $validated[$dbColumn] = $request->file($inputField)->store('procurement_docs', 'public');
@@ -234,8 +234,8 @@ class ProcurementDetailController extends Controller
         ];
 
         foreach ($documentPaths as $path) {
-            if ($path && Storage::disk('public')->exists($path)) {
-                Storage::disk('public')->delete($path);
+            if ($path && Storage::disk('s3')->exists($path)) {
+                Storage::disk('s3')->delete($path);
             }
         }
     }

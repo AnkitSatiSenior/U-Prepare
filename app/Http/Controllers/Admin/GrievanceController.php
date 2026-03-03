@@ -176,8 +176,8 @@ public function updateLog(Request $request, $id)
                 $newPath = $request->file('document')->store($folder, 'public');
 
                 // Delete old document if exists
-                if (!empty($log->document) && \Storage::disk('public')->exists($log->document)) {
-                    \Storage::disk('public')->delete($log->document);
+                if (!empty($log->document) && \Storage::disk('s3')->exists($log->document)) {
+                    \Storage::disk('s3')->delete($log->document);
                 }
 
                 $path = $newPath; // Assign new path

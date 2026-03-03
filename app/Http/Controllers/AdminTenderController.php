@@ -65,8 +65,8 @@ class AdminTenderController extends Controller
         ]);
 
         if ($request->hasFile('file')) {
-            if ($tender->file && Storage::disk('public')->exists($tender->file)) {
-                Storage::disk('public')->delete($tender->file);
+            if ($tender->file && Storage::disk('s3')->exists($tender->file)) {
+                Storage::disk('s3')->delete($tender->file);
             }
             $validated['file'] = $request->file('file')->store('uploads/tenders', 'public');
         }
@@ -78,8 +78,8 @@ class AdminTenderController extends Controller
 
     public function destroy(Tender $tender)
     {
-        if ($tender->file && Storage::disk('public')->exists($tender->file)) {
-            Storage::disk('public')->delete($tender->file);
+        if ($tender->file && Storage::disk('s3')->exists($tender->file)) {
+            Storage::disk('s3')->delete($tender->file);
         }
         $tender->delete();
 

@@ -730,8 +730,8 @@ class SocialSafeguardEntryController extends Controller
 
         try {
             // Delete file from storage if exists
-            if (\Storage::disk('public')->exists($media->path)) {
-                \Storage::disk('public')->delete($media->path);
+            if (\Storage::disk('s3')->exists($media->path)) {
+                \Storage::disk('s3')->delete($media->path);
             }
 
             // Remove references from SocialSafeguardEntry

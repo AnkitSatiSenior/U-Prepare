@@ -263,8 +263,8 @@ class WorkProgressDataController extends Controller
 
             foreach ($mediaFiles as $media) {
                 // Delete the file from storage
-                if (Storage::disk('public')->exists(str_replace('storage/', '', $media->path))) {
-                    Storage::disk('public')->delete(str_replace('storage/', '', $media->path));
+                if (Storage::disk('s3')->exists(str_replace('storage/', '', $media->path))) {
+                    Storage::disk('s3')->delete(str_replace('storage/', '', $media->path));
                 }
 
                 // Delete the MediaFile record
