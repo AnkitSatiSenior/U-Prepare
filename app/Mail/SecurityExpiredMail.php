@@ -4,6 +4,7 @@ namespace App\Mail;
 
 use App\Models\ContractSecurity;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -23,7 +24,6 @@ class SecurityExpiredMail extends Mailable
     public function envelope(): Envelope
     {
         $prefix = $this->isReminder ? 'REMINDER:' : 'ACTION REQUIRED:';
-        // The [SEC-ID] tag is strictly required for the MailLog tracking logic to work
         $subject = "{$prefix} Contract Security Expired [SEC-{$this->security->id}]";
 
         return new Envelope(subject: $subject);
@@ -34,11 +34,12 @@ class SecurityExpiredMail extends Mailable
         return new Content(
             view: 'emails.securities.expired',
             with: [
-                'securityName' => $this->security->type->name ?? 'Security',
+                'securityName'   => $this->security->type->name ?? 'Security',
                 'contractNumber' => $this->security->contract->contract_number ?? 'N/A',
-                'endDate' => $this->security->issued_end_date->format('Y-m-d'),
-                'isReminder' => $this->isReminder,
-                'userName' => $this->user->name
+                // Defensively parse the string into a Carbon object before formatting
+                'endDate'        => Carbon::parse($this->security->issued_end_date)->format('Y-m-d'),
+                'isReminder'     => $this->isReminder,
+                'userName'       => $this->user->name ?? 'User'
             ]
         );
     }
