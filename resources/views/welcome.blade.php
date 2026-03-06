@@ -1,55 +1,54 @@
 <x-guest-layout>
     @section('page_title', 'Home')
     {{-- ================= HERO SLIDER ================= --}}
-  <section class="container-fluid slider p-0">
-    <div class="hero-slider">
-        @foreach (getSlides() as $slide)
+    <section class="container-fluid slider p-0">
+        <div class="hero-slider">
+            @foreach (getSlides() as $slide)
             <div>
-                <div class="slider-item"
-                    style="background-image: url('{{ $slide->image_url }}')">
-                    
+                <div class="slider-item" style="background-image: url('{{ $slide->image_url }}')">
+
                     <div class="overlay"></div>
                     <div class="caption">
                         @if ($slide->head)
-                            <h2>{{ $slide->head }}</h2>
+                        <h2>{{ $slide->head }}</h2>
                         @endif
-                        
+
                         @if ($slide->subh)
-                            <p class="mb-3">{{ $slide->subh }}</p>
+                        <p class="mb-3">{{ $slide->subh }}</p>
                         @endif
-                        
+
                         @if ($slide->link)
-                            <a href="{{ $slide->link }}" class="btn">
-                                {{ $slide->btn_text ?? 'Read More' }}
-                                <i class="bi bi-chevron-right"></i>
-                            </a>
+                        <a href="{{ $slide->link }}" class="btn">
+                            {{ $slide->btn_text ?? 'Read More' }}
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
                         @endif
                     </div>
                 </div>
             </div>
-        @endforeach
-    </div>
-</section>
+            @endforeach
+        </div>
+    </section>
     {{-- ================= LEADERS ================= --}}
     <section class="about-sec pt-4">
         <div class="container-fluid p-0">
             <div class="bg-bar">
                 <div class="overlay"></div>
-                <img src="{{ asset('assets/img/honper-bgi.webp') }}" />
+                <img src="{{ asset('assets/img/honper-bgi.webp') }}" alt="Background Pattern" />
             </div>
 
             <div class="container-fluid honpers">
                 <div class="row">
                     @foreach (getLeaders() as $person)
-                        <div class="col-md-3 d-flex flex-column center honper">
-                            <figure class="d-flex center">
-                                <img src="{{ asset('storage/app/public/' . $person->img) }}" />
-                            </figure>
-                            <div class="caption text-center m-0">
-                                <h4>{{ $person->name }}</h4>
-                                <h5>({{ $person->title }})</h5>
-                            </div>
+                    <div class="col-md-3 d-flex flex-column center honper">
+                        <figure class="d-flex center">
+                            <img src="{{ $person->image_url }}" alt="{{ $person->name }} Profile" loading="lazy" />
+                        </figure>
+                        <div class="caption text-center m-0">
+                            <h4>{{ $person->name }}</h4>
+                            <h5>({{ $person->title }})</h5>
                         </div>
+                    </div>
                     @endforeach
                 </div>
             </div>
@@ -64,7 +63,6 @@
 
                 <div class="row">
                     <div class="col-lg-7 col-xl-8">
-                        {{-- Static project intro text (same as before) --}}
                         <p class="text-justify">
                             The Uttarakhand Disaster Resilience and Preparedness Project...
                         </p>
@@ -75,21 +73,21 @@
                             <div class="head text-center">
                                 <h3 class="m-0 d-flex align-items-center text-white mb-2">
                                     <img src="{{ asset('assets/img/icons/megaphone-white.png') }}" class="me-2"
-                                        alt="Announcements">
+                                        alt="Announcements Icon">
                                     {!! request()->cookie('lang') === 'hi' ? 'घोषणा' : 'ANNOUNCEMENTS' !!}
                                 </h3>
                             </div>
                             <div class="body p-3">
                                 <ul class="list-unstyled m-0">
                                     @foreach (getNews() as $item)
-                                        <li class="d-flex align-items-start mb-1 text-black">
-                                            <img class="me-2 mt-1" src="{{ asset('assets/img/icons/bullet.png') }}"
-                                                alt="•">
-                                            <a href="{{ route('news.show', $item->id) }}"
-                                                class="text-black text-decoration-none">
-                                                {!! request()->cookie('lang') === 'hi' ? $item->title_hi : $item->title_en !!}
-                                            </a>
-                                        </li>
+                                    <li class="d-flex align-items-start mb-1 text-black">
+                                        <img class="me-2 mt-1" src="{{ asset('assets/img/icons/bullet.png') }}" alt="•">
+                                        <a href="{{ route('news.show', $item->id) }}"
+                                            class="text-black text-decoration-none">
+                                            {!! request()->cookie('lang') === 'hi' ? $item->title_hi : $item->title_en
+                                            !!}
+                                        </a>
+                                    </li>
                                     @endforeach
                                 </ul>
                             </div>
@@ -114,12 +112,12 @@
 
             <div class="row">
                 @foreach ($cc_items as $item)
-                    <div class="col-md-4 d-flex justify-content-center mb-4">
-                        <a href="{{ $item->link }}" class="cc-item p-4 d-flex align-items-center">
-                            <img class="me-2" src="{{ asset('assets/img/icons/' . $item->img) }}">
-                            <h6 class="mb-0">{{ $item->name }}</h6>
-                        </a>
-                    </div>
+                <div class="col-md-4 d-flex justify-content-center mb-4">
+                    <a href="{{ $item->link }}" class="cc-item p-4 d-flex align-items-center">
+                        <img class="me-2" src="{{ asset('assets/img/icons/' . $item->img) }}">
+                        <h6 class="mb-0">{{ $item->name }}</h6>
+                    </a>
+                </div>
                 @endforeach
             </div>
         </div>
@@ -130,22 +128,21 @@
         <div class="container-fluid p-0">
             <div class="pps-slider">
                 @foreach ($pps_items as $key => $item)
-                    <div>
-                        <div class="pps-item prel">
-                            <div class="bg w-100 h-100">
-                                <div class="overlay w-100 h-100 {{ $item->bgc }}"></div>
-                                <img class="w-100 h-100" src="{{ asset($item->img) }}">
-                            </div>
-                            <div
-                                class="content d-flex flex-column align-items-center justify-content-between h-100 prel">
-                                <h6 class="fw-bold text-white">{{ $item->name }}</h6>
-                                <h2 class="fw-bold text-white">{{ $item->title }}</h2>
-                                <a href="{{ $item->link }}" @class(['btn', 'btn-pp', 'btn-af' => $key])>
-                                    {{ $item->link_txt }}
-                                </a>
-                            </div>
+                <div>
+                    <div class="pps-item prel">
+                        <div class="bg w-100 h-100">
+                            <div class="overlay w-100 h-100 {{ $item->bgc }}"></div>
+                            <img class="w-100 h-100" src="{{ asset($item->img) }}">
+                        </div>
+                        <div class="content d-flex flex-column align-items-center justify-content-between h-100 prel">
+                            <h6 class="fw-bold text-white">{{ $item->name }}</h6>
+                            <h2 class="fw-bold text-white">{{ $item->title }}</h2>
+                            <a href="{{ $item->link }}" @class(['btn', 'btn-pp' , 'btn-af'=> $key])>
+                                {{ $item->link_txt }}
+                            </a>
                         </div>
                     </div>
+                </div>
                 @endforeach
             </div>
         </div>
@@ -170,39 +167,39 @@
 
             <div class="components-slider">
                 @forelse(getPackageComponents() as $comp)
-                    <div>
-                        <div class="comps-item">
+                <div>
+                    <div class="comps-item">
 
-                            {{-- Show image only if exists --}}
-                            @if (!empty($comp->image))
-                                <div class="ci-img">
-                                    <img src="{{ $comp->image }}" alt="Component Image">
-                                </div>
-                            @endif
-
-                            <div class="ci-content p-2">
-                                <h4>
-                                    {!! request()->cookie('lang') === 'hi'
-                                        ? Str::limit($comp->page_hin_title, 50)
-                                        : Str::limit($comp->page_eng_title, 50) !!}
-                                </h4>
-
-                                <p class="mb-0">
-                                    {!! request()->cookie('lang') === 'hi'
-                                        ? Str::limit($comp->hin_content, 500)
-                                        : Str::limit($comp->eng_content, 600) !!}
-                                </p>
-                            </div>
-
-                            <div class="ci-rms text-center pb-3">
-                                <a href="{{ $comp->link }}" class="rmore">
-                                    <span>READ MORE</span>
-                                    <i class="bi bi-caret-right-fill"></i>
-                                </a>
-                            </div>
-
+                        {{-- Show image only if exists --}}
+                        @if (!empty($comp->image))
+                        <div class="ci-img">
+                            <img src="{{ $comp->image }}" alt="Component Image">
                         </div>
+                        @endif
+
+                        <div class="ci-content p-2">
+                            <h4>
+                                {!! request()->cookie('lang') === 'hi'
+                                ? Str::limit($comp->page_hin_title, 50)
+                                : Str::limit($comp->page_eng_title, 50) !!}
+                            </h4>
+
+                            <p class="mb-0">
+                                {!! request()->cookie('lang') === 'hi'
+                                ? Str::limit($comp->hin_content, 500)
+                                : Str::limit($comp->eng_content, 600) !!}
+                            </p>
+                        </div>
+
+                        <div class="ci-rms text-center pb-3">
+                            <a href="{{ $comp->link }}" class="rmore">
+                                <span>READ MORE</span>
+                                <i class="bi bi-caret-right-fill"></i>
+                            </a>
+                        </div>
+
                     </div>
+                </div>
                 @empty
                 @endforelse
             </div>
@@ -233,24 +230,22 @@
             </div>
 
             <div class="videos-slider">
-                @for ($v = 0; $v < 3; $v++)
-                    @foreach (getVideos() as $vid)
-                        <div>
-                            <div class="vid-item">
-                                <div class="vid-img">
-                                    <img src="{{ asset('storage/app/public/' . $vid->img) }}" />
-                                    <a class="d-flex center" href="#">
-                                        <i class="bi bi-play-circle"></i>
-                                    </a>
-                                </div>
-                                <div class="vid-content">
-                                    <p class="mb-0">{{ $vid->text }}</p>
-                                </div>
-                            </div>
+                @for ($v = 0; $v < 3; $v++) @foreach (getVideos() as $vid) <div>
+                    <div class="vid-item">
+                        <div class="vid-img">
+                            <img src="{{ asset('storage/app/public/' . $vid->img) }}" />
+                            <a class="d-flex center" href="#">
+                                <i class="bi bi-play-circle"></i>
+                            </a>
                         </div>
-                    @endforeach
-                @endfor
+                        <div class="vid-content">
+                            <p class="mb-0">{{ $vid->text }}</p>
+                        </div>
+                    </div>
             </div>
+            @endforeach
+            @endfor
+        </div>
         </div>
     </section>
 
@@ -296,23 +291,21 @@
                         Feedback
                     </h4>
                     @if (session('success'))
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            {{ session('success') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"
-                                aria-label="Close"></button>
-                        </div>
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        {{ session('success') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
                     @endif
 
                     @if ($errors->any())
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <ul class="mb-0">
-                                @foreach ($errors->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"
-                                aria-label="Close"></button>
-                        </div>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <ul class="mb-0">
+                            @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
                     @endif
 
                     <form action="{{ route('feedback.store') }}" method="POST">
@@ -321,36 +314,37 @@
                         <input type="text" class="form-control mb-3 @error('name') is-invalid @enderror"
                             placeholder="NAME*" name="name" value="{{ old('name') }}">
                         @error('name')
-                            <div class="invalid-feedback">{{ $message }}</div>
+                        <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
 
                         <input type="email" class="form-control mb-3 @error('email') is-invalid @enderror"
                             placeholder="E-MAIL*" name="email" value="{{ old('email') }}">
                         @error('email')
-                            <div class="invalid-feedback">{{ $message }}</div>
+                        <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
 
                         <select name="type" class="form-control mb-3 @error('type') is-invalid @enderror">
                             <option value="">Kindly Select Query Type</option>
-                            <option value="inquiry" {{ old('type') == 'inquiry' ? 'selected' : '' }}>INQUIRY</option>
-                            <option value="feedback" {{ old('type') == 'feedback' ? 'selected' : '' }}>FEEDBACK
+                            <option value="inquiry" {{ old('type')=='inquiry' ? 'selected' : '' }}>INQUIRY</option>
+                            <option value="feedback" {{ old('type')=='feedback' ? 'selected' : '' }}>FEEDBACK
                             </option>
-                            <option value="others" {{ old('type') == 'others' ? 'selected' : '' }}>OTHERS</option>
+                            <option value="others" {{ old('type')=='others' ? 'selected' : '' }}>OTHERS</option>
                         </select>
                         @error('type')
-                            <div class="invalid-feedback">{{ $message }}</div>
+                        <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
 
                         <input type="text" class="form-control mb-3 @error('subject') is-invalid @enderror"
                             placeholder="SUBJECT" name="subject" value="{{ old('subject') }}">
                         @error('subject')
-                            <div class="invalid-feedback">{{ $message }}</div>
+                        <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
 
-                        <textarea name="message" rows="4" class="form-control mb-3 @error('message') is-invalid @enderror"
+                        <textarea name="message" rows="4"
+                            class="form-control mb-3 @error('message') is-invalid @enderror"
                             placeholder="MESSAGE">{{ old('message') }}</textarea>
                         @error('message')
-                            <div class="invalid-feedback">{{ $message }}</div>
+                        <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
 
                         <div class="d-flex justify-content-end">

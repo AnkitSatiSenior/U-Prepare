@@ -52,11 +52,17 @@ if (!function_exists('getSlides')) {
 }
 
 if (!function_exists('getLeaders')) {
+    /**
+     * Retrieve active leaders, cached indefinitely until modified.
+     * S3 URLs are resolved dynamically by the Model.
+     */
     function getLeaders()
     {
-        return Cache::remember('all_leaders', now()->addMinutes(10), fn() =>
-            Leader::where('status', true)->orderBy('order')->get()
-        );
+        return Cache::rememberForever('active_leaders', function () {
+            return Leader::where('status', true)
+                ->orderBy('order')
+                ->get();
+        });
     }
 }
 
