@@ -76,7 +76,7 @@ Route::get('/up', function () {
 // });
 
 Route::get('/send-test-mail', function () {
-    $to_email = 'masterankitsati@gmail.com';
+    $to_email = 'yuvrajkohli8090ylt@gmail.com';
 
     Mail::raw('Hello! This is a test email from Laravel using Zoho SMTP.', function ($message) use ($to_email) {
         $message->to($to_email)
