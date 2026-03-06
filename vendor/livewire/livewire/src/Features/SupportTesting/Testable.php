@@ -339,9 +339,6 @@ class Testable
         return $this->lastState->getComponent();
     }
 
-    /**
-     * @return \Livewire\Component
-     */
     function invade()
     {
         return \Livewire\invade($this->lastState->getComponent());

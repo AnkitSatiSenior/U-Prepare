@@ -91,7 +91,7 @@ class Jetstream
      * Find the role with the given key.
      *
      * @param  string  $key
-     * @return \Laravel\Jetstream\Role|null
+     * @return \Laravel\Jetstream\Role
      */
     public static function findRole(string $key)
     {

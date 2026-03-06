@@ -30,7 +30,6 @@ use Illuminate\Support\Facades\Facade;
  * @method static string originalUrl()
  * @method static string originalPath()
  * @method static string originalMethod()
- * @method static \Livewire\LivewireManager withoutLazyLoading()
  *
  * @see \Livewire\LivewireManager
  */
@@ -38,6 +37,6 @@ class Livewire extends Facade
 {
     public static function getFacadeAccessor()
     {
-        return \Livewire\LivewireManager::class;
+        return 'livewire';
     }
 }

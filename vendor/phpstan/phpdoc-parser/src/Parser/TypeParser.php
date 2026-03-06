@@ -136,6 +136,7 @@ class TypeParser
 		return $this->enrichWithAttributes($tokens, $type, $startLine, $startIndex);
 	}
 
+
 	/** @phpstan-impure */
 	private function parseAtomic(TokenIterator $tokens): Ast\Type\TypeNode
 	{
@@ -267,6 +268,7 @@ class TypeParser
 		}
 	}
 
+
 	/** @phpstan-impure */
 	private function parseUnion(TokenIterator $tokens, Ast\Type\TypeNode $type): Ast\Type\TypeNode
 	{
@@ -287,6 +289,7 @@ class TypeParser
 		return new Ast\Type\UnionTypeNode($types);
 	}
 
+
 	/** @phpstan-impure */
 	private function subParseUnion(TokenIterator $tokens, Ast\Type\TypeNode $type): Ast\Type\TypeNode
 	{
@@ -300,6 +303,7 @@ class TypeParser
 
 		return new Ast\Type\UnionTypeNode($types);
 	}
+
 
 	/** @phpstan-impure */
 	private function parseIntersection(TokenIterator $tokens, Ast\Type\TypeNode $type): Ast\Type\TypeNode
@@ -321,6 +325,7 @@ class TypeParser
 		return new Ast\Type\IntersectionTypeNode($types);
 	}
 
+
 	/** @phpstan-impure */
 	private function subParseIntersection(TokenIterator $tokens, Ast\Type\TypeNode $type): Ast\Type\TypeNode
 	{
@@ -334,6 +339,7 @@ class TypeParser
 
 		return new Ast\Type\IntersectionTypeNode($types);
 	}
+
 
 	/** @phpstan-impure */
 	private function parseConditional(TokenIterator $tokens, Ast\Type\TypeNode $subjectType): Ast\Type\TypeNode
@@ -391,6 +397,7 @@ class TypeParser
 
 		return new Ast\Type\ConditionalTypeForParameterNode($parameterName, $targetType, $ifType, $elseType, $negated);
 	}
+
 
 	/** @phpstan-impure */
 	private function parseNullable(TokenIterator $tokens): Ast\Type\TypeNode
@@ -477,6 +484,7 @@ class TypeParser
 		return $type;
 	}
 
+
 	/**
 	 * @phpstan-impure
 	 * @return array{Ast\Type\TypeNode, Ast\Type\GenericTypeNode::VARIANCE_*}
@@ -545,6 +553,7 @@ class TypeParser
 		return new Ast\PhpDoc\TemplateTagValueNode($name, $upperBound, $description, $default, $lowerBound);
 	}
 
+
 	/** @phpstan-impure */
 	private function parseCallable(TokenIterator $tokens, Ast\Type\IdentifierTypeNode $identifier, bool $hasTemplate): Ast\Type\TypeNode
 	{
@@ -579,6 +588,7 @@ class TypeParser
 		return new Ast\Type\CallableTypeNode($identifier, $parameters, $returnType, $templates);
 	}
 
+
 	/**
 	 * @return Ast\PhpDoc\TemplateTagValueNode[]
 	 *
@@ -609,6 +619,7 @@ class TypeParser
 		return $templates;
 	}
 
+
 	private function parseCallableTemplateArgument(TokenIterator $tokens): Ast\PhpDoc\TemplateTagValueNode
 	{
 		$startLine = $tokens->currentTokenLine();
@@ -621,6 +632,7 @@ class TypeParser
 			$startIndex,
 		);
 	}
+
 
 	/** @phpstan-impure */
 	private function parseCallableParameter(TokenIterator $tokens): Ast\Type\CallableTypeParameterNode
@@ -647,6 +659,7 @@ class TypeParser
 			$startIndex,
 		);
 	}
+
 
 	/** @phpstan-impure */
 	private function parseCallableReturnType(TokenIterator $tokens): Ast\Type\TypeNode
@@ -788,6 +801,7 @@ class TypeParser
 		}
 	}
 
+
 	/** @phpstan-impure */
 	private function tryParseCallable(TokenIterator $tokens, Ast\Type\IdentifierTypeNode $identifier, bool $hasTemplate): Ast\Type\TypeNode
 	{
@@ -803,6 +817,7 @@ class TypeParser
 
 		return $type;
 	}
+
 
 	/** @phpstan-impure */
 	private function tryParseArrayOrOffsetAccess(TokenIterator $tokens, Ast\Type\TypeNode $type): Ast\Type\TypeNode
@@ -852,6 +867,7 @@ class TypeParser
 
 		return $type;
 	}
+
 
 	/**
 	 * @phpstan-impure
@@ -914,6 +930,7 @@ class TypeParser
 		return Ast\Type\ArrayShapeNode::createUnsealed($items, $unsealedType, $kind);
 	}
 
+
 	/** @phpstan-impure */
 	private function parseArrayShapeItem(TokenIterator $tokens): Ast\Type\ArrayShapeItemNode
 	{
@@ -953,7 +970,7 @@ class TypeParser
 
 	/**
 	 * @phpstan-impure
-	 * @return Ast\ConstExpr\ConstExprIntegerNode|Ast\ConstExpr\ConstExprStringNode|Ast\ConstExpr\ConstFetchNode|Ast\Type\IdentifierTypeNode
+	 * @return Ast\ConstExpr\ConstExprIntegerNode|Ast\ConstExpr\ConstExprStringNode|Ast\Type\IdentifierTypeNode
 	 */
 	private function parseArrayShapeKey(TokenIterator $tokens)
 	{
@@ -974,17 +991,8 @@ class TypeParser
 			$tokens->next();
 
 		} else {
-			$identifier = $tokens->currentTokenValue();
+			$key = new Ast\Type\IdentifierTypeNode($tokens->currentTokenValue());
 			$tokens->consumeTokenType(Lexer::TOKEN_IDENTIFIER);
-
-			if ($tokens->tryConsumeTokenType(Lexer::TOKEN_DOUBLE_COLON)) {
-				$classConstantName = $tokens->currentTokenValue();
-				$tokens->consumeTokenType(Lexer::TOKEN_IDENTIFIER);
-
-				$key = new Ast\ConstExpr\ConstFetchNode($identifier, $classConstantName);
-			} else {
-				$key = new Ast\Type\IdentifierTypeNode($identifier);
-			}
 		}
 
 		return $this->enrichWithAttributes(

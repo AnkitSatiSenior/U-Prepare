@@ -328,18 +328,6 @@ class Grammar extends BaseGrammar
     }
 
     /**
-     * Compile a "where null safe equals" clause.
-     *
-     * @param  \Illuminate\Database\Query\Builder  $query
-     * @param  array  $where
-     * @return string
-     */
-    protected function whereNullSafeEquals(Builder $query, $where)
-    {
-        return $this->wrap($where['column']).' is not distinct from '.$this->parameter($where['value']);
-    }
-
-    /**
      * Compile a "where in" clause.
      *
      * @param  \Illuminate\Database\Query\Builder  $query
@@ -442,9 +430,9 @@ class Grammar extends BaseGrammar
     {
         $between = $where['not'] ? 'not between' : 'between';
 
-        $min = $this->parameter(is_array($where['values']) ? array_first($where['values']) : $where['values'][0]);
+        $min = $this->parameter(is_array($where['values']) ? reset($where['values']) : $where['values'][0]);
 
-        $max = $this->parameter(is_array($where['values']) ? array_last($where['values']) : $where['values'][1]);
+        $max = $this->parameter(is_array($where['values']) ? end($where['values']) : $where['values'][1]);
 
         return $this->wrap($where['column']).' '.$between.' '.$min.' and '.$max;
     }
@@ -460,9 +448,9 @@ class Grammar extends BaseGrammar
     {
         $between = $where['not'] ? 'not between' : 'between';
 
-        $min = $this->wrap(is_array($where['values']) ? array_first($where['values']) : $where['values'][0]);
+        $min = $this->wrap(is_array($where['values']) ? reset($where['values']) : $where['values'][0]);
 
-        $max = $this->wrap(is_array($where['values']) ? array_last($where['values']) : $where['values'][1]);
+        $max = $this->wrap(is_array($where['values']) ? end($where['values']) : $where['values'][1]);
 
         return $this->wrap($where['column']).' '.$between.' '.$min.' and '.$max;
     }
@@ -478,9 +466,9 @@ class Grammar extends BaseGrammar
     {
         $between = $where['not'] ? 'not between' : 'between';
 
-        $min = $this->wrap(is_array($where['columns']) ? array_first($where['columns']) : $where['columns'][0]);
+        $min = $this->wrap(is_array($where['columns']) ? reset($where['columns']) : $where['columns'][0]);
 
-        $max = $this->wrap(is_array($where['columns']) ? array_last($where['columns']) : $where['columns'][1]);
+        $max = $this->wrap(is_array($where['columns']) ? end($where['columns']) : $where['columns'][1]);
 
         return $this->parameter($where['value']).' '.$between.' '.$min.' and '.$max;
     }
@@ -999,11 +987,7 @@ class Grammar extends BaseGrammar
      */
     protected function compileOrdersToArray(Builder $query, $orders)
     {
-        return array_map(function ($order) use ($query) {
-            if (isset($order['sql']) && $order['sql'] instanceof Expression) {
-                return $order['sql']->getValue($query->getGrammar());
-            }
-
+        return array_map(function ($order) {
             return $order['sql'] ?? $this->wrap($order['column']).' '.$order['direction'];
         }, $orders);
     }
@@ -1202,11 +1186,11 @@ class Grammar extends BaseGrammar
             return "insert into {$table} default values";
         }
 
-        if (! is_array(array_first($values))) {
+        if (! is_array(reset($values))) {
             $values = [$values];
         }
 
-        $columns = $this->columnize(array_keys(array_first($values)));
+        $columns = $this->columnize(array_keys(reset($values)));
 
         // We need to build a list of parameter place-holders of values that are bound
         // to the query. Each insert should have the exact same number of parameter

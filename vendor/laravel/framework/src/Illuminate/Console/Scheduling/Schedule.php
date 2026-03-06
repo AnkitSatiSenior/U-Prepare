@@ -18,7 +18,6 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\ProcessUtils;
 use Illuminate\Support\Traits\Macroable;
 use RuntimeException;
-use Symfony\Component\Console\Command\Command as SymfonyCommand;
 
 use function Illuminate\Support\enum_value;
 
@@ -150,22 +149,12 @@ class Schedule
     /**
      * Add a new Artisan command event to the schedule.
      *
-     * @param  \Symfony\Component\Console\Command\Command|string  $command
+     * @param  string  $command
      * @param  array  $parameters
      * @return \Illuminate\Console\Scheduling\Event
      */
     public function command($command, array $parameters = [])
     {
-        if ($command instanceof SymfonyCommand) {
-            $command = get_class($command);
-
-            $command = Container::getInstance()->make($command);
-
-            return $this->exec(
-                Application::formatCommandString($command->getName()), $parameters,
-            )->description($command->getDescription());
-        }
-
         if (class_exists($command)) {
             $command = Container::getInstance()->make($command);
 
@@ -200,23 +189,15 @@ class Schedule
                 : $job::class;
         }
 
-        $this->events[] = $event = new CallbackEvent(
-            $this->eventMutex, function () use ($job, $queue, $connection) {
-                $job = is_string($job) ? Container::getInstance()->make($job) : $job;
+        return $this->name($jobName)->call(function () use ($job, $queue, $connection) {
+            $job = is_string($job) ? Container::getInstance()->make($job) : $job;
 
-                if ($job instanceof ShouldQueue) {
-                    $this->dispatchToQueue($job, $queue ?? $job->queue, $connection ?? $job->connection);
-                } else {
-                    $this->dispatchNow($job);
-                }
-            }, [], $this->timezone
-        );
-
-        $event->name($jobName);
-
-        $this->mergePendingAttributes($event);
-
-        return $event;
+            if ($job instanceof ShouldQueue) {
+                $this->dispatchToQueue($job, $queue ?? $job->queue, $connection ?? $job->connection);
+            } else {
+                $this->dispatchNow($job);
+            }
+        });
     }
 
     /**
@@ -321,7 +302,6 @@ class Schedule
         }
 
         $this->groupStack[] = $this->attributes;
-        $this->attributes = null;
 
         $events($this);
 
@@ -336,16 +316,16 @@ class Schedule
      */
     protected function mergePendingAttributes(Event $event)
     {
-        if (! empty($this->groupStack)) {
-            $group = array_last($this->groupStack);
-
-            $group->mergeAttributes($event);
-        }
-
         if (isset($this->attributes)) {
             $this->attributes->mergeAttributes($event);
 
             $this->attributes = null;
+        }
+
+        if (! empty($this->groupStack)) {
+            $group = end($this->groupStack);
+
+            $group->mergeAttributes($event);
         }
     }
 
@@ -432,13 +412,11 @@ class Schedule
     /**
      * Specify the cache store that should be used to store mutexes.
      *
-     * @param  \UnitEnum|string  $store
+     * @param  string  $store
      * @return $this
      */
     public function useCache($store)
     {
-        $store = enum_value($store);
-
         if ($this->eventMutex instanceof CacheAware) {
             $this->eventMutex->useStore($store);
         }
@@ -486,8 +464,8 @@ class Schedule
             return $this->macroCall($method, $parameters);
         }
 
-        if (method_exists(PendingEventAttributes::class, $method) || Event::hasMacro($method)) {
-            $this->attributes ??= $this->groupStack ? clone array_last($this->groupStack) : new PendingEventAttributes($this);
+        if (method_exists(PendingEventAttributes::class, $method)) {
+            $this->attributes ??= end($this->groupStack) ?: new PendingEventAttributes($this);
 
             return $this->attributes->$method(...$parameters);
         }

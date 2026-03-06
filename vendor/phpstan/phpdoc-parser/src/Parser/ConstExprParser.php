@@ -205,6 +205,7 @@ class ConstExprParser
 		);
 	}
 
+
 	private function parseArray(TokenIterator $tokens, int $endToken, int $startIndex): Ast\ConstExpr\ConstExprArrayNode
 	{
 		$items = [];
@@ -226,6 +227,7 @@ class ConstExprParser
 		);
 	}
 
+
 	/**
 	 * This method is supposed to be called with TokenIterator after reading TOKEN_DOUBLE_QUOTED_STRING and shifting
 	 * to the next token.
@@ -241,6 +243,7 @@ class ConstExprParser
 
 		return new Ast\ConstExpr\DoctrineConstExprStringNode(Ast\ConstExpr\DoctrineConstExprStringNode::unescape($text));
 	}
+
 
 	private function parseArrayItem(TokenIterator $tokens): Ast\ConstExpr\ConstExprArrayItemNode
 	{

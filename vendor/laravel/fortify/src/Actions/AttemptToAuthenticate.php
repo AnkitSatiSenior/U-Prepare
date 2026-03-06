@@ -43,8 +43,6 @@ class AttemptToAuthenticate
      * @param  \Illuminate\Http\Request  $request
      * @param  callable  $next
      * @return mixed
-     *
-     * @throws ValidationException
      */
     public function handle($request, $next)
     {
@@ -68,8 +66,6 @@ class AttemptToAuthenticate
      * @param  \Illuminate\Http\Request  $request
      * @param  callable  $next
      * @return mixed
-     *
-     * @throws ValidationException
      */
     protected function handleUsingCustomCallback($request, $next)
     {

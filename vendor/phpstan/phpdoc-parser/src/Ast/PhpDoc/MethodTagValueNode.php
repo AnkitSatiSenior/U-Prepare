@@ -41,6 +41,7 @@ class MethodTagValueNode implements PhpDocTagValueNode
 		$this->templateTypes = $templateTypes;
 	}
 
+
 	public function __toString(): string
 	{
 		$static = $this->isStatic ? 'static ' : '';
@@ -49,20 +50,6 @@ class MethodTagValueNode implements PhpDocTagValueNode
 		$description = $this->description !== '' ? " {$this->description}" : '';
 		$templateTypes = count($this->templateTypes) > 0 ? '<' . implode(', ', $this->templateTypes) . '>' : '';
 		return "{$static}{$returnType}{$this->methodName}{$templateTypes}({$parameters}){$description}";
-	}
-
-	/**
-	 * @param array<string, mixed> $properties
-	 */
-	public static function __set_state(array $properties): self
-	{
-		$instance = new self($properties['isStatic'], $properties['returnType'], $properties['methodName'], $properties['parameters'], $properties['description'], $properties['templateTypes']);
-		if (isset($properties['attributes'])) {
-			foreach ($properties['attributes'] as $key => $value) {
-				$instance->setAttribute($key, $value);
-			}
-		}
-		return $instance;
 	}
 
 }

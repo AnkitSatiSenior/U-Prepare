@@ -197,6 +197,7 @@ final class GDLibRenderer implements RendererInterface
                 );
         }
 
+        imagedestroy($this->image);
         $this->colors = [];
         $this->image = null;
 

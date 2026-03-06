@@ -103,16 +103,9 @@ class AliasLoader
             return $path;
         }
 
-        $stub = $this->formatFacadeStub(
+        file_put_contents($path, $this->formatFacadeStub(
             $alias, file_get_contents(__DIR__.'/stubs/facade.stub')
-        );
-
-        // Atomic write to prevent race conditions...
-        $tempPath = tempnam(dirname($path), 'facade-');
-
-        file_put_contents($tempPath, $stub);
-
-        rename($tempPath, $path);
+        ));
 
         return $path;
     }

@@ -2,15 +2,13 @@
 
 namespace Illuminate\Database\Schema\Grammars;
 
+use BackedEnum;
 use Illuminate\Contracts\Database\Query\Expression;
 use Illuminate\Database\Concerns\CompilesJsonPaths;
 use Illuminate\Database\Grammar as BaseGrammar;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Fluent;
 use RuntimeException;
-use UnitEnum;
-
-use function Illuminate\Support\enum_value;
 
 abstract class Grammar extends BaseGrammar
 {
@@ -150,20 +148,6 @@ abstract class Grammar extends BaseGrammar
     public function compileIndexes($schema, $table)
     {
         throw new RuntimeException('This database driver does not support retrieving indexes.');
-    }
-
-    /**
-     * Compile a vector index key command.
-     *
-     * @param  \Illuminate\Database\Schema\Blueprint  $blueprint
-     * @param  \Illuminate\Support\Fluent  $command
-     * @return void
-     *
-     * @throws \RuntimeException
-     */
-    public function compileVectorIndex(Blueprint $blueprint, Fluent $command)
-    {
-        throw new RuntimeException('The database driver in use does not support vector indexes.');
     }
 
     /**
@@ -403,7 +387,7 @@ abstract class Grammar extends BaseGrammar
         $commands = $this->getCommandsByName($blueprint, $name);
 
         if (count($commands) > 0) {
-            return array_first($commands);
+            return reset($commands);
         }
     }
 
@@ -493,8 +477,8 @@ abstract class Grammar extends BaseGrammar
             return $this->getValue($value);
         }
 
-        if ($value instanceof UnitEnum) {
-            return "'".str_replace("'", "''", enum_value($value))."'";
+        if ($value instanceof BackedEnum) {
+            return "'".str_replace("'", "''", $value->value)."'";
         }
 
         return is_bool($value)

@@ -12,12 +12,14 @@ use Laravel\Fortify\Contracts\FailedPasswordResetLinkRequestResponse;
 use Laravel\Fortify\Contracts\RequestPasswordResetLinkViewResponse;
 use Laravel\Fortify\Contracts\SuccessfulPasswordResetLinkRequestResponse;
 use Laravel\Fortify\Fortify;
-use Laravel\Fortify\Http\Requests\SendPasswordResetLinkRequest;
 
 class PasswordResetLinkController extends Controller
 {
     /**
      * Show the reset password link request view.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Laravel\Fortify\Contracts\RequestPasswordResetLinkViewResponse
      */
     public function create(Request $request): RequestPasswordResetLinkViewResponse
     {
@@ -26,9 +28,14 @@ class PasswordResetLinkController extends Controller
 
     /**
      * Send a reset link to the given user.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Contracts\Support\Responsable
      */
-    public function store(SendPasswordResetLinkRequest $request): Responsable
+    public function store(Request $request): Responsable
     {
+        $request->validate([Fortify::email() => 'required|email']);
+
         if (config('fortify.lowercase_usernames') && $request->has(Fortify::email())) {
             $request->merge([
                 Fortify::email() => Str::lower($request->{Fortify::email()}),
@@ -43,12 +50,14 @@ class PasswordResetLinkController extends Controller
         );
 
         return $status == Password::RESET_LINK_SENT
-            ? app(SuccessfulPasswordResetLinkRequestResponse::class, ['status' => $status])
-            : app(FailedPasswordResetLinkRequestResponse::class, ['status' => $status]);
+                    ? app(SuccessfulPasswordResetLinkRequestResponse::class, ['status' => $status])
+                    : app(FailedPasswordResetLinkRequestResponse::class, ['status' => $status]);
     }
 
     /**
      * Get the broker to be used during password reset.
+     *
+     * @return \Illuminate\Contracts\Auth\PasswordBroker
      */
     protected function broker(): PasswordBroker
     {

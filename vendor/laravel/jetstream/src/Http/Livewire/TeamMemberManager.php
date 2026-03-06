@@ -130,9 +130,7 @@ class TeamMemberManager extends Component
         if (! empty($invitationId)) {
             $model = Jetstream::teamInvitationModel();
 
-            $model::whereKey($invitationId)
-                ->where('team_id', $this->team->id)
-                ->delete();
+            $model::whereKey($invitationId)->delete();
         }
 
         $this->team = $this->team->fresh();

@@ -168,7 +168,6 @@ Route::group(['middleware' => config('fortify.middleware', ['web'])], function (
             ->name('two-factor.recovery-codes');
 
         Route::post(RoutePath::for('two-factor.recovery-codes', '/user/two-factor-recovery-codes'), [RecoveryCodeController::class, 'store'])
-            ->middleware($twoFactorMiddleware)
-            ->name('two-factor.regenerate-recovery-codes');
+            ->middleware($twoFactorMiddleware);
     }
 });

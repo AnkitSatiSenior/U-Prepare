@@ -12,8 +12,6 @@ use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\CanBeEscapedWhenCastToString;
 use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Database\ConnectionResolverInterface as Resolver;
-use Illuminate\Database\Eloquent\Attributes\Boot;
-use Illuminate\Database\Eloquent\Attributes\Initialize;
 use Illuminate\Database\Eloquent\Attributes\Scope as LocalScope;
 use Illuminate\Database\Eloquent\Attributes\UseEloquentBuilder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -32,8 +30,6 @@ use LogicException;
 use ReflectionClass;
 use ReflectionMethod;
 use Stringable;
-
-use function Illuminate\Support\enum_value;
 
 abstract class Model implements Arrayable, ArrayAccess, CanBeEscapedWhenCastToString, HasBroadcastChannel, Jsonable, JsonSerializable, QueueableEntity, Stringable, UrlRoutable
 {
@@ -54,7 +50,7 @@ abstract class Model implements Arrayable, ArrayAccess, CanBeEscapedWhenCastToSt
     /**
      * The connection name for the model.
      *
-     * @var \UnitEnum|string|null
+     * @var string|null
      */
     protected $connection;
 
@@ -201,7 +197,7 @@ abstract class Model implements Arrayable, ArrayAccess, CanBeEscapedWhenCastToSt
     /**
      * The callback that is responsible for handling lazy loading violations.
      *
-     * @var (callable(self, string))|null
+     * @var callable|null
      */
     protected static $lazyLoadingViolationCallback;
 
@@ -215,7 +211,7 @@ abstract class Model implements Arrayable, ArrayAccess, CanBeEscapedWhenCastToSt
     /**
      * The callback that is responsible for handling discarded attribute violations.
      *
-     * @var (callable(self, array))|null
+     * @var callable|null
      */
     protected static $discardedAttributeViolationCallback;
 
@@ -229,7 +225,7 @@ abstract class Model implements Arrayable, ArrayAccess, CanBeEscapedWhenCastToSt
     /**
      * The callback that is responsible for handling missing attribute violations.
      *
-     * @var (callable(self, string))|null
+     * @var callable|null
      */
     protected static $missingAttributeViolationCallback;
 
@@ -364,28 +360,23 @@ abstract class Model implements Arrayable, ArrayAccess, CanBeEscapedWhenCastToSt
 
         static::$traitInitializers[$class] = [];
 
-        $uses = class_uses_recursive($class);
+        foreach (class_uses_recursive($class) as $trait) {
+            $method = 'boot'.class_basename($trait);
 
-        $conventionalBootMethods = array_map(static fn ($trait) => 'boot'.class_basename($trait), $uses);
-        $conventionalInitMethods = array_map(static fn ($trait) => 'initialize'.class_basename($trait), $uses);
+            if (method_exists($class, $method) && ! in_array($method, $booted)) {
+                forward_static_call([$class, $method]);
 
-        foreach ((new ReflectionClass($class))->getMethods() as $method) {
-            if (! in_array($method->getName(), $booted) &&
-                $method->isStatic() &&
-                (in_array($method->getName(), $conventionalBootMethods) ||
-                $method->getAttributes(Boot::class) !== [])) {
-                $method->invoke(null);
-
-                $booted[] = $method->getName();
+                $booted[] = $method;
             }
 
-            if (in_array($method->getName(), $conventionalInitMethods) ||
-                $method->getAttributes(Initialize::class) !== []) {
-                static::$traitInitializers[$class][] = $method->getName();
+            if (method_exists($class, $method = 'initialize'.class_basename($trait))) {
+                static::$traitInitializers[$class][] = $method;
+
+                static::$traitInitializers[$class] = array_unique(
+                    static::$traitInitializers[$class]
+                );
             }
         }
-
-        static::$traitInitializers[$class] = array_unique(static::$traitInitializers[$class]);
     }
 
     /**
@@ -526,7 +517,7 @@ abstract class Model implements Arrayable, ArrayAccess, CanBeEscapedWhenCastToSt
     /**
      * Register a callback that is responsible for handling lazy loading violations.
      *
-     * @param  (callable(self, string))|null  $callback
+     * @param  callable|null  $callback
      * @return void
      */
     public static function handleLazyLoadingViolationUsing(?callable $callback)
@@ -548,7 +539,7 @@ abstract class Model implements Arrayable, ArrayAccess, CanBeEscapedWhenCastToSt
     /**
      * Register a callback that is responsible for handling discarded attribute violations.
      *
-     * @param  (callable(self, array))|null  $callback
+     * @param  callable|null  $callback
      * @return void
      */
     public static function handleDiscardedAttributeViolationUsing(?callable $callback)
@@ -570,7 +561,7 @@ abstract class Model implements Arrayable, ArrayAccess, CanBeEscapedWhenCastToSt
     /**
      * Register a callback that is responsible for handling missing attribute violations.
      *
-     * @param  (callable(self, string))|null  $callback
+     * @param  callable|null  $callback
      * @return void
      */
     public static function handleMissingAttributeViolationUsing(?callable $callback)
@@ -719,7 +710,7 @@ abstract class Model implements Arrayable, ArrayAccess, CanBeEscapedWhenCastToSt
      * Create a new model instance that is existing.
      *
      * @param  array<string, mixed>  $attributes
-     * @param  \UnitEnum|string|null  $connection
+     * @param  string|null  $connection
      * @return static
      */
     public function newFromBuilder($attributes = [], $connection = null)
@@ -728,7 +719,7 @@ abstract class Model implements Arrayable, ArrayAccess, CanBeEscapedWhenCastToSt
 
         $model->setRawAttributes((array) $attributes, true);
 
-        $model->setConnection($connection ?? $this->getConnectionName());
+        $model->setConnection($connection ?: $this->getConnectionName());
 
         $model->fireModelEvent('retrieved', false);
 
@@ -738,7 +729,7 @@ abstract class Model implements Arrayable, ArrayAccess, CanBeEscapedWhenCastToSt
     /**
      * Begin querying the model on a given connection.
      *
-     * @param  \UnitEnum|string|null  $connection
+     * @param  string|null  $connection
      * @return \Illuminate\Database\Eloquent\Builder<static>
      */
     public static function on($connection = null)
@@ -1803,19 +1794,6 @@ abstract class Model implements Arrayable, ArrayAccess, CanBeEscapedWhenCastToSt
     }
 
     /**
-     * Convert the model instance to pretty print formatted JSON.
-     *
-     * @param  int  $options
-     * @return string
-     *
-     * @throws \Illuminate\Database\Eloquent\JsonEncodingException
-     */
-    public function toPrettyJson(int $options = 0)
-    {
-        return $this->toJson(JSON_PRETTY_PRINT | $options);
-    }
-
-    /**
      * Convert the object into something JSON serializable.
      *
      * @return mixed
@@ -1953,13 +1931,13 @@ abstract class Model implements Arrayable, ArrayAccess, CanBeEscapedWhenCastToSt
      */
     public function getConnectionName()
     {
-        return enum_value($this->connection);
+        return $this->connection;
     }
 
     /**
      * Set the connection associated with the model.
      *
-     * @param  \UnitEnum|string|null  $name
+     * @param  string|null  $name
      * @return $this
      */
     public function setConnection($name)
@@ -1972,7 +1950,7 @@ abstract class Model implements Arrayable, ArrayAccess, CanBeEscapedWhenCastToSt
     /**
      * Resolve a connection instance.
      *
-     * @param  \UnitEnum|string|null  $connection
+     * @param  string|null  $connection
      * @return \Illuminate\Database\Connection
      */
     public static function resolveConnection($connection = null)
@@ -2447,11 +2425,11 @@ abstract class Model implements Arrayable, ArrayAccess, CanBeEscapedWhenCastToSt
 
         static::$modelsShouldPreventAccessingMissingAttributes = false;
 
-        try {
-            return ! is_null($this->getAttribute($offset));
-        } finally {
-            static::$modelsShouldPreventAccessingMissingAttributes = $shouldPrevent;
-        }
+        $result = ! is_null($this->getAttribute($offset));
+
+        static::$modelsShouldPreventAccessingMissingAttributes = $shouldPrevent;
+
+        return $result;
     }
 
     /**
@@ -2595,17 +2573,7 @@ abstract class Model implements Arrayable, ArrayAccess, CanBeEscapedWhenCastToSt
         $this->relationAutoloadCallback = null;
         $this->relationAutoloadContext = null;
 
-        $keys = get_object_vars($this);
-
-        if (version_compare(PHP_VERSION, '8.4.0', '>=')) {
-            foreach ((new ReflectionClass($this))->getProperties() as $property) {
-                if ($property->hasHooks()) {
-                    unset($keys[$property->getName()]);
-                }
-            }
-        }
-
-        return array_keys($keys);
+        return array_keys(get_object_vars($this));
     }
 
     /**

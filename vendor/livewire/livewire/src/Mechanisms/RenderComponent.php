@@ -22,12 +22,10 @@ class RenderComponent extends Mechanism
             return '';
         }, $expression);
 
-        if (is_null($key)) {
-            $key = 'null';    
+        if (! $key) {
+            $key = app(\Livewire\Mechanisms\ExtendBlade\DeterministicBladeKeys::class)->generate();
+            $key = "'{$key}'";
         }
-
-        $deterministicBladeKey = app(\Livewire\Mechanisms\ExtendBlade\DeterministicBladeKeys::class)->generate();
-        $deterministicBladeKey = "'{$deterministicBladeKey}'";
 
         return <<<EOT
 <?php
@@ -36,16 +34,11 @@ class RenderComponent extends Mechanism
 };
 [\$__name, \$__params] = \$__split($expression);
 
-\$__key = $key;
-
-\$__key ??= \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::generateKey($deterministicBladeKey, \$__key);
-
-\$__html = app('livewire')->mount(\$__name, \$__params, \$__key);
+\$__html = app('livewire')->mount(\$__name, \$__params, $key, \$__slots ?? [], get_defined_vars());
 
 echo \$__html;
 
 unset(\$__html);
-unset(\$__key);
 unset(\$__name);
 unset(\$__params);
 unset(\$__split);

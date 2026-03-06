@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Laravel\Fortify\Actions\GenerateNewRecoveryCodes;
 use Laravel\Fortify\Contracts\RecoveryCodesGeneratedResponse;
-use Laravel\Fortify\Fortify;
 
 class RecoveryCodeController extends Controller
 {
@@ -14,7 +13,7 @@ class RecoveryCodeController extends Controller
      * Get the two factor authentication recovery codes for authenticated user.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse|array
+     * @return \Illuminate\Http\Response
      */
     public function index(Request $request)
     {
@@ -23,7 +22,7 @@ class RecoveryCodeController extends Controller
             return [];
         }
 
-        return response()->json(json_decode(Fortify::currentEncrypter()->decrypt(
+        return response()->json(json_decode(decrypt(
             $request->user()->two_factor_recovery_codes
         ), true));
     }

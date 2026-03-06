@@ -12,8 +12,6 @@ class FailedPasswordConfirmationResponse implements FailedPasswordConfirmationRe
      *
      * @param  \Illuminate\Http\Request  $request
      * @return \Symfony\Component\HttpFoundation\Response
-     *
-     * @throws \Illuminate\Validation\ValidationException
      */
     public function toResponse($request)
     {

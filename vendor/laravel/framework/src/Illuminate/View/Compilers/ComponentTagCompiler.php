@@ -340,9 +340,9 @@ class ComponentTagCompiler
                     : $component;
 
                 if (! is_null($guess = match (true) {
-                    $viewFactory->exists($guess = $path['prefixHash'].$delimiter.$formattedComponent) => $guess, // @phpstan-ignore variable.undefined
-                    $viewFactory->exists($guess = $path['prefixHash'].$delimiter.$formattedComponent.'.index') => $guess, // @phpstan-ignore variable.undefined
-                    $viewFactory->exists($guess = $path['prefixHash'].$delimiter.$formattedComponent.'.'.Str::afterLast($formattedComponent, '.')) => $guess, // @phpstan-ignore variable.undefined
+                    $viewFactory->exists($guess = $path['prefixHash'].$delimiter.$formattedComponent) => $guess,
+                    $viewFactory->exists($guess = $path['prefixHash'].$delimiter.$formattedComponent.'.index') => $guess,
+                    $viewFactory->exists($guess = $path['prefixHash'].$delimiter.$formattedComponent.'.'.Str::afterLast($formattedComponent, '.')) => $guess,
                     default => null,
                 })) {
                     return $guess;
@@ -560,7 +560,7 @@ class ComponentTagCompiler
         /x";
 
         $value = preg_replace_callback($pattern, function ($matches) {
-            $name = $this->stripQuotes($matches['inlineName'] ?: $matches['name'] ?: $matches['boundName']) ?: "'slot'";
+            $name = $this->stripQuotes($matches['inlineName'] ?: $matches['name'] ?: $matches['boundName']);
 
             if (Str::contains($name, '-') && ! empty($matches['inlineName'])) {
                 $name = Str::camel($name);

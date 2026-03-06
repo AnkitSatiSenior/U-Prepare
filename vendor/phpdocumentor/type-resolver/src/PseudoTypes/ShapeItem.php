@@ -42,7 +42,7 @@ abstract class ShapeItem
 
     public function __toString(): string
     {
-        if ($this->key !== null && $this->key !== '') {
+        if ($this->key !== null) {
             return sprintf(
                 '%s%s: %s',
                 $this->key,

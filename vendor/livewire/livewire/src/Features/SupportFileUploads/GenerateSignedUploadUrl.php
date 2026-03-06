@@ -17,9 +17,7 @@ class GenerateSignedUploadUrl
 
     public function forS3($file, $visibility = 'private')
     {
-        $storage = FileUploadConfiguration::storage();
-
-        $driver = $storage->getDriver();
+        $driver = FileUploadConfiguration::storage()->getDriver();
 
         // Flysystem V2+ doesn't allow direct access to adapter, so we need to invade instead.
         $adapter = invade($driver)->adapter;
@@ -48,15 +46,9 @@ class GenerateSignedUploadUrl
             '+' . FileUploadConfiguration::maxUploadTime() . ' minutes'
         );
 
-        $uri = $signedRequest->getUri();
-
-        if (filled($url = $storage->getConfig()['temporary_url'] ?? null)) {
-            $uri = invade($storage)->replaceBaseUrl($uri, $url);
-        }
-
         return [
             'path' => $fileHashName,
-            'url' => (string) $uri,
+            'url' => (string) $signedRequest->getUri(),
             'headers' => $this->headers($signedRequest, $fileType),
         ];
     }

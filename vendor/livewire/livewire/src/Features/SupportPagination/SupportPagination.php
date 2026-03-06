@@ -7,7 +7,6 @@ use Livewire\WithPagination;
 use Livewire\Features\SupportQueryString\SupportQueryString;
 use Livewire\ComponentHookRegistry;
 use Livewire\ComponentHook;
-use Livewire\Livewire;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Pagination\Cursor;
@@ -35,8 +34,6 @@ class SupportPagination extends ComponentHook
 
     function boot()
     {
-        $this->setPathResolvers();
-
         $this->setPageResolvers();
 
         $this->overrideDefaultPaginationViews();
@@ -59,14 +56,6 @@ class SupportPagination extends ComponentHook
 
         Paginator::defaultView($this->paginationView());
         Paginator::defaultSimpleView($this->paginationSimpleView());
-    }
-
-    protected function setPathResolvers()
-    {
-        // Setting the path resolver here on the default paginator also works for the cursor paginator...
-        Paginator::currentPathResolver(function () {
-            return Livewire::originalPath();
-        });
     }
 
     protected function setPageResolvers()

@@ -20,13 +20,25 @@ class LoginRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
+     * Here we change to accept 'login' (email or username).
+     *
      * @return array
      */
     public function rules()
     {
         return [
-            Fortify::username() => 'required|string',
+            'login' => 'required|string',  // changed from Fortify::username() to 'login'
             'password' => 'required|string',
         ];
+    }
+
+    /**
+     * Override the username method to use 'login' as the input name.
+     *
+     * @return string
+     */
+    public function username()
+    {
+        return 'login';
     }
 }

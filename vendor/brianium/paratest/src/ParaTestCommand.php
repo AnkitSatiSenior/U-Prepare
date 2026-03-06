@@ -18,7 +18,6 @@ use function assert;
 use function class_exists;
 use function is_string;
 use function is_subclass_of;
-use function method_exists;
 use function sprintf;
 
 /** @internal */
@@ -46,14 +45,7 @@ final class ParaTestCommand extends Command
 
         $application->setName('ParaTest');
         $application->setVersion(PrettyVersions::getVersion('brianium/paratest')->getPrettyVersion());
-        // @phpstan-ignore function.alreadyNarrowedType (can be removed when dropping support for Symfony 7.3)
-        if (method_exists($application, 'addCommand')) {
-            $application->addCommand($command);
-        } else {
-            // @phpstan-ignore method.deprecated (can be removed when dropping support for Symfony 7.3)
-            $application->add($command);
-        }
-
+        $application->add($command);
         $commandName = $command->getName();
         assert($commandName !== null);
         $application->setDefaultCommand($commandName, true);

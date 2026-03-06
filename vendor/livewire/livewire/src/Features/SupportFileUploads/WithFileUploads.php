@@ -25,7 +25,7 @@ trait WithFileUploads
         $this->dispatch('upload:generatedSignedUrl', name: $name, url: GenerateSignedUploadUrl::forLocal())->self();
     }
 
-    function _finishUpload($name, $tmpPath, $isMultiple, $append = false)
+    function _finishUpload($name, $tmpPath, $isMultiple)
     {
         if (FileUploadConfiguration::shouldCleanupOldUploads()) {
             $this->cleanupOldUploads();
@@ -36,15 +36,6 @@ trait WithFileUploads
                 return TemporaryUploadedFile::createFromLivewire($i);
             })->toArray();
             $this->dispatch('upload:finished', name: $name, tmpFilenames: collect($file)->map->getFilename()->toArray())->self();
-
-            if ($append) {
-                $existing = $this->getPropertyValue($name);
-                if ($existing instanceof \Illuminate\Support\Collection) {
-                    $file = $existing->merge($file);
-                } elseif (is_array($existing)) {
-                    $file = array_merge($existing, $file);
-                }
-            }
         } else {
             $file = TemporaryUploadedFile::createFromLivewire($tmpPath[0]);
             $this->dispatch('upload:finished', name: $name, tmpFilenames: [$file->getFilename()])->self();
@@ -126,3 +117,4 @@ trait WithFileUploads
         }
     }
 }
+
