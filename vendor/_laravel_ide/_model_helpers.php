@@ -18515,6 +18515,7 @@ namespace App\Models {
      * @property string|null $head
      * @property string $img
      * @property int $id
+     * @property-read mixed $image_url
      * @method static \Illuminate\Database\Eloquent\Builder<Slide>|Slide whereId($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Slide>|Slide whereImg($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Slide>|Slide whereHead($value)
