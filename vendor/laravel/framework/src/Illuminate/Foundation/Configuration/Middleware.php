@@ -555,8 +555,8 @@ class Middleware
     /**
      * Configure where users are redirected by the authentication and guest middleware.
      *
-     * @param  callable|string  $guests
-     * @param  callable|string  $users
+     * @param  callable|string|null  $guests
+     * @param  callable|string|null  $users
      * @return $this
      */
     public function redirectTo(callable|string|null $guests = null, callable|string|null $users = null)
@@ -781,8 +781,6 @@ class Middleware
         $aliases = [
             'auth' => \Illuminate\Auth\Middleware\Authenticate::class,
             'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
-            'role.routes' => \App\Http\Middleware\CheckRoleRoute::class,
-            'auth.token' => \App\Http\Middleware\AuthTokenMiddleware::class,
             'auth.session' => \Illuminate\Session\Middleware\AuthenticateSession::class,
             'cache.headers' => \Illuminate\Http\Middleware\SetCacheHeaders::class,
             'can' => \Illuminate\Auth\Middleware\Authorize::class,
