@@ -207,33 +207,39 @@
 </section>
 
     {{-- ================= VIDEOS ================= --}}
-    <section class="videos">
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-12">
-                    <div class="vid-head d-flex align-items-end justify-content-between mb-3">
-                        <div class="left mb-1">
-                            <h3 class="mb-0">
-                                <i class="bi bi-camera-reels"></i>
-                                VIDEOS
-                            </h3>
-                        </div>
-                        <div class="right">
-                            <a class="text-white" href="#">
-                                <i class="bi bi-chevron-double-right"></i>
-                                Click to U-PREPARE-YouTube-channel
-                            </a>
-                        </div>
+   <section class="videos">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="vid-head d-flex align-items-end justify-content-between mb-3">
+                    <div class="left mb-1">
+                        <h3 class="mb-0">
+                            <i class="bi bi-camera-reels"></i>
+                            VIDEOS
+                        </h3>
                     </div>
+                   
                 </div>
             </div>
+        </div>
 
-            <div class="videos-slider">
-                @for ($v = 0; $v < 3; $v++) @foreach (getVideos() as $vid) <div>
+        <div class="videos-slider">
+            {{-- Clean Architecture: No artificial for-loops. Let JS handle the slider UI. --}}
+            @forelse (getVideos() as $vid)
+                <div>
                     <div class="vid-item">
                         <div class="vid-img">
-                            <img src="{{ asset('storage/app/public/' . $vid->img) }}" />
-                            <a class="d-flex center" href="#">
+                            {{-- S3 URL via Domain Accessor --}}
+                            <img src="{{ $vid->image_url }}" 
+                                 alt="Video Thumbnail" 
+                                 loading="lazy" />
+                            
+                            {{-- Mapped the actual dynamic link --}}
+                            <a class="d-flex center" 
+                               href="{{ $vid->link ?? '#' }}" 
+                               target="_blank" 
+                               rel="noopener noreferrer"
+                               aria-label="Play Video">
                                 <i class="bi bi-play-circle"></i>
                             </a>
                         </div>
@@ -241,12 +247,16 @@
                             <p class="mb-0">{{ $vid->text }}</p>
                         </div>
                     </div>
-            </div>
-            @endforeach
-            @endfor
+                </div>
+            @empty
+                {{-- Graceful Degradation --}}
+                <div class="col-12 text-center text-white py-4">
+                    <p class="mb-0">No videos available at the moment.</p>
+                </div>
+            @endforelse
         </div>
-        </div>
-    </section>
+    </div>
+</section>
 
     {{-- ================= CONTACT / FEEDBACK ================= --}}
     <section class="contact">
