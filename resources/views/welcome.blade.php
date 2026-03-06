@@ -149,50 +149,48 @@
     </section>
 
     {{-- ================= COMPONENTS ================= --}}
-    <section class="components">
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-12">
-                    <div class="comp-head d-flex align-items-end justify-content-between mb-3">
-                        <div class="left mb-1">
-                            <h3 class="mb-0">
-                                <i class="bi bi-newspaper"></i>
-                                COMPONENTS
-                            </h3>
-                        </div>
-                        <div class="right">&nbsp;</div>
+  <section class="components">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="comp-head d-flex align-items-end justify-content-between mb-3">
+                    <div class="left mb-1">
+                        <h3 class="mb-0">
+                            <i class="bi bi-newspaper"></i>
+                            COMPONENTS
+                        </h3>
                     </div>
+                    <div class="right">&nbsp;</div>
                 </div>
             </div>
+        </div>
 
-            <div class="components-slider">
-                @forelse(getPackageComponents() as $comp)
+        <div class="components-slider">
+            @forelse(getPackageComponents() as $comp)
                 <div>
                     <div class="comps-item">
 
-                        {{-- Show image only if exists --}}
-                        @if (!empty($comp->image))
+                        {{-- Clean Architecture: Using the Domain Accessor for S3 URL --}}
                         <div class="ci-img">
-                            <img src="{{ $comp->image }}" alt="Component Image">
+                            <img src="{{ $comp->image_url }}" 
+                                 alt="{{ $comp->localized_title }} Cover Image" 
+                                 loading="lazy">
                         </div>
-                        @endif
 
                         <div class="ci-content p-2">
+                            {{-- Localization logic is completely hidden inside the Model --}}
                             <h4>
-                                {!! request()->cookie('lang') === 'hi'
-                                ? Str::limit($comp->page_hin_title, 50)
-                                : Str::limit($comp->page_eng_title, 50) !!}
+                                {{ Str::limit($comp->localized_title, 50) }}
                             </h4>
 
                             <p class="mb-0">
-                                {!! request()->cookie('lang') === 'hi'
-                                ? Str::limit($comp->hin_content, 500)
-                                : Str::limit($comp->eng_content, 600) !!}
+                                {{-- Assuming content contains safe HTML tags --}}
+                                {!! Str::limit($comp->localized_content, 500) !!}
                             </p>
                         </div>
 
                         <div class="ci-rms text-center pb-3">
-                            <a href="{{ $comp->link }}" class="rmore">
+                            <a href="{{ $comp->link ?? '#' }}" class="rmore">
                                 <span>READ MORE</span>
                                 <i class="bi bi-caret-right-fill"></i>
                             </a>
@@ -200,12 +198,13 @@
 
                     </div>
                 </div>
-                @empty
-                @endforelse
-            </div>
-
+            @empty
+                
+            @endforelse
         </div>
-    </section>
+
+    </div>
+</section>
 
     {{-- ================= VIDEOS ================= --}}
     <section class="videos">
