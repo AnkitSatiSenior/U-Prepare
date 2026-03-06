@@ -131,35 +131,33 @@
 
                 {{-- Status Update Form (disabled if resolved/rejected) --}}
                 @if (!in_array($grievance->status, ['resolved', 'rejected']))
-                    <form class="ajax-form-status mt-3" data-method="POST"
-                        data-action="{{ route('admin.grievances.updateStatus', $grievance->id) }}">
-                        @csrf
-                        <div class="row g-2">
-                            <div class="col-md-4">
-                                <select name="status" class="form-control" required>
-                                    <option value="">Change Status</option>
-                                    <option value="pending" {{ $grievance->status == 'pending' ? 'selected' : '' }}>
-                                        Pending
-                                    </option>
-                                    <option value="in-progress"
-                                        {{ $grievance->status == 'in-progress' ? 'selected' : '' }}>
-                                        In Progress</option>
-                                    <option value="resolved" {{ $grievance->status == 'resolved' ? 'selected' : '' }}>
-                                        Resolved</option>
-                                    <option value="rejected" {{ $grievance->status == 'rejected' ? 'selected' : '' }}>
-                                        Rejected</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <input type="text" name="remark" class="form-control"
-                                    placeholder="Remark (optional)">
-                            </div>
-                            <div class="col-md-2">
-                                <button type="submit" class="btn btn-primary w-100"><i class="fas fa-save"></i>
-                                    Update</button>
-                            </div>
+                <form class="ajax-form-status mt-3" data-method="POST"
+                    data-action="{{ route('admin.grievances.updateStatus', $grievance->id) }}">
+                    @csrf
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <select name="status" class="form-control" required>
+                                <option value="">Change Status</option>
+                                <option value="pending" {{ $grievance->status == 'pending' ? 'selected' : '' }}>
+                                    Pending
+                                </option>
+                                <option value="in-progress" {{ $grievance->status == 'in-progress' ? 'selected' : '' }}>
+                                    In Progress</option>
+                                <option value="resolved" {{ $grievance->status == 'resolved' ? 'selected' : '' }}>
+                                    Resolved</option>
+                                <option value="rejected" {{ $grievance->status == 'rejected' ? 'selected' : '' }}>
+                                    Rejected</option>
+                            </select>
                         </div>
-                    </form>
+                        <div class="col-md-6">
+                            <input type="text" name="remark" class="form-control" placeholder="Remark (optional)">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100"><i class="fas fa-save"></i>
+                                Update</button>
+                        </div>
+                    </div>
+                </form>
                 @endif
             </div>
         </section>
@@ -178,13 +176,12 @@
                             <select name="assigned_to" class="form-control" required>
                                 <option value="">Select User</option>
                                 @foreach ($users as $user)
-                                    <option value="{{ $user->id }}">{{ $user->name }}</option>
+                                <option value="{{ $user->id }}">{{ $user->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-5">
-                            <input type="text" name="department" class="form-control" placeholder="Department"
-                                required>
+                            <input type="text" name="department" class="form-control" placeholder="Department" required>
                         </div>
                         <div class="col-md-2">
                             <button type="submit" class="btn btn-success w-100"><i class="fas fa-plus"></i>
@@ -195,19 +192,19 @@
 
                 <ul class="list-group">
                     @forelse($grievance->assignments as $assign)
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <span>
-                                <strong>{{ $assign->assignedUser->name ?? '—' }}</strong>
-                                ({{ $assign->department ?? '—' }})
-                                <small class="text-muted">by {{ $assign->assignedByUser->name ?? 'System' }}</small>
-                            </span>
-                            <button class="btn btn-danger btn-sm ajax-delete"
-                                data-url="{{ route('admin.grievances.assignments.destroy', $assign->id) }}">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>
+                            <strong>{{ $assign->assignedUser->name ?? '—' }}</strong>
+                            ({{ $assign->department ?? '—' }})
+                            <small class="text-muted">by {{ $assign->assignedByUser->name ?? 'System' }}</small>
+                        </span>
+                        <button class="btn btn-danger btn-sm ajax-delete"
+                            data-url="{{ route('admin.grievances.assignments.destroy', $assign->id) }}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </li>
                     @empty
-                        <p class="text-muted">No assignments yet.</p>
+                    <p class="text-muted">No assignments yet.</p>
                     @endforelse
                 </ul>
             </div>
@@ -215,8 +212,8 @@
 
         {{-- Preliminary & Final Action --}}
         @php
-            $prelimLog = $grievance->logs->where('type', 'preliminary')->first();
-            $finalLog = $grievance->logs->where('type', 'final')->first();
+        $prelimLog = $grievance->logs->where('type', 'preliminary')->first();
+        $finalLog = $grievance->logs->where('type', 'final')->first();
         @endphp
         <div class="row">
             {{-- Preliminary --}}
@@ -225,19 +222,22 @@
                     <div class="card-header bg-light fw-bold">Preliminary Action Taken</div>
                     <div class="card-body">
                         @if ($prelimLog)
-                            <h6 class="text-muted">{{ $prelimLog->created_at->format('d M Y, h:i A') }}</h6>
-                            <p><strong>Remark:</strong> {{ $prelimLog->remark ?? '—' }}</p>
-                            @if ($prelimLog->document)
-                                <p><a href="{{ asset('storage/' . $prelimLog->document) }}" target="_blank">View
-                                        Document</a></p>
-                            @endif
-                            <p><strong>By:</strong> {{ $prelimLog->user->name ?? 'System' }}</p>
+                        <h6 class="text-muted">{{ $prelimLog->created_at->format('d M Y, h:i A') }}</h6>
+                        <p><strong>Remark:</strong> {{ $prelimLog->remark ?? '—' }}</p>
+                        @if ($prelimLog->document)
+                        <p>
+                            <a href="{{ Storage::disk('s3')->url($prelimLog->document) }}" target="_blank">
+                                View Document
+                            </a>
+                        </p>
+                        @endif
+                        <p><strong>By:</strong> {{ $prelimLog->user->name ?? 'System' }}</p>
                         @else
-                            <p class="text-muted">No preliminary action yet.</p>
-                            <div class="text-center">
-                                <button class="btn btn-primary btn-patr" data-bs-toggle="modal"
-                                    data-bs-target="#actionModal">Submit</button>
-                            </div>
+                        <p class="text-muted">No preliminary action yet.</p>
+                        <div class="text-center">
+                            <button class="btn btn-primary btn-patr" data-bs-toggle="modal"
+                                data-bs-target="#actionModal">Submit</button>
+                        </div>
                         @endif
                     </div>
                 </section>
@@ -249,21 +249,27 @@
                     <div class="card-header bg-light fw-bold">Final Action Taken</div>
                     <div class="card-body">
                         @if ($finalLog)
-                            <h6 class="text-muted">{{ $finalLog->created_at->format('d M Y, h:i A') }}</h6>
-                            <p><strong>Remark:</strong> {{ $finalLog->remark ?? '—' }}</p>
-                            @if ($finalLog->document)
-                                <p><a href="{{ asset('storage/' . $finalLog->document) }}" target="_blank">View
-                                        Document</a></p>
-                            @endif
-                            <p><strong>By:</strong> {{ $finalLog->user->name ?? 'System' }}</p>
+                        <h6 class="text-muted">{{ $finalLog->created_at->format('d M Y, h:i A') }}</h6>
+                        <p><strong>Remark:</strong> {{ $finalLog->remark ?? '—' }}</p>
+                        {{-- Search for "Final Action Taken" and replace the link section --}}
+                        @if ($finalLog->document)
+                        <p>
+                            <a href="{{ Storage::disk('s3')->url($finalLog->document) }}" target="_blank"
+                                class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-external-link-alt"></i> View Final Document
+                            </a>
+                        </p>
+                        @endif
+
+                        <p><strong>By:</strong> {{ $finalLog->user->name ?? 'System' }}</p>
                         @elseif($prelimLog)
-                            <p class="text-muted">No final action yet.</p>
-                            <div class="text-center">
-                                <button class="btn btn-primary btn-fatr" data-bs-toggle="modal"
-                                    data-bs-target="#actionModal">Submit</button>
-                            </div>
+                        <p class="text-muted">No final action yet.</p>
+                        <div class="text-center">
+                            <button class="btn btn-primary btn-fatr" data-bs-toggle="modal"
+                                data-bs-target="#actionModal">Submit</button>
+                        </div>
                         @else
-                            <p class="text-muted">Please complete Preliminary Action first.</p>
+                        <p class="text-muted">Please complete Preliminary Action first.</p>
                         @endif
                     </div>
                 </section>
@@ -278,81 +284,81 @@
             <div class="card-body">
                 {{-- Add Log Form --}}
                 @if (canRoute('admin.grievances.logs.store'))
-                    <form class="ajax-form-log mb-3" data-method="POST"
-                        data-action="{{ route('admin.grievances.logs.store', $grievance->id) }}">
-                        @csrf
-                        <div class="row g-2">
-                            <div class="col-md-4">
-                                <input type="text" name="title" class="form-control" placeholder="Log Title"
-                                    required>
-                            </div>
-                            <div class="col-md-5">
-                                <input type="text" name="remark" class="form-control" placeholder="Remark"
-                                    required>
-                            </div>
-                            <div class="col-md-3">
-                                <input type="file" name="document" class="form-control">
-                            </div>
-                            <div class="col-md-12 mt-2 text-end">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-plus"></i> Add Log
-                                </button>
-                            </div>
+                <form class="ajax-form-log mb-3" data-method="POST"
+                    data-action="{{ route('admin.grievances.logs.store', $grievance->id) }}">
+                    @csrf
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <input type="text" name="title" class="form-control" placeholder="Log Title" required>
                         </div>
-                    </form>
+                        <div class="col-md-5">
+                            <input type="text" name="remark" class="form-control" placeholder="Remark" required>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="file" name="document" class="form-control">
+                        </div>
+                        <div class="col-md-12 mt-2 text-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Add Log
+                            </button>
+                        </div>
+                    </div>
+                </form>
                 @endif
 
                 {{-- Timeline --}}
                 <div class="bsb-timeline-1 py-4">
                     <ul class="timeline">
                         @forelse($grievance->logs as $log)
-                            <li class="timeline-item">
-                                <div class="timeline-content">
-                                    <div class="card border-0 shadow-sm mb-3">
-                                        <div class="card-body">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <h6 class="text-muted mb-1">
-                                                        {{ $log->created_at->format('d M Y, h:i A') }}</h6>
-                                                    <h5 class="fw-bold mb-1">
-                                                        {{ $log->title ?? ucfirst($log->type) . ' Action' }}</h5>
-                                                    <p class="mb-1"><strong>Remark:</strong>
-                                                        {{ $log->remark ?? '—' }}</p>
-                                                    <p class="mb-1"><strong>By:</strong>
-                                                        {{ $log->user->name ?? 'System' }}</p>
-                                                    @if ($log->document)
-                                                        <p class="mb-0">
-                                                            <a href="{{ asset('storage/' . $log->document) }}"
-                                                                target="_blank" class="text-primary">📄 View
-                                                                Document</a>
-                                                        </p>
-                                                    @endif
-                                                </div>
-                                                <div>
-                                                    @if (canRoute('admin.grievances.logs.update'))
-                                                        <button class="btn btn-sm btn-warning me-1 btn-edit-log"
-                                                            data-id="{{ $log->id }}"
-                                                            data-title="{{ $log->title }}"
-                                                            data-remark="{{ $log->remark }}"
-                                                            data-document="{{ $log->document ? asset('storage/' . $log->document) : '' }}">
-                                                            <i class="fas fa-edit"></i> Edit
-                                                        </button>
-                                                    @endif
+                        <li class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="card border-0 shadow-sm mb-3">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="text-muted mb-1">
+                                                    {{ $log->created_at->format('d M Y, h:i A') }}</h6>
+                                                <h5 class="fw-bold mb-1">
+                                                    {{ $log->title ?? ucfirst($log->type) . ' Action' }}</h5>
+                                                <p class="mb-1"><strong>Remark:</strong>
+                                                    {{ $log->remark ?? '—' }}</p>
+                                                <p class="mb-1"><strong>By:</strong>
+                                                    {{ $log->user->name ?? 'System' }}</p>
+                                                {{-- Inside the @forelse($grievance->logs as $log) loop --}}
+                                                @if ($log->document)
+                                                <p class="mb-0">
+                                                    <a href="{{ Storage::disk('s3')->url($log->document) }}"
+                                                        target="_blank" class="text-primary fw-bold">
+                                                        <i class="fas fa-file-pdf"></i> View Document
+                                                    </a>
+                                                </p>
+                                                @endif
+                                            </div>
+                                            <div>
+                                                @if (canRoute('admin.grievances.logs.update'))
+                                                {{-- Update the Edit Button inside the logs loop --}}
+                                                <button class="btn btn-sm btn-warning me-1 btn-edit-log"
+                                                    data-id="{{ $log->id }}" data-title="{{ $log->title }}"
+                                                    data-remark="{{ $log->remark }}" {{-- FIX: Generate S3 URL here --}}
+                                                    data-document="{{ $log->document ? Storage::disk('s3')->url($log->document) : '' }}">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </button>
+                                                @endif
 
-                                                    @if (canRoute('admin.grievances.logs.destroy'))
-                                                        <button class="btn btn-sm btn-danger ajax-delete"
-                                                            data-url="{{ route('admin.grievances.logs.destroy', $log->id) }}">
-                                                            <i class="fas fa-trash"></i> Delete
-                                                        </button>
-                                                    @endif
-                                                </div>
+                                                @if (canRoute('admin.grievances.logs.destroy'))
+                                                <button class="btn btn-sm btn-danger ajax-delete"
+                                                    data-url="{{ route('admin.grievances.logs.destroy', $log->id) }}">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </button>
+                                                @endif
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </li>
+                            </div>
+                        </li>
                         @empty
-                            <p class="text-muted">No logs available.</p>
+                        <p class="text-muted">No logs available.</p>
                         @endforelse
                     </ul>
                 </div>
@@ -361,8 +367,7 @@
         </section>
 
         {{-- ==================== Update Modal ==================== --}}
-        <div class="modal fade" id="editLogModal" tabindex="-1" aria-labelledby="editLogModalLabel"
-            aria-hidden="true">
+        <div class="modal fade" id="editLogModal" tabindex="-1" aria-labelledby="editLogModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <form id="updateLogForm" method="POST" enctype="multipart/form-data">
@@ -371,8 +376,7 @@
                         <div class="modal-header bg-primary text-white">
                             <h5 class="modal-title" id="editLogModalLabel"><i class="fas fa-edit me-2"></i> Update
                                 Log</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                aria-label="Close"></button>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
                             <input type="hidden" id="log_id" name="log_id">
