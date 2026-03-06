@@ -15,8 +15,10 @@ FileETag None
     RewriteEngine On
     RewriteBase /
 
-    # 1. Enforce HTTPS & WWW in a single redirect (Efficiency)
-    # If not HTTPS OR not www.u-prepare.com, redirect to the final destination
+    # ==========================================================
+    # SINGLE-HOP REDIRECT: ENFORCE HTTPS & WWW
+    # ==========================================================
+    # If NOT https OR NOT starting with www.u-prepare.com
     RewriteCond %{HTTPS} off [OR]
     RewriteCond %{HTTP_HOST} !^www\.u-prepare\.com$ [NC]
     RewriteRule ^(.*)$ https://www.u-prepare.com/$1 [L,R=301]
