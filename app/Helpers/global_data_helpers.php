@@ -37,11 +37,17 @@ if (!function_exists('processNavbarItem')) {
 }
 
 if (!function_exists('getSlides')) {
+    /**
+     * Retrieve active slides, heavily cached.
+     * S3 URLs are generated dynamically at runtime via the Model Accessor.
+     */
     function getSlides()
     {
-        return Cache::remember('all_slides', now()->addMinutes(10), fn() =>
-            Slide::where('status', true)->orderBy('order')->get()
-        );
+        return Cache::rememberForever('active_slides', function () {
+            return Slide::where('status', true)
+                ->orderBy('order')
+                ->get();
+        });
     }
 }
 

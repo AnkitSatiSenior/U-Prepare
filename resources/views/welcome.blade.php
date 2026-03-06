@@ -1,33 +1,35 @@
 <x-guest-layout>
     @section('page_title', 'Home')
     {{-- ================= HERO SLIDER ================= --}}
-    <section class="container-fluid slider p-0">
-        <div class="hero-slider">
-            @foreach (getSlides() as $slide)
-                <div>
-                    <div class="slider-item"
-                        style="background-image: url({{ asset('storage/app/public/' . $slide->img) }})">
-                        <div class="overlay"></div>
-                        <div class="caption">
-                            @if ($slide->head)
-                                <h2>{{ $slide->head }}</h2>
-                            @endif
-                            @if ($slide->subh)
-                                <p class="mb-3">{{ $slide->subh }}</p>
-                            @endif
-                            @if ($slide->link)
-                                <a href="{{ $slide->link }}" class="btn">
-                                    {{ $slide->btn_text }}
-                                    <i class="bi bi-chevron-right"></i>
-                                </a>
-                            @endif
-                        </div>
+  <section class="container-fluid slider p-0">
+    <div class="hero-slider">
+        @foreach (getSlides() as $slide)
+            <div>
+                <div class="slider-item"
+                    style="background-image: url('{{ $slide->image_url }}')">
+                    
+                    <div class="overlay"></div>
+                    <div class="caption">
+                        @if ($slide->head)
+                            <h2>{{ $slide->head }}</h2>
+                        @endif
+                        
+                        @if ($slide->subh)
+                            <p class="mb-3">{{ $slide->subh }}</p>
+                        @endif
+                        
+                        @if ($slide->link)
+                            <a href="{{ $slide->link }}" class="btn">
+                                {{ $slide->btn_text ?? 'Read More' }}
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        @endif
                     </div>
                 </div>
-            @endforeach
-        </div>
-    </section>
-
+            </div>
+        @endforeach
+    </div>
+</section>
     {{-- ================= LEADERS ================= --}}
     <section class="about-sec pt-4">
         <div class="container-fluid p-0">
