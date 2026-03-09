@@ -1,27 +1,6 @@
 <x-app-layout>
     <div class="container py-4">
-@if(auth()->user() && !auth()->user()->email_verified_at)
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="alert alert-warning border-start border-4 border-warning shadow-sm d-flex align-items-center fade show" role="alert">
-                    <div class="me-3">
-                        <i class="fa-solid fa-triangle-exclamation fs-3 text-warning"></i>
-                    </div>
-                    <div class="flex-grow-1">
-                        <h5 class="alert-heading fw-bold mb-1">Action Required: Update Your Profile</h5>
-                        <p class="mb-0">
-                            Your email address is currently unverified or requires an update. Please 
-                            <a href="{{ url('/user/profile') }}" class="fw-bold text-decoration-underline text-dark">
-                                update your email here
-                            </a> 
-                            to ensure you receive important project notifications.
-                        </p>
-                    </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            </div>
-        </div>
-        @endif
+
 
         {{-- ======================
         Dashboard Stats Cards
