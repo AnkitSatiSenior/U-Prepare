@@ -3,12 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
-use Exception;
+use App\Traits\HasS3Image;
 
 class Slide extends Model
 {
+    use HasS3Image;
+
+    // ✅ Tell the trait which database column holds the S3 object key
+    protected string $imageColumn = 'img';
+
     protected $fillable = [
         'img',
         'head',
@@ -25,27 +28,9 @@ class Slide extends Model
      */
     protected $appends = ['image_url'];
 
-    /**
-     * Get the resolved S3 URL for the slider image.
-     *
-     * @return string
-     */
-    public function getImageUrlAttribute(): string
-    {
-        if (empty($this->img)) {
-            return asset('images/default-slider.jpg');
-        }
-
-        try {
-            return Storage::disk('s3')->url($this->img);
-        } catch (Exception $e) {
-            Log::error('Failed to resolve S3 URL for Slide', [
-                'slide_id' => $this->id ?? 'unsaved',
-                'path' => $this->img,
-                'error' => $e->getMessage()
-            ]);
-            
-            return asset('images/default-slider.jpg');
-        }
-    }
+    // 🚨 ARCHITECTURE FIX: 
+    // The getImageUrlAttribute() method has been completely deleted from this class.
+    // By removing it, we prevent the PHP "method shadowing" bug. 
+    // Laravel will automatically route the 'image_url' append request directly 
+    // to the HasS3Image trait, which will safely resolve the S3 URL.
 }
