@@ -16,14 +16,15 @@ class FinancialProgressUpdate extends Model
         'no_of_bills',
         'bill_serial_no',
         'submit_date',
-        'media'
+        'media' // Stores JSON array of MediaFile IDs: [1, 2, 3]
     ];
 
     protected $casts = [
         'bill_serial_no' => 'array',
-        'media' => 'array',
-        'submit_date' => 'date',
-        'finance_amount' => 'decimal:2',
+        // ✅ Native Laravel Cast: This guarantees $this->media is always an array or null.
+        'media'          => 'array', 
+        'submit_date    ' => 'date',
+        'finance_amount ' => 'decimal:2',
     ];
 
     /*
@@ -54,11 +55,29 @@ class FinancialProgressUpdate extends Model
             $q->where('department_id', $departmentId)
         );
     }
-public function getMediaFilesAttribute()
-{
-    $ids = is_array($this->media) ? $this->media : json_decode($this->media, true);
-    return MediaFile::whereIn('id', $ids ?? [])->get();
-}
 
+    /*
+    |--------------------------------------------------------------------------
+    | Accessors
+    |--------------------------------------------------------------------------
+    */
+    /**
+     * Get the associated MediaFile models.
+     * * 🚨 ARCHITECTURE WARNING: 
+     * Calling `$update->media_files` inside a loop will trigger an N+1 database query.
+     * Only use this accessor for single-model retrievals (e.g., showing details of ONE update).
+     * For collections, use the batched O(1) in-memory extraction method we built in the Controller.
+     */
+    public function getMediaFilesAttribute()
+    {
+        $ids = $this->media ?? [];
 
+        if (empty($ids)) {
+            return collect();
+        }
+
+        // Returns MediaFile collection. 
+        // These models will inherently have their S3 URLs attached via their own HasS3Image trait.
+        return MediaFile::whereIn('id', $ids)->get();
+    }
 }

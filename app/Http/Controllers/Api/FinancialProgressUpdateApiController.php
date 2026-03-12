@@ -7,6 +7,7 @@ use App\Models\FinancialProgressUpdate;
 use App\Models\SubPackageProject;
 use App\Models\MediaFile;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class FinancialProgressUpdateApiController extends Controller
 {
@@ -21,24 +22,44 @@ class FinancialProgressUpdateApiController extends Controller
 
         $subProjectId = $request->input('sub_package_project_id');
 
+        // 1. Fetch updates
         $updates = FinancialProgressUpdate::where('project_id', $subProjectId)
             ->orderByDesc('created_at')
-            ->get()
-            ->map(function ($update) {
-                $mediaIds = is_array($update->media) ? $update->media : json_decode($update->media, true) ?? [];
-                $update->media_files = MediaFile::whereIn('id', $mediaIds)
-                    ->get()
-                    ->map(fn($file) => [
+            ->get();
+
+        // 2. ARCHITECTURE FIX: Prevent N+1 query by collecting all unique Media IDs first
+        $allMediaIds = $updates->flatMap(function ($update) {
+            return is_string($update->media) ? json_decode($update->media, true) : ($update->media ?? []);
+        })->filter()->unique()->toArray();
+
+        // 3. Fetch all related media files in ONE query and key by ID for fast lookup
+        $mediaFiles = empty($allMediaIds)
+            ? collect()
+            : MediaFile::whereIn('id', $allMediaIds)->get()->keyBy('id');
+
+        // 4. Map the data efficiently in memory
+        $formattedUpdates = $updates->map(function ($update) use ($mediaFiles) {
+            $mediaIds = is_string($update->media) ? json_decode($update->media, true) : ($update->media ?? []);
+            
+            $update->media_files = collect($mediaIds)->map(function ($id) use ($mediaFiles) {
+                if ($mediaFiles->has($id)) {
+                    $file = $mediaFiles->get($id);
+                    return [
                         'id' => $file->id,
-                        'url' => asset('storage/' . $file->path),
+                        // ✅ S3 FIX: Utilize the appended 'url' from the HasS3Image trait
+                        'url' => $file->url, 
                         'meta_data' => $file->meta_data,
-                    ]);
-                return $update;
-            });
+                    ];
+                }
+                return null;
+            })->filter()->values(); // Remove nulls and reset array keys
+
+            return $update;
+        });
 
         return response()->json([
             'status' => true,
-            'data' => $updates,
+            'data' => $formattedUpdates,
         ]);
     }
 
@@ -109,6 +130,20 @@ class FinancialProgressUpdateApiController extends Controller
     public function destroy($id)
     {
         $update = FinancialProgressUpdate::findOrFail($id);
+
+        // ✅ S3 FIX: Clean up orphaned S3 files to prevent storage bloat
+        $mediaIds = is_string($update->media) ? json_decode($update->media, true) : ($update->media ?? []);
+        
+        if (!empty($mediaIds)) {
+            $mediaFiles = MediaFile::whereIn('id', $mediaIds)->get();
+            foreach ($mediaFiles as $media) {
+                if (Storage::disk('s3')->exists($media->path)) {
+                    Storage::disk('s3')->delete($media->path);
+                }
+                $media->delete();
+            }
+        }
+
         $update->delete();
 
         return response()->json([
@@ -138,7 +173,10 @@ class FinancialProgressUpdateApiController extends Controller
 
         if ($request->hasFile('media')) {
             foreach ($request->file('media') as $file) {
-                $path = $file->store('financial_progress', 'public');
+                if (!$file->isValid()) continue;
+
+                // ✅ S3 FIX: Push directly to S3 disk
+                $path = $file->store('uploads/financial_progress', 's3');
 
                 $media = MediaFile::create([
                     'path' => $path,

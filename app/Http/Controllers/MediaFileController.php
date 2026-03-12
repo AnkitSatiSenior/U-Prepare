@@ -16,10 +16,11 @@ class MediaFileController extends Controller
     {
         $ids = $request->input('ids', []);
 
+        // The model automatically appends the 'url' attribute via HasS3Image trait
         $files = MediaFile::whereIn('id', $ids)->get([
             'id',
             'path',
-            'type', // correct column name
+            'type',
             'meta_data',
             'lat',
             'long',
@@ -30,54 +31,43 @@ class MediaFileController extends Controller
         return response()->json($files);
     }
 
-    // Controller
     public function gallery(Request $request)
     {
         $perPage = 50;
         $page = $request->get('page', 1);
-        $search = $request->get('search'); // user search input
+        $search = $request->get('search');
 
         $query = MediaFile::latest();
 
-        // 🔎 Apply search filter
         if (!empty($search)) {
             $query->where(function ($q) use ($search) {
-                // Match filename from meta_data JSON
                 $q->where('meta_data->name', 'like', "%{$search}%")
-                    // Match raw path without extension
                     ->orWhereRaw("REPLACE(SUBSTRING_INDEX(path, '/', -1), SUBSTRING_INDEX(SUBSTRING_INDEX(path, '.', -1), '/', -1), '') LIKE ?", ["%{$search}%"])
-                    // Match full path (with extension)
                     ->orWhere('path', 'like', "%{$search}%");
             });
         }
 
-        // Paginate
         $filesPaginator = $query->paginate($perPage, ['*'], 'page', $page);
 
-        // Map with extra meta
         $filesWithMeta = $filesPaginator->getCollection()->map(function ($file) {
-            $url = '/storage/app/public/' . ltrim($file->path, '/');
+            // ✅ S3 FIX: Utilize the appended 'url' from the HasS3Image trait instead of local hardcoded paths
             $ext = strtolower(pathinfo($file->path, PATHINFO_EXTENSION));
             $isImage = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
 
             return [
                 'id' => $file->id,
-                'url' => $url,
-                'thumb' => $isImage ? $url : asset('icons/file-icon.png'),
+                'url' => $file->url, 
+                'thumb' => $isImage ? $file->url : asset('icons/file-icon.png'),
                 'filename' => $file->meta_data['name'] ?? basename($file->path),
                 'isImage' => $isImage,
                 'extension' => $ext,
-                'month' => \Carbon\Carbon::parse($file->created_at)->format('F Y'),
+                'month' => Carbon::parse($file->created_at)->format('F Y'),
             ];
         });
 
-        // Replace paginator's collection
         $filesPaginator->setCollection($filesWithMeta);
 
-        // Grouped for gallery view
         $filesGrouped = $filesWithMeta->groupBy('month');
-
-        // Flat for modal/carousel
         $allFiles = $filesWithMeta->values();
 
         return view('admin.media-gallery', compact('filesGrouped', 'allFiles', 'filesPaginator', 'search'));
@@ -90,8 +80,9 @@ class MediaFileController extends Controller
             ->map(function ($file) {
                 return [
                     'id' => $file->id,
-                    'src' => Storage::url($file->path),
-                    'thumb' => Storage::url($file->path),
+                    // ✅ S3 FIX: Use the model's appended URL property
+                    'src' => $file->url, 
+                    'thumb' => $file->url,
                     'name' => $file->meta_data['name'] ?? basename($file->path),
                     'type' => $file->type,
                 ];
@@ -110,12 +101,15 @@ class MediaFileController extends Controller
         $mediaIds = [];
 
         foreach ($request->file('media_files') as $file) {
-            $path = $file->store('uploads', 'public');
+            // ✅ S3 FIX: Store directly to the 's3' disk
+            $path = $file->store('uploads', 's3');
+            
             $media = MediaFile::create([
                 'path' => $path,
                 'type' => $file->getClientMimeType(),
                 'meta_data' => ['name' => $file->getClientOriginalName()],
             ]);
+            
             $mediaIds[] = $media->id;
         }
 
@@ -135,7 +129,8 @@ class MediaFileController extends Controller
 
         return response()->json([
             'id' => $media->id,
-            'url' => Storage::url($media->path),
+            // ✅ S3 FIX: Use the model's appended URL property
+            'url' => $media->url,
             'name' => $media->meta_data['name'] ?? basename($media->path),
             'type' => $media->type,
             'meta_data' => $media->meta_data,
@@ -172,7 +167,7 @@ class MediaFileController extends Controller
         try {
             $media = MediaFile::findOrFail($id);
 
-            // Delete file from storage
+            // ✅ S3 FIX: Explicitly targeting S3 disk for deletion
             if (Storage::disk('s3')->exists($media->path)) {
                 Storage::disk('s3')->delete($media->path);
                 Log::info('Media file deleted from storage', [
@@ -186,7 +181,6 @@ class MediaFileController extends Controller
                 ]);
             }
 
-            // Remove media ID from related SocialSafeguardEntry records
             $entries = SocialSafeguardEntry::whereJsonContains('photos_documents_case_studies', $media->id)->get();
             foreach ($entries as $entry) {
                 $ids = array_diff($entry->photos_documents_case_studies, [$media->id]);
@@ -200,11 +194,9 @@ class MediaFileController extends Controller
                 ]);
             }
 
-            // Delete database record
             $media->delete();
             Log::info('Media record deleted from database', ['media_id' => $id]);
 
-            // ✅ Redirect with flash message
             return redirect()->back()->with('success', 'Media deleted successfully.');
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::error('Media not found for deletion', [
@@ -226,12 +218,11 @@ class MediaFileController extends Controller
         try {
             $file = MediaFile::findOrFail($id);
 
-            // Delete physical file if it exists
+            // ✅ S3 FIX: Explicitly targeting S3 disk for deletion
             if (Storage::disk('s3')->exists($file->path)) {
                 Storage::disk('s3')->delete($file->path);
             }
 
-            // Delete DB record
             $file->delete();
 
             return redirect()->back()->with('success', 'File deleted successfully!');
@@ -243,72 +234,70 @@ class MediaFileController extends Controller
     }
 
     public function upload(Request $request)
-{
-    try {
-        // ✅ Strict validation (JSON safe)
-        $validated = $request->validate([
-            'social_id' => 'required|exists:social_safeguard_entries,id',
-            'media_files' => 'required|array|min:1',
-            'media_files.*' => 'file|max:10240', // 10MB
-        ]);
-
-        $socialEntry = SocialSafeguardEntry::findOrFail($validated['social_id']);
-
-        $existingMediaIds = $socialEntry->photos_documents_case_studies ?? [];
-        $newMediaIds = [];
-        $uploadedFiles = [];
-
-        foreach ($request->file('media_files') as $file) {
-            $path = $file->store('uploads', 'public');
-
-            $media = MediaFile::create([
-                'path' => $path,
-                'type' => $file->getClientMimeType(),
-                'meta_data' => [
-                    'name' => $file->getClientOriginalName(),
-                ],
+    {
+        try {
+            $validated = $request->validate([
+                'social_id' => 'required|exists:social_safeguard_entries,id',
+                'media_files' => 'required|array|min:1',
+                'media_files.*' => 'file|max:10240',
             ]);
 
-            $newMediaIds[] = $media->id;
+            $socialEntry = SocialSafeguardEntry::findOrFail($validated['social_id']);
 
-            // ✅ Only NEW files returned to frontend
-            $uploadedFiles[] = [
-                'id' => $media->id,
-                'url' => Storage::url($media->path),
-                'name' => $media->meta_data['name'],
-                'type' => $media->type,
-                'meta_data' => $media->meta_data,
-            ];
+            $existingMediaIds = $socialEntry->photos_documents_case_studies ?? [];
+            $newMediaIds = [];
+            $uploadedFiles = [];
+
+            foreach ($request->file('media_files') as $file) {
+                // ✅ S3 FIX: Store directly to the 's3' disk
+                $path = $file->store('uploads', 's3');
+
+                $media = MediaFile::create([
+                    'path' => $path,
+                    'type' => $file->getClientMimeType(),
+                    'meta_data' => [
+                        'name' => $file->getClientOriginalName(),
+                    ],
+                ]);
+
+                $newMediaIds[] = $media->id;
+
+                $uploadedFiles[] = [
+                    'id' => $media->id,
+                    // ✅ S3 FIX: Use the model's appended URL property
+                    'url' => $media->url,
+                    'name' => $media->meta_data['name'],
+                    'type' => $media->type,
+                    'meta_data' => $media->meta_data,
+                ];
+            }
+
+            $socialEntry->photos_documents_case_studies = array_values(
+                array_unique(array_merge($existingMediaIds, $newMediaIds))
+            );
+            $socialEntry->save();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Files uploaded successfully.',
+                'social_id' => $socialEntry->id,
+                'files' => $uploadedFiles,
+            ], 200);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->errors()['media_files'][0] ?? 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+
+        } catch (\Throwable $e) {
+            Log::error('Upload failed', ['error' => $e->getMessage()]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Upload failed. Please try again.',
+            ], 500);
         }
-
-        // ✅ Merge old + new IDs (no duplicates)
-        $socialEntry->photos_documents_case_studies = array_values(
-            array_unique(array_merge($existingMediaIds, $newMediaIds))
-        );
-        $socialEntry->save();
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Files uploaded successfully.',
-            'social_id' => $socialEntry->id,
-            'files' => $uploadedFiles, // 👈 frontend expects THIS
-        ], 200);
-
-    } catch (\Illuminate\Validation\ValidationException $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => $e->errors()['media_files'][0] ?? 'Validation failed.',
-            'errors' => $e->errors(),
-        ], 422);
-
-    } catch (\Throwable $e) {
-        \Log::error('Upload failed', ['error' => $e->getMessage()]);
-
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Upload failed. Please try again.',
-        ], 500);
     }
-}
-
 }

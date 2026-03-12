@@ -106,11 +106,17 @@ class WorkProgressDataController extends Controller
         if ($request->hasFile($inputKey)) {
             foreach ($request->file($inputKey) as $file) {
                 if ($file->isValid()) {
-                    $path = $file->store('uploads/work_progress', 'public'); // stored in storage/app/public/uploads/work_progress
+                    // ✅ S3 FIX: Store directly to the 's3' disk
+                    $path = $file->store('uploads/work_progress', 's3'); 
+                    
                     $uploadedImages[] = [
-                        'url' => asset('storage/' . $path),
+                        // ✅ S3 FIX: Generate the correct S3 URL instead of local asset()
+                        'url'  => Storage::disk('s3')->url($path),
                         'name' => $file->getClientOriginalName(),
                         'uuid' => (string) Str::uuid(),
+                        // Architecture Note: Saving the raw path here is highly recommended 
+                        // so you can easily delete it from S3 later without parsing the URL.
+                        'raw_path' => $path, 
                     ];
                 }
             }
@@ -118,11 +124,8 @@ class WorkProgressDataController extends Controller
 
         return !empty($uploadedImages) ? $uploadedImages : null;
     }
+
     /**
-     * Upload new images and attach them to the latest WorkProgressData record
-     * for a given sub_package_project_id.
-     */
-   /**
      * Display all images for a specific project grouped by work component.
      * Optimized for O(1) database queries to prevent N+1 scaling issues.
      */
@@ -134,7 +137,7 @@ class WorkProgressDataController extends Controller
             'workProgressData.user'
         ])->findOrFail($projectId);
 
-        // 2. ARCHITECTURE FIX: Extract all unique Media IDs in memory
+        // 2. Extract all unique Media IDs in memory
         $mediaIds = $project->workProgressData
             ->pluck('images')
             ->filter()      // Remove nulls
@@ -168,7 +171,7 @@ class WorkProgressDataController extends Controller
                     'component_details' => $progress->workComponent->type_details ?? 'N/A',
                     'description'       => $media->meta_data['description'] ?? 'No description available',
                     
-                    // ✅ Leverages the HasS3Image trait updated previously via $media->url
+                    // ✅ S3 FIX: Leverages the HasS3Image trait updated previously via $media->url
                     'path'              => $media->url, 
                     
                     'uploaded_by'       => $media->meta_data['uploaded_by'] ?? 'Unknown',
@@ -210,7 +213,8 @@ class WorkProgressDataController extends Controller
                     continue;
                 }
 
-                $path = $file->store('uploads/media_files', 'public');
+                // ✅ S3 FIX: Store directly to the 's3' disk instead of 'public'
+                $path = $file->store('uploads/media_files', 's3');
 
                 // ✅ Create new MediaFile entry
                 $media = MediaFile::create([
@@ -261,6 +265,7 @@ class WorkProgressDataController extends Controller
 
         return redirect()->back()->with('success', $message);
     }
+
     /**
      * Save a progress entry safely (with optional images).
      */
@@ -284,6 +289,7 @@ class WorkProgressDataController extends Controller
             ]);
         }
     }
+
     /**
      * Delete a Work Progress entry along with associated media files.
      */
@@ -296,9 +302,10 @@ class WorkProgressDataController extends Controller
             $mediaFiles = MediaFile::whereIn('id', $progress->images)->get();
 
             foreach ($mediaFiles as $media) {
-                // Delete the file from storage
-                if (Storage::disk('s3')->exists(str_replace('storage/', '', $media->path))) {
-                    Storage::disk('s3')->delete(str_replace('storage/', '', $media->path));
+                // ✅ S3 FIX: Check and delete directly using the pure S3 path.
+                // Removed the hacky str_replace('storage/', ...) which breaks on true S3 buckets.
+                if (Storage::disk('s3')->exists($media->path)) {
+                    Storage::disk('s3')->delete($media->path);
                 }
 
                 // Delete the MediaFile record
