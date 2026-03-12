@@ -4,14 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
-use Exception;
+use App\Traits\HasS3Image; // 👈 Import your trait
 
 class Leader extends Model
 {
-    use HasFactory;
+    use HasFactory, HasS3Image; // 👈 Use the trait
+
+    // Tell the trait which database column holds the path (it defaults to 'img', so this is optional but explicit)
+    protected string $imageColumn = 'img';
 
     protected $fillable = [
         'name',
@@ -28,27 +29,11 @@ class Leader extends Model
 
     /**
      * Get the resolved S3 URL for the leader's image.
-     *
-     * @return string
+     * The logic for this is now safely handled globally by the HasS3Image trait!
      */
     public function getImageUrlAttribute(): string
     {
-        if (empty($this->img)) {
-            // Provide a generic silhouette/avatar fallback
-            return asset('images/default-leader.jpg'); 
-        }
-
-        try {
-            return Storage::disk('s3')->url($this->img);
-        } catch (Exception $e) {
-            Log::error('Failed to resolve S3 URL for Leader', [
-                'leader_id' => $this->id ?? 'unsaved',
-                'path' => $this->img,
-                'error' => $e->getMessage()
-            ]);
-            
-            return asset('images/default-leader.jpg');
-        }
+        return $this->image_url; 
     }
 
     /**
