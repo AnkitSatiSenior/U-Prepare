@@ -104,39 +104,47 @@ class ContractController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $validated = $this->validateContract($request);
+{
+    $validated = $this->validateContract($request);
 
-        try {
-            DB::transaction(function () use ($validated, $request) {
-                // Create contractor if not selected
-                if (empty($validated['contractor_id']) && isset($validated['contractor'])) {
-                    $validated['contractor_id'] = Contractor::create($validated['contractor'])->id;
-                }
+    try {
+        DB::transaction(function () use ($validated, $request) {
+            // 1. Create contractor if not selected (Business Logic)
+            if (empty($validated['contractor_id']) && isset($validated['contractor'])) {
+                $validated['contractor_id'] = Contractor::create($validated['contractor'])->id;
+            }
 
-                // Handle file upload
-                if ($request->hasFile('contract_document_file')) {
-                    $validated['contract_document'] = $this->storeContractFile($request->file('contract_document_file'));
-                }
+            // 2. Handle S3 File Upload
+            if ($request->hasFile('contract_document_file')) {
+                // store() returns the path (e.g., contracts/abc123.pdf)
+                $path = $request->file('contract_document_file')
+                    ->store('contracts', 's3'); 
+                
+                $validated['contract_document'] = $path;
+            }
 
-                unset($validated['contractor'], $validated['contract_document_file']);
+            // 3. Clean up keys not in DB table
+            unset($validated['contractor'], $validated['contract_document_file']);
 
-                // Create contract
-                $contract = Contract::create($validated);
+            // 4. Create contract record
+            $contract = Contract::create($validated);
 
-                $contract->load('project');
+            $contract->load('project');
 
-                // Handle sub-package project logic
-                $this->handleSubProjects($contract, $request); // ✅ Pass both arguments
-            });
+            // 5. Handle sub-package project logic
+            $this->handleSubProjects($contract, $request);
+        });
 
-            return redirect()->route('admin.contracts.index')->with('success', 'Contract created successfully.');
-        } catch (Exception $e) {
-            return back()
-                ->withInput()
-                ->withErrors(['error' => 'Failed to create contract: ' . $e->getMessage()]);
-        }
+        return redirect()->route('admin.contracts.index')
+            ->with('success', 'Contract created and document stored in S3.');
+            
+    } catch (Exception $e) {
+        // Optimization: If DB fails, you might want to delete the file from S3 here
+        return back()
+            ->withInput()
+            ->withErrors(['error' => 'Failed to create contract: ' . $e->getMessage()]);
     }
+}
     public function show($id)
     {
         $contract = Contract::with(['project.procurementDetail.typeOfProcurement', 'contractor', 'subProjects'])->findOrFail($id);
@@ -499,6 +507,7 @@ class ContractController extends Controller
             Storage::disk('s3')->delete($path);
         }
     }
+    
 
     private function validateContract(Request $request, $id = null)
     {

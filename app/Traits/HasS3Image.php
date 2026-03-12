@@ -35,4 +35,28 @@ trait HasS3Image
             return $fallback;
         }
     }
+    public function getFileUrl(string $column = 'contract_document', bool $temporary = false): string
+    {
+        $path = $this->{$column};
+        $fallback = asset('images/default-document.png');
+
+        if (empty($path)) {
+            return $fallback;
+        }
+
+        try {
+            if ($temporary) {
+                // Generates a 60-minute signed URL for private S3 files
+                return Storage::disk('s3')->temporaryUrl($path, now()->addMinutes(60));
+            }
+            return Storage::disk('s3')->url($path);
+        } catch (Exception $e) {
+            Log::error('S3 URL Resolution Error', [
+                'model' => static::class,
+                'path'  => $path,
+                'error' => $e->getMessage()
+            ]);
+            return $fallback;
+        }
+    }
 }
