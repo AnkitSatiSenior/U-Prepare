@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers\Admin;
+
 use Yajra\DataTables\Facades\DataTables;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
@@ -54,58 +55,47 @@ public function updateLocation(Request $request)
     
 
 public function index(Request $request)
-{
-    if ($request->ajax()) {
-        $query = ActivityLog::with('user')->latest();
+    {
+        if ($request->ajax()) {
+            $query = ActivityLog::with('user')->latest();
 
-        if ($request->action) {
-            $query->where('action', $request->action);
+            return DataTables::of($query)
+                ->addIndexColumn()
+                ->addColumn('user', fn($log) => $log->user?->name ?? 'System')
+                ->addColumn('model', fn($log) => class_basename($log->model_type) . " (#{$log->model_id})")
+                ->addColumn('action_badge', function ($log) {
+                    $class = match ($log->action) {
+                        'created' => 'bg-success',
+                        'updated' => 'bg-warning text-dark',
+                        'deleted' => 'bg-danger',
+                        default => 'bg-info text-dark'
+                    };
+                    return "<span class='badge {$class}'>" . ucfirst($log->action) . "</span>";
+                })
+                ->addColumn('location', function ($log) {
+                    if ($log->latitude && $log->longitude) {
+                        // 🏗️ ARCHITECTURE FIX: Corrected Google Maps URL
+                        $url = "https://www.google.com/maps?q={$log->latitude},{$log->longitude}";
+                        return "<a target='_blank' href='{$url}' class='btn btn-sm btn-link p-0'>
+                                    <i class='fas fa-map-marker-alt text-danger'></i> " . 
+                                    number_format($log->latitude, 4) . "</a>";
+                    }
+                    return '<span class="text-muted">—</span>';
+                })
+                ->addColumn('date', fn($log) => $log->created_at->format('d M Y, h:i A'))
+                ->addColumn('actions', function ($log) {
+                    // 🏗️ ARCHITECTURE FIX: Pass the raw model data to a JS-friendly format
+                    return '<button type="button" class="btn btn-sm btn-outline-primary view-log-btn" 
+                                data-log=\'' . json_encode($log) . '\'>
+                                <i class="fas fa-eye"></i> View
+                            </button>';
+                })
+                ->rawColumns(['action_badge', 'location', 'actions'])
+                ->make(true);
         }
 
-        if ($request->model_type) {
-            $query->where('model_type', 'LIKE', "%{$request->model_type}%");
-        }
-
-        return DataTables::of($query)
-            ->addIndexColumn() // SL no.
-            ->addColumn('user', fn($log) => $log->user?->name ?? 'System')
-            ->addColumn('model', fn($log) =>
-                class_basename($log->model_type) . ' (' . $log->model_id . ')'
-            )
-            ->addColumn('action_badge', function ($log) {
-                $class = match ($log->action) {
-                    'created' => 'bg-success',
-                    'updated' => 'bg-warning',
-                    'deleted' => 'bg-danger',
-                    default => 'bg-info'
-                };
-
-                return "<span class='badge {$class} text-dark'>"
-                    . ucfirst(str_replace('_', ' ', $log->action)) .
-                    "</span>";
-            })
-            ->addColumn('location', function ($log) {
-                if ($log->latitude && $log->longitude) {
-                    return '<a target="_blank" href="https://www.google.com/maps?q='
-                        . $log->latitude . ',' . $log->longitude . '">'
-                        . number_format($log->latitude, 5) . ', '
-                        . number_format($log->longitude, 5)
-                        . '</a>';
-                }
-                return '—';
-            })
-            ->addColumn('date', fn($log) =>
-                $log->created_at->timezone('Asia/Kolkata')->format('d M Y, h:i A')
-            )
-            ->addColumn('actions', function ($log) {
-                return view('admin.activity_logs.partials.actions', compact('log'))->render();
-            })
-            ->rawColumns(['action_badge', 'location', 'actions'])
-            ->make(true);
+        return view('admin.activity_logs.index');
     }
-
-    return view('admin.activity_logs.index');
-}
 
 
     /**
