@@ -53,11 +53,15 @@
                     @foreach ($adminslides as $slide)
                         <tr>
                             <td>{{ $slide->id }}</td>
-                           <td>
-    <img src="{{ asset('storage/app/public/' . $slide->img) }}" 
-         alt="slide image" 
-         class="rounded shadow-sm" 
-         width="100">
+           <td class="align-middle text-center">
+   
+    <img src="{{ $slide->image_url }}" 
+         alt="Slide Visual" 
+         class="rounded shadow-sm border" 
+         width="100" 
+         height="60" 
+         loading="lazy" 
+         style="object-fit: cover;">
 </td>
 
                             <td>{{ $slide->head }}</td>

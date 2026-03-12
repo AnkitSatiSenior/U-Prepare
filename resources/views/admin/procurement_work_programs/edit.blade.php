@@ -7,13 +7,11 @@
                 ['label' => 'Procurement Work Programs'],
             ]" />
 
-
         <div id="alerts"></div>
 
         <div class="mb-3 row">
             <label for="sharedStartDate" class="col-sm-2 col-form-label fw-semibold">Shared Start Date</label>
             <div class="col-sm-4">
-                {{-- Validates that there is a date, otherwise defaults to today --}}
                 <input type="date" id="sharedStartDate" class="form-control"
                     value="{{ $workPrograms->first() ? \Carbon\Carbon::parse($workPrograms->first()->start_date)->format('Y-m-d') : date('Y-m-d') }}">
             </div>
@@ -21,7 +19,6 @@
                 <a href="{{ route('admin.procurement-details.index') }}" class="btn btn-secondary me-2">
                     <i class="fas fa-arrow-left me-1"></i> Back
                 </a>
-                {{-- Optional: A button to save all via AJAX could be implemented, but per row is standard here --}}
                 <button id="addRow" class="btn btn-success"><i class="fas fa-plus-circle me-1"></i> Add Row</button>
             </div>
         </div>
@@ -38,16 +35,17 @@
                         class="form-control">
                 </div>
                 <div class="col-sm-6">
-                    @if ($procurementWorkProgram->procurement_bid_document)
-                        <a href="{{ asset('storage/' . $procurementWorkProgram->procurement_bid_document) }}"
-                            target="_blank" class="me-3">
-                            <i class="fas fa-file-alt"></i> View
-                        </a>
-                        <a href="{{ asset('storage/' . $procurementWorkProgram->procurement_bid_document) }}" download>
-                            <i class="fas fa-download"></i> Download
+                    @if (!empty($procurementWorkProgram->procurement_bid_document))
+                        @php
+                            // 🏗️ ARCHITECTURE FIX: Resolve strictly from the S3 disk.
+                            $bidDocUrl = \Illuminate\Support\Facades\Storage::disk('s3')->url($procurementWorkProgram->procurement_bid_document);
+                        @endphp
+                        
+                        <a href="{{ $bidDocUrl }}" target="_blank" rel="noopener noreferrer" class="me-3 btn btn-sm btn-outline-primary">
+                            <i class="fas fa-external-link-alt me-1"></i> View Document
                         </a>
                     @else
-                        <span class="text-muted">No document uploaded.</span>
+                        <span class="text-muted fst-italic"><i class="fas fa-info-circle me-1"></i> No document uploaded.</span>
                     @endif
                 </div>
             </div>
@@ -59,23 +57,30 @@
                         class="form-control">
                 </div>
                 <div class="col-sm-6">
-                    @if ($procurementWorkProgram->pre_bid_minutes_document)
-                        <a href="{{ asset('storage/' . $procurementWorkProgram->pre_bid_minutes_document) }}"
-                            target="_blank" class="me-3">
-                            <i class="fas fa-file-alt"></i> View
-                        </a>
-                        <a href="{{ asset('storage/' . $procurementWorkProgram->pre_bid_minutes_document) }}" download>
-                            <i class="fas fa-download"></i> Download
+                    @if (!empty($procurementWorkProgram->pre_bid_minutes_document))
+                        @php
+                            // 🏗️ ARCHITECTURE FIX: Resolve strictly from the S3 disk.
+                            $preBidDocUrl = \Illuminate\Support\Facades\Storage::disk('s3')->url($procurementWorkProgram->pre_bid_minutes_document);
+                        @endphp
+                        
+                        <a href="{{ $preBidDocUrl }}" target="_blank" rel="noopener noreferrer" class="me-3 btn btn-sm btn-outline-success">
+                            <i class="fas fa-external-link-alt me-1"></i> View Document
                         </a>
                     @else
-                        <span class="text-muted">No document uploaded.</span>
+                        <span class="text-muted fst-italic"><i class="fas fa-info-circle me-1"></i> No document uploaded.</span>
                     @endif
                 </div>
             </div>
 
-            <button type="submit" class="btn btn-primary">Upload Documents</button>
+            <div class="row">
+                <div class="col-sm-2"></div>
+                <div class="col-sm-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-cloud-upload-alt me-1"></i> Upload Documents
+                    </button>
+                </div>
+            </div>
         </form>
-
 
         <div class="card shadow-sm mt-4">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -114,7 +119,6 @@
                                         value="{{ $program->days }}">
                                 </td>
                                 <td>
-                                    {{-- Readonly by default recommendation since it's auto-calc, but kept editable as per request --}}
                                     <input type="date" name="planned_date" class="form-control planned-date-input"
                                         value="{{ optional($program->planned_date)->format('Y-m-d') }}">
                                 </td>

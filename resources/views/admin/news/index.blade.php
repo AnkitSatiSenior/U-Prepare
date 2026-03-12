@@ -1,6 +1,5 @@
 <x-app-layout>
     <div class="container-fluid">
-        <!-- Breadcrumb -->
         <x-admin.breadcrumb-header
             icon="fas fa-newspaper text-primary"
             title="News Management"
@@ -11,7 +10,6 @@
             ]"
         />
 
-        <!-- Alerts -->
         @if (session('success'))
             <div class="row mb-3">
                 <div class="col-md-12">
@@ -28,7 +26,6 @@
             </div>
         @endif
 
-        <!-- News Table -->
         <div class="card shadow-sm">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0 text-primary">
@@ -54,22 +51,27 @@
                 >
                     @foreach ($news as $item)
                         <tr>
-                            <td>{{ $item->id }}</td>
-                            <td>{{ $item->title_en }}</td>
-                            <td>{{ $item->title_hi }}</td>
-                            <td>
-                                @if($item->file)
-                                    <a href="{{ asset('storage/'.$item->file) }}" 
+                            <td class="align-middle">{{ $item->id }}</td>
+                            <td class="align-middle fw-semibold">{{ $item->title_en }}</td>
+                            <td class="align-middle">{{ $item->title_hi }}</td>
+                            <td class="align-middle text-center">
+                                @if(!empty($item->file))
+                                    @php
+                                        $fileUrl = \Illuminate\Support\Facades\Storage::disk('s3')->url($item->file);
+                                    @endphp
+                                    <a href="{{ $fileUrl }}" 
                                        target="_blank" 
-                                       class="btn btn-sm btn-outline-info">
-                                        <i class="fas fa-file-alt me-1"></i> View
+                                       rel="noopener noreferrer"
+                                       class="btn btn-sm btn-outline-info"
+                                       title="View Document">
+                                        <i class="fas fa-external-link-alt me-1"></i> View
                                     </a>
                                 @else
-                                    <span class="text-muted">—</span>
+                                    <span class="badge bg-light text-muted border">No File</span>
                                 @endif
                             </td>
-                            <td>{{ $item->created_at->format('d M Y') }}</td>
-                            <td>
+                            <td class="align-middle">{{ $item->created_at->format('d M Y') }}</td>
+                            <td class="align-middle">
                                 <div class="d-flex justify-content-end gap-2">
                                     <a href="{{ route('admin.news.edit', $item->id) }}" 
                                        class="btn btn-sm btn-outline-primary">
@@ -77,7 +79,7 @@
                                     </a>
                                     <form action="{{ route('admin.news.destroy', $item->id) }}" 
                                           method="POST"
-                                          onsubmit="return confirm('Are you sure you want to delete this news?')">
+                                          onsubmit="return confirm('Are you sure you want to delete this news item? This action cannot be undone.')">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-outline-danger">

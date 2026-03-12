@@ -1,15 +1,11 @@
 <x-app-layout>
     <div class="container-fluid">
-        <x-admin.breadcrumb-header
-            icon="fas fa-user-tie text-primary"
-            title="Edit Leader"
-            :breadcrumbs="[
+        <x-admin.breadcrumb-header icon="fas fa-user-tie text-primary" title="Edit Leader" :breadcrumbs="[
                 ['route' => 'dashboard', 'label' => '<i class=\'fas fa-home\'></i>'],
                 ['label' => 'Admin'],
                 ['route' => 'admin.leaders.index', 'label' => 'Leaders'],
                 ['label' => 'Edit']
-            ]"
-        />
+            ]" />
 
         <div class="card shadow-sm">
             <div class="card-header bg-white">
@@ -24,7 +20,8 @@
 
                     <div class="mb-3">
                         <label for="name" class="form-label">Leader Name</label>
-                        <input type="text" name="name" class="form-control" value="{{ old('name', $leader->name) }}" required>
+                        <input type="text" name="name" class="form-control" value="{{ old('name', $leader->name) }}"
+                            required>
                         @error('name') <small class="text-danger">{{ $message }}</small> @enderror
                     </div>
 
@@ -35,25 +32,41 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="img" class="form-label">Profile Image</label><br>
-                        @if ($leader->img)
-                            <img src="{{ asset('storage/' . $leader->img) }}" alt="Leader" class="rounded mb-2" width="80"><br>
+                        <label for="img" class="form-label fw-bold">Profile Image</label>
+
+                        @if (!empty($leader->img))
+                        <div class="mb-3">
+                            
+                            <img src="{{ $leader->image_url }}" alt="{{ $leader->name ?? 'Leader' }} Profile"
+                                class="img-thumbnail rounded shadow-sm" width="80" height="80" loading="lazy"
+                                style="object-fit: cover;">
+                        </div>
                         @endif
-                        <input type="file" name="img" class="form-control">
-                        @error('img') <small class="text-danger">{{ $message }}</small> @enderror
+
+                        {{-- Added 'accept' attribute to restrict OS file picker to images --}}
+                        <input type="file" name="img" id="img" class="form-control @error('img') is-invalid @enderror"
+                            accept=".jpg,.jpeg,.png,.webp">
+
+                        @error('img')
+                        {{-- Upgraded from <small> to Bootstrap's native invalid-feedback class --}}
+                            <div class="invalid-feedback fw-semibold">{{ $message }}</div>
+                            @enderror
                     </div>
 
                     <div class="mb-3">
                         <label for="status" class="form-label">Status</label>
                         <select name="status" class="form-control">
-                            <option value="1" {{ old('status', $leader->status) == 1 ? 'selected' : '' }}>Active</option>
-                            <option value="0" {{ old('status', $leader->status) == 0 ? 'selected' : '' }}>Inactive</option>
+                            <option value="1" {{ old('status', $leader->status) == 1 ? 'selected' : '' }}>Active
+                            </option>
+                            <option value="0" {{ old('status', $leader->status) == 0 ? 'selected' : '' }}>Inactive
+                            </option>
                         </select>
                     </div>
 
                     <div class="mb-3">
                         <label for="order" class="form-label">Order</label>
-                        <input type="number" name="order" class="form-control" value="{{ old('order', $leader->order) }}">
+                        <input type="number" name="order" class="form-control"
+                            value="{{ old('order', $leader->order) }}">
                     </div>
 
                     <button type="submit" class="btn btn-primary">

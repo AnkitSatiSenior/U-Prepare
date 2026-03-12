@@ -54,13 +54,25 @@
                         </td>
 
                         {{-- File --}}
-                        <td>
-                            @if($test->report && $test->report->file)
-                                <a href="{{ asset('storage/' . $test->report->file) }}" target="_blank">View File</a>
-                            @else
-                                -
-                            @endif
-                        </td>
+                        <td class="align-middle text-center">
+    @if($test->report && !empty($test->report->file))
+        @php
+            $reportUrl = \Illuminate\Support\Facades\Storage::disk('s3')->url($test->report->file);
+        @endphp
+        
+        <a href="{{ $reportUrl }}" 
+           target="_blank" 
+           rel="noopener noreferrer" 
+           class="btn btn-sm btn-outline-primary fw-semibold"
+           title="View Test Report">
+            <i class="fas fa-external-link-alt me-1"></i> View Report
+        </a>
+    @else
+        <span class="badge bg-light text-muted border px-2 py-1">
+            <i class="fas fa-minus"></i>
+        </span>
+    @endif
+</td>
 
                         {{-- Remark --}}
                         <td>

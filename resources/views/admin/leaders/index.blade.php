@@ -37,24 +37,30 @@
                 >
                     @foreach ($leaders as $leader)
                         <tr>
-                            <td>{{ $leader->id }}</td>
-                            <td>
-                                @if ($leader->img)
-                                    <img src="{{ asset('storage/' . $leader->img) }}"
-                                         alt="Leader"
+                            <td class="align-middle">{{ $leader->id }}</td>
+                            <td class="align-middle">
+                                
+                                @if (!empty($leader->img))
+                                    <img src="{{ $leader->image_url }}"
+                                         alt="{{ $leader->name }} Profile"
                                          class="rounded shadow-sm"
-                                         width="60">
+                                         width="60"
+                                         height="60"
+                                         loading="lazy"
+                                         style="object-fit: cover;">
+                                @else
+                                    <span class="badge bg-secondary">No Image</span>
                                 @endif
                             </td>
-                            <td>{{ $leader->name }}</td>
-                            <td>{{ $leader->title }}</td>
-                            <td>
+                            <td class="align-middle fw-semibold">{{ $leader->name }}</td>
+                            <td class="align-middle">{{ $leader->title }}</td>
+                            <td class="align-middle">
                                 <span class="badge {{ $leader->status ? 'bg-success' : 'bg-danger' }}">
                                     {{ $leader->status ? 'Active' : 'Inactive' }}
                                 </span>
                             </td>
-                            <td>{{ $leader->order }}</td>
-                            <td>
+                            <td class="align-middle">{{ $leader->order }}</td>
+                            <td class="align-middle">
                                 <div class="d-flex justify-content-end gap-2">
                                     <a href="{{ route('admin.leaders.edit', $leader) }}" 
                                        class="btn btn-sm btn-outline-primary">
@@ -62,7 +68,7 @@
                                     </a>
                                     <form action="{{ route('admin.leaders.destroy', $leader) }}" 
                                           method="POST"
-                                          onsubmit="return confirm('Are you sure?')">
+                                          onsubmit="return confirm('Are you sure you want to delete this leader?')">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-outline-danger">

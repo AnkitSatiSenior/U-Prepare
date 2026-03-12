@@ -98,61 +98,83 @@
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.view-images-btn').forEach(button => {
-                button.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const files = JSON.parse(this.dataset.images);
-                    const modalBody = document.getElementById('imagesModalBody');
-                    modalBody.innerHTML = '';
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 🏗️ ARCHITECTURE FIX: Inject the base S3 URL securely from Laravel.
+        // We use rtrim to ensure there is no trailing slash, preventing double-slash URL corruption.
+        const s3BaseUrl = "{{ rtrim(\Illuminate\Support\Facades\Storage::disk('s3')->url(''), '/') }}";
 
-                    if (!files.length) {
-                        modalBody.innerHTML = '<p class="text-muted">No media available.</p>';
-                    } else {
-                        let tableHTML = `
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-hover align-middle">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Bill Name</th>
-                                        <th>Type</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                    `;
+        document.querySelectorAll('.view-images-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Parse the array of raw S3 keys (e.g., ["uploads/bills/doc1.pdf", "uploads/bills/pic.jpg"])
+                const files = JSON.parse(this.dataset.images || '[]');
+                const modalBody = document.getElementById('imagesModalBody');
+                modalBody.innerHTML = '';
 
-                        files.forEach((file, index) => {
-                            const ext = file.split('.').pop().toLowerCase();
-                            const url = "{{ asset('storage') }}/" + file;
-                            let type = '';
-                            if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) type =
-                                'Image';
-                            else if (ext === 'pdf') type = 'PDF';
-                            else type = ext.toUpperCase();
+                if (!files.length) {
+                    modalBody.innerHTML = '<p class="text-muted"><i class="fas fa-info-circle me-1"></i> No media available.</p>';
+                    return;
+                }
 
-                            tableHTML += `
+                let tableHTML = `
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover align-middle mb-0">
+                        <thead class="table-light">
                             <tr>
-                                <td>${index + 1}</td>
-                                <td>Bill ${index + 1}</td>
-                                <td>${type}</td>
-                                <td>
-                                    <a href="${url}" target="_blank" class="btn btn-sm btn-primary">
-                                        <i class="fas fa-eye me-1"></i> View
-                                    </a>
-                                </td>
+                                <th width="5%">#</th>
+                                <th>Document Name</th>
+                                <th width="15%">Type</th>
+                                <th width="15%" class="text-center">Action</th>
                             </tr>
-                        `;
-                        });
+                        </thead>
+                        <tbody>
+                `;
 
-                        tableHTML += `</tbody></table></div>`;
-                        modalBody.innerHTML = tableHTML;
+                files.forEach((file, index) => {
+                    // Safely extract the file extension
+                    const extMatch = file.match(/\.([0-9a-z]+)(?:[\?#]|$)/i);
+                    const ext = extMatch ? extMatch[1].toLowerCase() : 'unknown';
+
+                    // 🏗️ ARCHITECTURE FIX: Construct the strict S3 URL instead of local asset.
+                    // We strip any leading slashes from the file path to guarantee a clean concatenation.
+                    const cleanFile = file.replace(/^\/+/, '');
+                    const url = s3BaseUrl + '/' + cleanFile;
+
+                    let typeBadge = '';
+                    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+                        typeBadge = '<span class="badge bg-info text-dark"><i class="fas fa-image me-1"></i> Image</span>';
+                    } else if (ext === 'pdf') {
+                        typeBadge = '<span class="badge bg-danger"><i class="fas fa-file-pdf me-1"></i> PDF</span>';
+                    } else {
+                        typeBadge = `<span class="badge bg-secondary"><i class="fas fa-file me-1"></i> ${ext.toUpperCase()}</span>`;
                     }
-                    new bootstrap.Modal(document.getElementById('imagesModal')).show();
+
+                    tableHTML += `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td class="text-break">Bill Document ${index + 1}</td>
+                            <td>${typeBadge}</td>
+                            <td class="text-center">
+                                <a href="${url}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-external-link-alt me-1"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                    `;
                 });
+
+                tableHTML += `</tbody></table></div>`;
+                modalBody.innerHTML = tableHTML;
+
+                // Initialize and show the modal safely
+                const modalElement = document.getElementById('imagesModal');
+                if (modalElement) {
+                    new bootstrap.Modal(modalElement).show();
+                }
             });
         });
-    </script>
+    });
+</script>
 </x-app-layout>

@@ -21,20 +21,25 @@
                     <div class="row">
                         <!-- Show Current Image -->
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Current Image</label><br>
-                            @if($slide->img)
-                                <img src="{{ asset('storage/app/public/' . $slide->img) }}" 
-                                     alt="Slide Image" 
-                                     class="img-thumbnail mb-2" 
-                                     width="200">
-                            @else
-                                <p class="text-muted">No image uploaded</p>
-                            @endif
+    <label class="form-label fw-semibold">Current Image</label><br>
+    
+    @if(!empty($slide->img))
+        <div class="mb-3">
+            <img src="{{ $slide->image_url }}" 
+                 alt="Slide Image" 
+                 class="img-thumbnail rounded shadow-sm" 
+                 width="200" 
+                 loading="lazy"
+                 style="object-fit: cover;">
+        </div>
+    @else
+        <p class="text-muted fst-italic"><i class="fas fa-info-circle me-1"></i> No image uploaded</p>
+    @endif
 
-                            <label class="form-label">Change Image</label>
-                            <input type="file" name="img" class="form-control" accept="image/*">
-                            <small class="text-muted">Leave empty if you don’t want to change</small>
-                        </div>
+    <label class="form-label fw-semibold mt-2">Change Image</label>
+    <input type="file" name="img" class="form-control" accept="image/jpeg,image/png,image/webp,image/gif">
+    <small class="text-muted">Leave empty if you don’t want to change</small>
+</div>
 
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Head</label>

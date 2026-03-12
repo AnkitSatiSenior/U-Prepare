@@ -100,18 +100,29 @@
 @endforeach
 
                         {{-- ✅ Contract Document --}}
-                        <div class="col-12">
-                            <label class="form-label">Contract Document</label>
-                            <input type="file" name="contract_document_file" class="form-control"
-                                accept=".pdf,.doc,.docx,.xls,.xlsx">
-                            @if ($contract->contract_document)
-                                <small class="text-primary btn">
-                                    Current:
-                                    <a href="{{ asset('storage/' . $contract->contract_document) }}"
-                                        target="_blank">View</a>
-                                </small>
-                            @endif
-                        </div>
+                       <div class="col-12">
+    <label class="form-label">Contract Document</label>
+    <input type="file" name="contract_document_file" class="form-control"
+        accept=".pdf,.doc,.docx,.xls,.xlsx">
+    
+    @if (!empty($contract->contract_document))
+        @php
+            // 🏗️ ARCHITECTURE FIX: Resolve strictly from the S3 disk.
+            // Note: If contract documents contain sensitive financial data, 
+            // your S3 bucket should block public access and you must use temporaryUrl() here instead.
+            $documentUrl = \Illuminate\Support\Facades\Storage::disk('s3')->url($contract->contract_document);
+        @endphp
+        <small class="text-primary btn mt-2">
+            Current:
+            <a href="{{ $documentUrl }}"
+                target="_blank" 
+                rel="noopener noreferrer" 
+                class="fw-bold text-decoration-none">
+                <i class="fas fa-external-link-alt me-1"></i> View
+            </a>
+        </small>
+    @endif
+</div>
 
                         {{-- ✅ Update Document (Conditional) --}}
                         <div class="col-12">

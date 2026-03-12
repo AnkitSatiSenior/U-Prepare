@@ -23,12 +23,30 @@
                         <input type="url" name="link" value="{{ $video->link }}" class="form-control" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Thumbnail</label><br>
-                        @if($video->img)
-                            <img src="{{ asset('storage/'.$video->img) }}" width="120" class="mb-2 rounded shadow"><br>
-                        @endif
-                        <input type="file" name="img" class="form-control">
-                    </div>
+    <label class="form-label fw-semibold">Video Thumbnail</label>
+    
+    @if(!empty($video->img))
+        <div class="mb-2">
+            
+            <img src="{{ $video->image_url }}" 
+                 alt="Video Thumbnail" 
+                 class="rounded shadow-sm border" 
+                 width="120" 
+                 height="68" 
+                 loading="lazy" 
+                 style="object-fit: cover;">
+        </div>
+    @endif
+    
+    <input type="file" 
+           name="img" 
+           class="form-control" 
+           accept="image/jpeg,image/png,image/webp,image/jpg">
+           
+    <small class="text-muted d-block mt-1">
+        Upload a new thumbnail (JPG, PNG, WEBP) to replace the current one.
+    </small>
+</div>
                     <div class="mb-3">
                         <label class="form-label">Status</label>
                         <select name="status" class="form-control">

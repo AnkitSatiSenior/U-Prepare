@@ -127,71 +127,82 @@
     </div>
 
     {{-- Scripts --}}
-    <script>
-        $(document).ready(function() {
-            // Bulk Delete Controls
-            const bulkDeleteBtn = $('#bulkDeleteBtn');
-            const selectAll = $('#progressTable thead input[type=checkbox]').first();
+   <script>
+    $(document).ready(function() {
+        // Bulk Delete Controls
+        const bulkDeleteBtn = $('#bulkDeleteBtn');
+        const selectAll = $('#progressTable thead input[type=checkbox]').first();
 
-            // Function to update bulk delete button state
-            function updateBtnState() {
-                bulkDeleteBtn.prop('disabled', !$('#progressTable tbody .entryCheckbox:checked').length);
+        // Function to update bulk delete button state
+        function updateBtnState() {
+            bulkDeleteBtn.prop('disabled', !$('#progressTable tbody .entryCheckbox:checked').length);
+        }
+
+        // Select all checkbox toggles all entry checkboxes
+        selectAll.on('change', function() {
+            $('#progressTable tbody .entryCheckbox').prop('checked', this.checked);
+            updateBtnState();
+        });
+
+        // Individual checkbox toggles selectAll checkbox
+        $('#progressTable tbody').on('change', '.entryCheckbox', function() {
+            let allChecked = $('#progressTable tbody .entryCheckbox').length === $(
+                '#progressTable tbody .entryCheckbox:checked').length;
+            selectAll.prop('checked', allChecked);
+            updateBtnState();
+        });
+
+        // Bulk delete button click
+        bulkDeleteBtn.on('click', function() {
+            const ids = $('#progressTable tbody .entryCheckbox:checked').map(function() {
+                return $(this).val();
+            }).get();
+
+            if (!ids.length) return;
+
+            if (!confirm('Delete selected entries?')) return;
+
+            $.post("{{ route('admin.physical_epc_progress.bulkDestroy') }}", {
+                ids,
+                _method: 'DELETE',
+                _token: "{{ csrf_token() }}"
+            }).done(() => location.reload());
+        });
+
+        // 🏗️ ARCHITECTURE FIX: Securely inject the base S3 bucket URL from Laravel.
+        // rtrim prevents double-slash corruption when concatenating later.
+        const s3BaseUrl = "{{ rtrim(\Illuminate\Support\Facades\Storage::disk('s3')->url(''), '/') }}";
+
+        // View Images button click - show modal with images
+        $('#progressTable tbody').on('click', '.view-images-btn', function(e) {
+            e.preventDefault();
+            const images = $(this).data('images');
+            const modalBody = $('#imagesModalBody');
+            modalBody.empty();
+
+            if (!images || images.length === 0) {
+                modalBody.append('<p class="text-muted"><i class="fas fa-info-circle me-1"></i> No images available.</p>');
+            } else {
+                images.forEach(img => {
+                    // 🏗️ ARCHITECTURE FIX: Strip leading slashes from the image path and build the strict S3 URL.
+                    const cleanImg = img.replace(/^\/+/, '');
+                    const url = s3BaseUrl + '/' + cleanImg;
+
+                    modalBody.append(`
+                        <a href="${url}" target="_blank" rel="noopener noreferrer" class="d-inline-block m-1">
+                            <img src="${url}" 
+                                 alt="Progress Image" 
+                                 class="rounded shadow-sm border" 
+                                 style="width: 150px; height: 150px; object-fit: cover;"
+                                 loading="lazy">
+                        </a>
+                    `);
+                });
             }
 
-            // Select all checkbox toggles all entry checkboxes
-            selectAll.on('change', function() {
-                $('#progressTable tbody .entryCheckbox').prop('checked', this.checked);
-                updateBtnState();
-            });
-
-            // Individual checkbox toggles selectAll checkbox
-            $('#progressTable tbody').on('change', '.entryCheckbox', function() {
-                let allChecked = $('#progressTable tbody .entryCheckbox').length === $(
-                    '#progressTable tbody .entryCheckbox:checked').length;
-                selectAll.prop('checked', allChecked);
-                updateBtnState();
-            });
-
-            // Bulk delete button click
-            bulkDeleteBtn.on('click', function() {
-                const ids = $('#progressTable tbody .entryCheckbox:checked').map(function() {
-                    return $(this).val();
-                }).get();
-
-                if (!ids.length) return;
-
-                if (!confirm('Delete selected entries?')) return;
-
-                $.post("{{ route('admin.physical_epc_progress.bulkDestroy') }}", {
-                    ids,
-                    _method: 'DELETE',
-                    _token: "{{ csrf_token() }}"
-                }).done(() => location.reload());
-            });
-
-            // View Images button click - show modal with images
-            $('#progressTable tbody').on('click', '.view-images-btn', function(e) {
-                e.preventDefault();
-                const images = $(this).data('images');
-                const modalBody = $('#imagesModalBody');
-                modalBody.empty();
-
-                if (images.length === 0) {
-                    modalBody.append('<p>No images available.</p>');
-                } else {
-                    images.forEach(img => {
-                        const url = "{{ asset('storage') }}/" + img;
-                        modalBody.append(`
-                            <a href="${url}" target="_blank" rel="noopener noreferrer">
-                                <img src="${url}" alt="Progress Image" class="rounded shadow-sm" style="max-width: 150px; max-height: 150px; object-fit: cover;">
-                            </a>
-                        `);
-                    });
-                }
-
-                var modal = new bootstrap.Modal(document.getElementById('imagesModal'));
-                modal.show();
-            });
+            var modal = new bootstrap.Modal(document.getElementById('imagesModal'));
+            modal.show();
         });
-    </script>
+    });
+</script>
 </x-app-layout>

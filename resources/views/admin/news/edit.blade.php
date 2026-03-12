@@ -1,32 +1,28 @@
 <x-app-layout>
     <div class="container-fluid">
         <!-- Breadcrumb -->
-        <x-admin.breadcrumb-header
-            icon="fas fa-newspaper text-primary"
-            title="News Management"
-            :breadcrumbs="[
+        <x-admin.breadcrumb-header icon="fas fa-newspaper text-primary" title="News Management" :breadcrumbs="[
                 ['route' => 'dashboard', 'label' => '<i class=\'fas fa-home\'></i>'],
                 ['label' => 'Admin'],
                 ['route' => 'admin.news.index', 'label' => 'News'],
                 ['label' => 'Edit']
-            ]"
-        />
+            ]" />
 
         <!-- Alerts -->
         @if (session('success'))
-            <div class="row mb-3">
-                <div class="col-md-12">
-                    <x-alert type="success" :message="session('success')" dismissible />
-                </div>
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <x-alert type="success" :message="session('success')" dismissible />
             </div>
+        </div>
         @endif
 
         @if ($errors->any())
-            <div class="row mb-3">
-                <div class="col-md-12">
-                    <x-alert type="danger" message="Please fix the errors below." dismissible />
-                </div>
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <x-alert type="danger" message="Please fix the errors below." dismissible />
             </div>
+        </div>
         @endif
 
         <!-- News Edit Form -->
@@ -50,8 +46,8 @@
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Title (EN) <span class="text-danger">*</span></label>
                             <input type="text" name="title_en"
-                                   class="form-control @error('title_en') is-invalid @enderror"
-                                   value="{{ old('title_en', $news->title_en) }}" required>
+                                class="form-control @error('title_en') is-invalid @enderror"
+                                value="{{ old('title_en', $news->title_en) }}" required>
                             @error('title_en') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
 
@@ -59,8 +55,8 @@
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Title (HI) <span class="text-danger">*</span></label>
                             <input type="text" name="title_hi"
-                                   class="form-control @error('title_hi') is-invalid @enderror"
-                                   value="{{ old('title_hi', $news->title_hi) }}" required>
+                                class="form-control @error('title_hi') is-invalid @enderror"
+                                value="{{ old('title_hi', $news->title_hi) }}" required>
                             @error('title_hi') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                     </div>
@@ -69,7 +65,7 @@
                     <div class="mb-3">
                         <label class="form-label">Body (EN)</label>
                         <textarea name="body_en" rows="6"
-                                  class="form-control tinymce-editor @error('body_en') is-invalid @enderror">{{ old('body_en', $news->body_en) }}</textarea>
+                            class="form-control tinymce-editor @error('body_en') is-invalid @enderror">{{ old('body_en', $news->body_en) }}</textarea>
                         @error('body_en') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
@@ -77,33 +73,44 @@
                     <div class="mb-3">
                         <label class="form-label">Body (HI)</label>
                         <textarea name="body_hi" rows="6"
-                                  class="form-control tinymce-editor @error('body_hi') is-invalid @enderror">{{ old('body_hi', $news->body_hi) }}</textarea>
+                            class="form-control tinymce-editor @error('body_hi') is-invalid @enderror">{{ old('body_hi', $news->body_hi) }}</textarea>
                         @error('body_hi') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
                     <!-- File Upload -->
                     <div class="mb-3">
-                        <label class="form-label">File Upload</label>
-                        <input type="file" name="file" 
-                               class="form-control @error('file') is-invalid @enderror">
-                        @error('file') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        <label class="form-label fw-bold">File Upload</label>
 
-                        @if($news->file)
-                            <div class="mt-2">
-                                <small class="text-muted">Current File:</small><br>
-                                <a href="{{ asset('storage/' . $news->file) }}" target="_blank">
-                                    <i class="fas fa-file-alt text-primary"></i> View File
-                                </a>
-                            </div>
+                        {{-- Added 'accept' attribute to guide the OS file picker (adjust extensions as needed) --}}
+                        <input type="file" name="file" class="form-control @error('file') is-invalid @enderror"
+                            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png">
+
+                        @error('file')
+                        <div class="invalid-feedback fw-semibold">{{ $message }}</div>
+                        @enderror
+
+                        @if(!empty($news->file))
+                        @php
+
+                        $fileUrl = \Illuminate\Support\Facades\Storage::disk('s3')->url($news->file);
+                        @endphp
+
+                        <div class="mt-2 p-2 border rounded bg-light">
+                            <small class="text-muted d-block mb-1 fw-semibold">Current File:</small>
+                            <a href="{{ $fileUrl }}" target="_blank" rel="noopener noreferrer"
+                                class="text-decoration-none fw-bold text-primary">
+                                <i class="fas fa-external-link-alt me-1"></i> View Uploaded File
+                            </a>
+                        </div>
                         @endif
                     </div>
-
                     <!-- Status -->
                     <div class="mb-3">
                         <label class="form-label">Status</label>
                         <select name="status" class="form-control">
                             <option value="1" {{ old('status', $news->status) == 1 ? 'selected' : '' }}>Active</option>
-                            <option value="0" {{ old('status', $news->status) == 0 ? 'selected' : '' }}>Inactive</option>
+                            <option value="0" {{ old('status', $news->status) == 0 ? 'selected' : '' }}>Inactive
+                            </option>
                         </select>
                     </div>
 

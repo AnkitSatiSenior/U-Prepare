@@ -36,20 +36,31 @@
             </div>
 
             <div class="container-fluid honpers">
-                <div class="row">
-                    @foreach (getLeaders() as $person)
-                        <div class="col-md-3 d-flex flex-column center honper">
-                            <figure class="d-flex center">
-                                <img src="{{ asset('storage/app/public/' . $person->img) }}" />
-                            </figure>
-                            <div class="caption text-center m-0">
-                                <h4>{{ $person->name }}</h4>
-                                <h5>({{ $person->title }})</h5>
-                            </div>
+    <div class="row">
+        @foreach (getLeaders() as $person)
+            <div class="col-md-3 d-flex flex-column align-items-center honper mb-4">
+                <figure class="d-flex justify-content-center overflow-hidden rounded-circle shadow-sm" style="width: 180px; height: 180px;">
+                    
+                    @if(!empty($person->img))
+                        <img src="{{ $person->image_url }}" 
+                             alt="{{ $person->name }}" 
+                             class="img-fluid"
+                             loading="lazy"
+                             style="width: 100%; height: 100%; object-fit: cover;">
+                    @else
+                        <div class="bg-light d-flex align-items-center justify-content-center w-100 h-100">
+                            <i class="fas fa-user text-muted fs-1"></i>
                         </div>
-                    @endforeach
+                    @endif
+                </figure>
+                <div class="caption text-center mt-3">
+                    <h4 class="fw-bold mb-1">{{ $person->name }}</h4>
+                    <h5 class="text-muted small">({{ $person->title }})</h5>
                 </div>
             </div>
+        @endforeach
+    </div>
+</div>
 
             {{-- ================= ANNOUNCEMENTS ================= --}}
             <div class="container-fluid pt-5">
@@ -122,28 +133,39 @@
 
     {{-- ================= PAST PROJECTS ================= --}}
     <section class="past-projects">
-        <div class="container-fluid p-0">
-            <div class="pps-slider">
-                @foreach ($pps_items as $key => $item)
-                    <div>
-                        <div class="pps-item prel">
-                            <div class="bg w-100 h-100">
-                                <div class="overlay w-100 h-100 {{ $item->bgc }}"></div>
-                                <img class="w-100 h-100" src="{{ asset($item->img) }}">
-                            </div>
-                            <div class="content d-flex flex-column align-items-center justify-content-between h-100 prel">
-                                <h6 class="fw-bold text-white">{{ $item->name }}</h6>
-                                <h2 class="fw-bold text-white">{{ $item->title }}</h2>
-                                <a href="{{ $item->link }}" @class(['btn', 'btn-pp', 'btn-af' => $key])>
-                                    {{ $item->link_txt }}
-                                </a>
-                            </div>
+    <div class="container-fluid p-0">
+        <div class="pps-slider">
+            @foreach ($pps_items as $key => $item)
+                <div>
+                    <div class="pps-item prel">
+                        <div class="bg w-100 h-100">
+                            <div class="overlay w-100 h-100 {{ $item->bgc }}"></div>
+                            
+                            @if(!empty($item->img))
+                                <img class="w-100 h-100" 
+                                     src="{{ $item->image_url }}" 
+                                     alt="{{ $item->name }}"
+                                     loading="lazy"
+                                     style="object-fit: cover;">
+                            @else
+                                <div class="w-100 h-100 bg-secondary d-flex align-items-center justify-content-center">
+                                    <i class="fas fa-project-diagram text-white-50 fs-1"></i>
+                                </div>
+                            @endif
+                        </div>
+                        <div class="content d-flex flex-column align-items-center justify-content-between h-100 prel">
+                            <h6 class="fw-bold text-white">{{ $item->name }}</h6>
+                            <h2 class="fw-bold text-white">{{ $item->title }}</h2>
+                            <a href="{{ $item->link }}" @class(['btn', 'btn-pp', 'btn-af' => $key])>
+                                {{ $item->link_txt }}
+                            </a>
                         </div>
                     </div>
-                @endforeach
-            </div>
+                </div>
+            @endforeach
         </div>
-    </section>
+    </div>
+</section>
 
     {{-- ================= COMPONENTS ================= --}}
     <section class="components">
@@ -218,24 +240,34 @@
             </div>
 
             <div class="videos-slider">
-                @for ($v = 0; $v < 3; $v++)
-                    @foreach (getVideos() as $vid)
-                        <div>
-                            <div class="vid-item">
-                                <div class="vid-img">
-                                    <img src="{{ asset('storage/app/public/' . $vid->img) }}" />
-                                    <a class="d-flex center" href="#">
-                                        <i class="bi bi-play-circle"></i>
-                                    </a>
-                                </div>
-                                <div class="vid-content">
-                                    <p class="mb-0">{{ $vid->text }}</p>
-                                </div>
+    @for ($v = 0; $v < 3; $v++)
+        @foreach (getVideos() as $vid)
+            <div>
+                <div class="vid-item">
+                    <div class="vid-img">
+                        @if(!empty($vid->img))
+                            <img src="{{ $vid->image_url }}" 
+                                 alt="{{ $vid->text ?? 'Video Thumbnail' }}" 
+                                 loading="lazy"
+                                 style="aspect-ratio: 16/9; object-fit: cover; width: 100%;">
+                        @else
+                            <div class="bg-dark d-flex align-items-center justify-content-center" style="aspect-ratio: 16/9;">
+                                <i class="bi bi-camera-video text-secondary fs-2"></i>
                             </div>
-                        </div>
-                    @endforeach
-                @endfor
+                        @endif
+                        
+                        <a class="d-flex center" href="#">
+                            <i class="bi bi-play-circle"></i>
+                        </a>
+                    </div>
+                    <div class="vid-content">
+                        <p class="mb-0">{{ $vid->text }}</p>
+                    </div>
+                </div>
             </div>
+        @endforeach
+    @endfor
+</div>
         </div>
     </section>
 
