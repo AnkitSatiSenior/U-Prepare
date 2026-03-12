@@ -5,7 +5,6 @@
     @endif
 
     <div class="row g-3">
-        <!-- Basic Info -->
         <div class="col-md-6">
             <label class="form-label">Contract Number <span class="text-danger">*</span></label>
             <input type="text" name="contract_number"
@@ -42,7 +41,6 @@
                    value="{{ old('security', $contract->security ?? '') }}">
         </div>
 
-        <!-- Dates -->
         @foreach ([
             'signing_date' => 'Signing Date',
             'commencement_date' => 'Commencement Date',
@@ -57,19 +55,26 @@
             </div>
         @endforeach
 
-        <!-- Contract Document -->
         <div class="col-12">
             <label class="form-label">Contract Document</label>
             <input type="file" name="contract_document_file" class="form-control"
                    accept=".pdf,.doc,.docx,.xls,.xlsx">
+            
             @if (!empty($contract->contract_document))
-                <small class="text-muted">Current:
-                    <a href="{{ asset('storage/' . $contract->contract_document) }}" target="_blank">View</a>
+                @php
+                    // 🏗️ ARCHITECTURE FIX: Resolve strictly from S3.
+                    // If this document is highly confidential, replace ->url() with:
+                    // ->temporaryUrl($contract->contract_document, now()->addMinutes(30))
+                    $documentUrl = \Illuminate\Support\Facades\Storage::disk('s3')->url($contract->contract_document);
+                @endphp
+                <small class="text-muted mt-2 d-block">Current:
+                    <a href="{{ $documentUrl }}" target="_blank" rel="noopener noreferrer" class="text-primary fw-bold">
+                        <i class="fas fa-external-link-alt me-1"></i> View Uploaded Document
+                    </a>
                 </small>
             @endif
         </div>
 
-        <!-- Contractor Info -->
         <div class="col-12 mt-4">
             <div class="card border">
                 <div class="card-header bg-light">
@@ -115,14 +120,12 @@
                         </div>
                     @endforeach
 
-                    <!-- Multiple Sub-projects toggle -->
                     @include('admin.contracts._sub_projects_toggle', ['contract' => $contract ?? null])
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Buttons -->
     <div class="mt-4 d-flex justify-content-end border-top pt-3">
         <a href="{{ route('admin.contracts.index') }}" class="btn btn-outline-secondary me-2">
             Cancel
