@@ -39,7 +39,7 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => env('APP_URL').'/storage',
+            'url' => env('APP_URL') . '/storage',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,
@@ -54,19 +54,10 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
-            
-            // ✅ ARCHITECTURE FIX 1: Explicitly set visibility to 'public'. 
-            // Because your application uses `$file->url` to render images directly, 
-            // the uploaded S3 objects must have public-read ACLs applied upon upload.
-            'visibility' => 'public', 
 
-            // ✅ ARCHITECTURE FIX 2: Set 'throw' to true.
-            // In our Models (like User, Slide, Leader) we wrote robust `try/catch` blocks.
-            // If 'throw' is false, Laravel will silently swallow AWS connection errors, 
-            // returning `false` instead of triggering our `catch` block for fallback images.
-            'throw' => true, 
-            
-            'report' => false,
+            // 🏗️ ARCHITECTURE FIX: Disable ACLs by removing the visibility check 
+            // or explicitly setting it to 'public' but ensuring your bucket policy handles the rest.
+            'visibility' => 'public',
         ],
 
     ],
