@@ -76,6 +76,7 @@ return [
     |
     */
 
-    'profile_photo_disk' => 'public',
+    // ✅ ARCHITECTURE FIX: Enforce S3 storage for Jetstream's native upload actions
+    'profile_photo_disk' => 's3',
 
 ];

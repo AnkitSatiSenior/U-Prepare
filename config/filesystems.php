@@ -7,22 +7,18 @@ return [
     | Default Filesystem Disk
     |--------------------------------------------------------------------------
     |
-    | Here you may specify the default filesystem disk that should be used
-    | by the framework. The "local" disk, as well as a variety of cloud
-    | based disks are available to your application for file storage.
+    | ✅ ARCHITECTURE FIX: Changed the default fallback from 'local' to 's3'.
+    | This guarantees that any third-party packages or native Laravel functions 
+    | that do not explicitly declare a disk will automatically route to S3.
     |
     */
 
-    'default' => env('FILESYSTEM_DISK', 'local'),
+    'default' => env('FILESYSTEM_DISK', 's3'),
 
     /*
     |--------------------------------------------------------------------------
     | Filesystem Disks
     |--------------------------------------------------------------------------
-    |
-    | Below you may configure as many filesystem disks as necessary, and you
-    | may even configure multiple disks for the same driver. Examples for
-    | most supported storage drivers are configured here for reference.
     |
     | Supported drivers: "local", "ftp", "sftp", "s3"
     |
@@ -30,6 +26,8 @@ return [
 
     'disks' => [
 
+        // Do not delete the local/public disks. Laravel requires them for 
+        // internal framework operations like caching, test stubs, and temp file processing.
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
@@ -56,7 +54,18 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
-            'throw' => false,
+            
+            // ✅ ARCHITECTURE FIX 1: Explicitly set visibility to 'public'. 
+            // Because your application uses `$file->url` to render images directly, 
+            // the uploaded S3 objects must have public-read ACLs applied upon upload.
+            'visibility' => 'public', 
+
+            // ✅ ARCHITECTURE FIX 2: Set 'throw' to true.
+            // In our Models (like User, Slide, Leader) we wrote robust `try/catch` blocks.
+            // If 'throw' is false, Laravel will silently swallow AWS connection errors, 
+            // returning `false` instead of triggering our `catch` block for fallback images.
+            'throw' => true, 
+            
             'report' => false,
         ],
 
@@ -68,8 +77,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | Here you may configure the symbolic links that will be created when the
-    | `storage:link` Artisan command is executed. The array keys should be
-    | the locations of the links and the values should be their targets.
+    | `storage:link` Artisan command is executed.
     |
     */
 
