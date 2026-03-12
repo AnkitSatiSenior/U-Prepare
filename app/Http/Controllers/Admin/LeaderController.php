@@ -19,6 +19,10 @@ class LeaderController extends Controller
     {
         return view('admin.leaders.create');
     }
+    public function edit(Leader $leader)
+    {
+        return view('admin.leaders.edit', compact('leader'));
+    }
 
     public function store(Request $request)
     {
@@ -31,17 +35,14 @@ class LeaderController extends Controller
         ]);
 
         if ($request->hasFile('img')) {
-            $data['img'] = $request->file('img')->store('leaders', 'public');
+            // 🏗️ ARCHITECTURE FIX: Store directly to 's3' disk.
+            // This returns the path (e.g., 'leaders/filename.png')
+            $data['img'] = $request->file('img')->store('leaders', 's3');
         }
 
         Leader::create($data);
 
-        return redirect()->route('admin.leaders.index')->with('success', 'Leader created successfully.');
-    }
-
-    public function edit(Leader $leader)
-    {
-        return view('admin.leaders.edit', compact('leader'));
+        return redirect()->route('admin.leaders.index')->with('success', 'Leader created and uploaded to S3.');
     }
 
     public function update(Request $request, Leader $leader)
@@ -55,24 +56,28 @@ class LeaderController extends Controller
         ]);
 
         if ($request->hasFile('img')) {
+            // 🏗️ ARCHITECTURE FIX: Delete the old file from S3 if it exists
             if ($leader->img && Storage::disk('s3')->exists($leader->img)) {
                 Storage::disk('s3')->delete($leader->img);
             }
-            $data['img'] = $request->file('img')->store('leaders', 'public');
+
+            // Upload new file directly to S3
+            $data['img'] = $request->file('img')->store('leaders', 's3');
         }
 
         $leader->update($data);
 
-        return redirect()->route('admin.leaders.index')->with('success', 'Leader updated successfully.');
+        return redirect()->route('admin.leaders.index')->with('success', 'Leader updated on S3 successfully.');
     }
 
     public function destroy(Leader $leader)
     {
+        // 🏗️ ARCHITECTURE FIX: Ensure cleanup of S3 objects to avoid storage costs
         if ($leader->img && Storage::disk('s3')->exists($leader->img)) {
             Storage::disk('s3')->delete($leader->img);
         }
 
         $leader->delete();
-        return redirect()->route('admin.leaders.index')->with('success', 'Leader deleted successfully.');
+        return redirect()->route('admin.leaders.index')->with('success', 'Leader and S3 media deleted.');
     }
 }
