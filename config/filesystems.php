@@ -55,9 +55,11 @@ return [
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
 
-            // 🏗️ ARCHITECTURE FIX: Disable ACLs by removing the visibility check 
-            // or explicitly setting it to 'public' but ensuring your bucket policy handles the rest.
-            'visibility' => 'public',
+            // 🏗️ ARCHITECTURE FIX: Set visibility to null. 
+            // This stops Laravel from sending the "x-amz-acl" header which causes the 400 error.
+            'visibility' => null,
+
+            'throw' => true,
         ],
 
     ],
