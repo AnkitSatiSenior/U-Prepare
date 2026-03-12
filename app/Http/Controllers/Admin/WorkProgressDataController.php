@@ -122,30 +122,64 @@ class WorkProgressDataController extends Controller
      * Upload new images and attach them to the latest WorkProgressData record
      * for a given sub_package_project_id.
      */
+   /**
+     * Display all images for a specific project grouped by work component.
+     * Optimized for O(1) database queries to prevent N+1 scaling issues.
+     */
     public function showProjectImages($projectId)
     {
-        $project = SubPackageProject::with(['workProgressData.workComponent', 'workProgressData.user'])->findOrFail($projectId);
+        // 1. Fetch project and eager load relationships
+        $project = SubPackageProject::with([
+            'workProgressData.workComponent', 
+            'workProgressData.user'
+        ])->findOrFail($projectId);
+
+        // 2. ARCHITECTURE FIX: Extract all unique Media IDs in memory
+        $mediaIds = $project->workProgressData
+            ->pluck('images')
+            ->filter()      // Remove nulls
+            ->flatten()     // Flatten array of arrays into a single level
+            ->unique()      // Remove duplicates
+            ->toArray();
+
+        // 3. Fetch all required media in a SINGLE query and key by ID for fast O(1) lookup
+        $mediaFiles = empty($mediaIds) 
+            ? collect() 
+            : MediaFile::whereIn('id', $mediaIds)->get()->keyBy('id');
 
         $allMedia = [];
 
+        // 4. Map the data efficiently in memory (No database hits inside the loop)
         foreach ($project->workProgressData as $progress) {
-            if (!empty($progress->images)) {
-                $mediaFiles = MediaFile::whereIn('id', $progress->images)->get();
+            if (empty($progress->images)) {
+                continue;
+            }
 
-                foreach ($mediaFiles as $media) {
-                    $allMedia[] = [
-                        'component_name' => $progress->workComponent->work_component ?? 'N/A',
-                        'component_details' => $progress->workComponent->type_details ?? 'N/A',
-                        'description' => $media->meta_data['description'] ?? 'No description available',
-                        'path' => asset($media->path),
-                        'uploaded_by' => $media->meta_data['uploaded_by'] ?? 'Unknown',
-                        'uploaded_at' => \Carbon\Carbon::parse($media->meta_data['uploaded_at'] ?? now())->format('d M Y, h:i A'),
-                        'remarks' => $progress->remarks ?? 'No remarks',
-                        'work_component_id' => $progress->work_component_id,
-                    ];
+            foreach ($progress->images as $mediaId) {
+                // Safeguard against orphaned IDs (media deleted but ID remains in JSON)
+                if (!$mediaFiles->has($mediaId)) {
+                    continue; 
                 }
+
+                $media = $mediaFiles->get($mediaId);
+
+                $allMedia[] = [
+                    'component_name'    => $progress->workComponent->work_component ?? 'N/A',
+                    'component_details' => $progress->workComponent->type_details ?? 'N/A',
+                    'description'       => $media->meta_data['description'] ?? 'No description available',
+                    
+                    // ✅ Leverages the HasS3Image trait updated previously via $media->url
+                    'path'              => $media->url, 
+                    
+                    'uploaded_by'       => $media->meta_data['uploaded_by'] ?? 'Unknown',
+                    'uploaded_at'       => \Carbon\Carbon::parse($media->meta_data['uploaded_at'] ?? now())->format('d M Y, h:i A'),
+                    'remarks'           => $progress->remarks ?? 'No remarks',
+                    'work_component_id' => $progress->work_component_id,
+                ];
             }
         }
+
+        // Grouping logic remains the same, but now operates on fully structured data
         $groupedMedia = collect($allMedia)->groupBy(function ($item) {
             return $item['component_name'] . '||' . $item['component_details'];
         });
