@@ -70,7 +70,7 @@ class WorkProgressDataController extends Controller
             'updates' => 'sometimes|array',
         ]);
 
-        $user = $request->user(); // fetched from AuthTokenMiddleware
+        $user = $request->user();
 
         if (!$user) {
             return response()->json([
@@ -130,11 +130,16 @@ class WorkProgressDataController extends Controller
         if ($request->hasFile($inputKey)) {
             foreach ($request->file($inputKey) as $file) {
                 if ($file->isValid()) {
-                    $path = $file->store('uploads/work_progress', 'public');
+                    // ✅ S3 FIX: Store directly to 's3' disk
+                    $path = $file->store('uploads/work_progress', 's3');
+                    
                     $uploadedImages[] = [
-                        'url' => asset('storage/' . $path),
+                        // ✅ S3 FIX: Generate accurate S3 URL instead of local asset mapping
+                        'url' => Storage::disk('s3')->url($path),
                         'name' => $file->getClientOriginalName(),
                         'uuid' => (string) Str::uuid(),
+                        // Architecture Note: Store the raw path for future S3 deletion requirements
+                        'raw_path' => $path, 
                     ];
                 }
             }
@@ -170,10 +175,12 @@ class WorkProgressDataController extends Controller
             foreach ($request->file('images') as $file) {
                 if (!$file->isValid()) continue;
 
-                $path = $file->store('uploads/media_files', 'public');
+                // ✅ S3 FIX: Store directly to 's3' disk
+                $path = $file->store('uploads/media_files', 's3');
 
                 $media = MediaFile::create([
-                    'path' => 'storage/' . $path,
+                    // ✅ S3 FIX: Store raw path ONLY. Removed the hardcoded 'storage/' prefix.
+                    'path' => $path, 
                     'type' => $file->getClientMimeType(),
                     'meta_data' => [
                         'original_name' => $file->getClientOriginalName(),
@@ -190,7 +197,7 @@ class WorkProgressDataController extends Controller
         }
 
         if ($progress) {
-            $existingIds = $progress->images ?? [];
+            $existingIds = (array) ($progress->images ?? []);
             $merged = array_values(array_unique(array_merge($existingIds, $mediaIds)));
 
             $progress->update([
@@ -254,12 +261,14 @@ class WorkProgressDataController extends Controller
     {
         $progress = WorkProgressData::findOrFail($id);
 
-        if (!empty($progress->images)) {
+        if (!empty($progress->images) && is_array($progress->images)) {
+            // Note: This block assumes $progress->images contains MediaFile IDs.
             $mediaFiles = MediaFile::whereIn('id', $progress->images)->get();
 
             foreach ($mediaFiles as $media) {
-                if (Storage::disk('s3')->exists(str_replace('storage/', '', $media->path))) {
-                    Storage::disk('s3')->delete(str_replace('storage/', '', $media->path));
+                // ✅ S3 FIX: Check and delete native S3 path without 'str_replace' string hacking
+                if (Storage::disk('s3')->exists($media->path)) {
+                    Storage::disk('s3')->delete($media->path);
                 }
                 $media->delete();
             }
