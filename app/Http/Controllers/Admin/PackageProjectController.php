@@ -87,23 +87,31 @@ class PackageProjectController extends Controller
         return view('admin.package-projects.create', $this->formData());
     }
 
+
     public function store(StorePackageProjectRequest $request): RedirectResponse
     {
         $data = $request->validated();
+        $disk = 's3'; // Define the disk explicitly for clarity
 
+        // Handle DEC Document Upload
         if ($request->hasFile('dec_document_path')) {
-            $data['dec_document_path'] = $request->file('dec_document_path')->store('package-projects/dec-documents', 'public');
+            $data['dec_document_path'] = $request->file('dec_document_path')
+                ->store('package-projects/dec-documents', $disk);
         }
 
+        // Handle HPC Document Upload
         if ($request->hasFile('hpc_document_path')) {
-            $data['hpc_document_path'] = $request->file('hpc_document_path')->store('package-projects/hpc-documents', 'public');
+            $data['hpc_document_path'] = $request->file('hpc_document_path')
+                ->store('package-projects/hpc-documents', $disk);
         }
 
+        // Set default status if not present
         $data['status'] = $data['status'] ?? PackageProject::STATUS_PENDING_PROCUREMENT;
 
         PackageProject::create($data);
 
-        return redirect()->route('admin.package-projects.index')->with('success', 'Package project created successfully.');
+        return redirect()->route('admin.package-projects.index')
+            ->with('success', 'Package project created successfully and stored in S3.');
     }
 
     public function show(PackageProject $packageProject): View
@@ -137,27 +145,34 @@ class PackageProjectController extends Controller
     {
         DB::transaction(function () use ($request, $packageProject) {
             $data = $request->validated();
+            $disk = 's3'; // Standardizing on S3
 
             /**
              * ✅ Handle DEC Document
              */
             if ($request->hasFile('dec_document_path')) {
-                if (!empty($packageProject->dec_document_path) && Storage::disk('s3')->exists($packageProject->dec_document_path)) {
-                    Storage::disk('s3')->delete($packageProject->dec_document_path);
+                // Delete old file from S3 if it exists
+                if (!empty($packageProject->dec_document_path)) {
+                    Storage::disk($disk)->delete($packageProject->dec_document_path);
                 }
 
-                $data['dec_document_path'] = $request->file('dec_document_path')->store('package-projects/dec-documents', 'public');
+                // Store new file to S3
+                $data['dec_document_path'] = $request->file('dec_document_path')
+                    ->store('package-projects/dec-documents', $disk);
             }
 
             /**
              * ✅ Handle HPC Document
              */
             if ($request->hasFile('hpc_document_path')) {
-                if (!empty($packageProject->hpc_document_path) && Storage::disk('s3')->exists($packageProject->hpc_document_path)) {
-                    Storage::disk('s3')->delete($packageProject->hpc_document_path);
+                // Delete old file from S3 if it exists
+                if (!empty($packageProject->hpc_document_path)) {
+                    Storage::disk($disk)->delete($packageProject->hpc_document_path);
                 }
 
-                $data['hpc_document_path'] = $request->file('hpc_document_path')->store('package-projects/hpc-documents', 'public');
+                // Store new file to S3
+                $data['hpc_document_path'] = $request->file('hpc_document_path')
+                    ->store('package-projects/hpc-documents', $disk);
             }
 
             /**
@@ -179,7 +194,8 @@ class PackageProjectController extends Controller
             ]);
         });
 
-        return redirect()->route('admin.package-projects.index')->with('success', 'Package project updated successfully.');
+        return redirect()->route('admin.package-projects.index')
+            ->with('success', 'Package project updated successfully.');
     }
 
     public function destroy(PackageProject $packageProject): RedirectResponse
@@ -207,9 +223,9 @@ class PackageProjectController extends Controller
             'blocks' => GeographyBlock::all(),
             'components' => PackageComponent::all(),
             'statuses' => \App\Models\PackageStatus::where('is_active', true)
-            ->orderBy('order_by')
-            ->pluck('name')
-            ->toArray(),
+                ->orderBy('order_by')
+                ->pluck('name')
+                ->toArray(),
         ];
     }
 }
