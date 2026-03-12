@@ -214,7 +214,7 @@ class WorkProgressDataController extends Controller
 
                 // ✅ Create new MediaFile entry
                 $media = MediaFile::create([
-                    'path' => 'storage/' . $path,
+                    'path' =>  $path,
                     'type' => $file->getClientMimeType(),
                     'meta_data' => [
                         'original_name' => $file->getClientOriginalName(),
