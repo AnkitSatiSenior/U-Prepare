@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\SafeguardEntry;
@@ -11,7 +12,6 @@ use App\Models\Contract;
 use App\Models\MediaFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -229,7 +229,7 @@ class SocialSafeguardEntryController extends Controller
         $subPackages = SubPackageProject::with('packageProject')->get();
         $subPackageIds = $subPackages->pluck('id');
 
-        $socialEntries = \DB::table('social_safeguard_entries')->whereIn('sub_package_project_id', $subPackageIds)->when($complianceId, fn($q) => $q->where('social_compliance_id', $complianceId))->when($phaseId, fn($q) => $q->where('contraction_phase_id', $phaseId))->get()->groupBy('sub_package_project_id')->map(fn($group) => $group->groupBy('already_define_safeguard_entry_id'));
+        $socialEntries = DB::table('social_safeguard_entries')->whereIn('sub_package_project_id', $subPackageIds)->when($complianceId, fn($q) => $q->where('social_compliance_id', $complianceId))->when($phaseId, fn($q) => $q->where('contraction_phase_id', $phaseId))->get()->groupBy('sub_package_project_id')->map(fn($group) => $group->groupBy('already_define_safeguard_entry_id'));
 
         $phasesMap = ContractionPhase::pluck('is_one_time', 'id');
 
@@ -295,7 +295,7 @@ class SocialSafeguardEntryController extends Controller
         return view('admin.social_safeguard_entries.dynamic_report', compact('compliances', 'phases', 'items', 'report', 'monthColumns', 'complianceId', 'phaseId', 'itemDesc', 'start', 'end'));
     }
 
-   public function gallery(Request $request)
+    public function gallery(Request $request)
     {
         $validated = $request->validate([
             'sub_package_project_id' => 'required|exists:sub_package_projects,id',
@@ -321,8 +321,8 @@ class SocialSafeguardEntryController extends Controller
         // Group media by date
         $gallery = [];
         foreach ($entries as $entry) {
-            $photoIds = is_array($entry->photos_documents_case_studies) 
-                ? $entry->photos_documents_case_studies 
+            $photoIds = is_array($entry->photos_documents_case_studies)
+                ? $entry->photos_documents_case_studies
                 : json_decode($entry->photos_documents_case_studies, true);
 
             if (!empty($photoIds)) {
@@ -330,21 +330,21 @@ class SocialSafeguardEntryController extends Controller
 
                 if ($mediaFiles->isNotEmpty()) {
                     $dateKey = \Carbon\Carbon::parse($entry->date_of_entry)->format('Y-m-d');
-                    
+
                     $gallery[$dateKey][] = [
                         'entry' => $entry,
                         'media' => $mediaFiles,
                         'remarks' => $entry->remarks,
                         'yes_no' => $entry->yes_no,
-                        
+
                         // ✅ Fetch the specific child item description
                         'item_description' => $entry->safeguardEntry?->item_description,
-                        
+
                         // ✅ Fetch the Master Safeguard ID
                         'master_id' => $entry->already_define_safeguard_entry_id,
-                        
+
                         // ✅ Fetch the accurate Master item description using the Eloquent relationship
-                        'master_name' => $entry->masterSafeguard?->item_description, 
+                        'master_name' => $entry->masterSafeguard?->item_description,
                     ];
                 }
             }
@@ -454,38 +454,33 @@ class SocialSafeguardEntryController extends Controller
         $contract = $packageProject ? Contract::where('project_id', $packageProject->id)->first() : null;
 
         $entries = DB::table('social_safeguard_entries AS sse')
-    ->leftJoin('already_define_safeguard_entries AS ade', 'sse.already_define_safeguard_entry_id', '=', 'ade.id')
-    ->leftJoin('contraction_phases AS cp', 'sse.contraction_phase_id', '=', 'cp.id')
-    ->select(
-        'sse.id as sse_id',
-        'sse.already_define_safeguard_entry_id',
-        'ade.item_description as master_item_description', // master description
-        'sse.yes_no',
-        'sse.photos_documents_case_studies',
-        'sse.remarks',
-        'sse.validity_date',
-        'sse.date_of_entry',
-        'sse.created_at',
-        'sse.updated_at',
-        'cp.name as phase_name',
-    )
-    ->where('sse.sub_package_project_id', $subProject->id)
-    ->where('sse.social_compliance_id', $compliance->id)
-    ->orderBy('sse.date_of_entry', 'desc')
-    ->get();
+            ->leftJoin('already_define_safeguard_entries AS ade', 'sse.already_define_safeguard_entry_id', '=', 'ade.id')
+            ->leftJoin('contraction_phases AS cp', 'sse.contraction_phase_id', '=', 'cp.id')
+            ->select(
+                'sse.id as sse_id',
+                'sse.already_define_safeguard_entry_id',
+                'ade.item_description as master_item_description', // master description
+                'sse.yes_no',
+                'sse.photos_documents_case_studies',
+                'sse.remarks',
+                'sse.validity_date',
+                'sse.date_of_entry',
+                'sse.created_at',
+                'sse.updated_at',
+                'cp.name as phase_name',
+            )
+            ->where('sse.sub_package_project_id', $subProject->id)
+            ->where('sse.social_compliance_id', $compliance->id)
+            ->orderBy('sse.date_of_entry', 'desc')
+            ->get();
 
         return view('admin.social_safeguard_entries.report_details', compact('subProject', 'compliance', 'packageProject', 'contract', 'entries'));
     }
-
     public function destroy($id)
     {
         DB::table('social_safeguard_entries')->where('id', $id)->delete();
         return redirect()->back()->with('success', 'Safeguard entry deleted successfully.');
     }
-
-    /**
-     * Natural sort & attach social, locked status, gallery
-     */
 
     private function naturalSort(string $aSl, string $bSl): int
     {
@@ -511,7 +506,6 @@ class SocialSafeguardEntryController extends Controller
 
         return count($aParts) <=> count($bParts);
     }
-
     private function computeLocked($entry, $social): bool
     {
         // If no `social` entry exists → not locked
@@ -551,10 +545,6 @@ class SocialSafeguardEntryController extends Controller
     {
         $date = $request->date_of_entry ? Carbon::parse($request->date_of_entry)->format('Y-m-d') : now()->format('Y-m-d');
 
-        /**
-         * ✅ ONLY SubPackageProjects
-         * whose parent PackageProject has safeguard_exists = 1
-         */
         $subProjects = SubPackageProject::whereHas('packageProject', function ($q) {
             $q->where('safeguard_exists', true);
         })
@@ -564,21 +554,12 @@ class SocialSafeguardEntryController extends Controller
         $safeguardCompliances = SafeguardCompliance::orderBy('name')->get();
         $contractionPhases = ContractionPhase::orderBy('name')->get();
 
-        /**
-         * ✅ MASTER safeguards (same for ALL projects)
-         */
         $masterSafeguards = AlreadyDefineSafeguardEntry::where('is_validity', 1)->get()->groupBy('safeguard_compliance_id');
 
-        /**
-         * ✅ Fetch ALL social safeguard entries once
-         */
         $socialEntries = SocialSafeguardEntry::whereDate('date_of_entry', '<=', $date)
             ->get()
             ->groupBy(['sub_package_project_id', 'already_define_safeguard_entry_id']);
 
-        /**
-         * ✅ Build Status Map
-         */
         $statusMap = [];
 
         foreach ($subProjects as $project) {
@@ -606,7 +587,6 @@ class SocialSafeguardEntryController extends Controller
         $userRole = auth()->user()->role_id;
         return $userRole == 1 || $userRole == $compliance->role_id;
     }
-
     /**
      * Store or update a single social safeguard entry
      */
@@ -626,54 +606,78 @@ class SocialSafeguardEntryController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(
-                [
-                    'status' => 'error',
-                    'errors' => $validator->errors(),
-                ],
-                422,
-            );
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors(),
+            ], 422);
         }
 
         $validated = $validator->validated();
-
         $date = $validated['date_of_entry'] ?? now()->format('Y-m-d');
 
-        $social = SocialSafeguardEntry::firstOrNew([
-            'already_define_safeguard_entry_id' => $validated['already_define_safeguard_entry_id'],
-            'sub_package_project_id' => $validated['sub_package_project_id'],
-            'social_compliance_id' => $validated['social_compliance_id'],
-            'contraction_phase_id' => $validated['contraction_phase_id'],
-            'date_of_entry' => $date,
-        ]);
+        try {
+            DB::beginTransaction();
 
-        $mediaIds = $social->photos_documents_case_studies ?? [];
+            $social = SocialSafeguardEntry::firstOrNew([
+                'already_define_safeguard_entry_id' => $validated['already_define_safeguard_entry_id'],
+                'sub_package_project_id' => $validated['sub_package_project_id'],
+                'social_compliance_id' => $validated['social_compliance_id'],
+                'contraction_phase_id' => $validated['contraction_phase_id'],
+                'date_of_entry' => $date,
+            ]);
 
-        if ($request->hasFile('photos_documents_case_studies')) {
-            foreach ($request->file('photos_documents_case_studies') as $file) {
-                $media = MediaFile::create([
-                    'path' => $file->store('media_files', 'public'),
-                    'type' => $file->getClientMimeType(),
-                    'meta_data' => [
-                        'name' => $file->getClientOriginalName(),
-                    ],
-                ]);
-                $mediaIds[] = $media->id;
+            // Defensively cast to array in case the model is missing the array cast
+            $mediaIds = is_array($social->photos_documents_case_studies)
+                ? $social->photos_documents_case_studies
+                : json_decode($social->photos_documents_case_studies ?? '[]', true);
+
+            if ($request->hasFile('photos_documents_case_studies')) {
+                foreach ($request->file('photos_documents_case_studies') as $file) {
+                    // Upload directly to S3
+                    $path = $file->store('media_files', 's3');
+
+                    if (!$path) {
+                        throw new \Exception("Failed to upload file to S3: " . $file->getClientOriginalName());
+                    }
+
+                    $media = MediaFile::create([
+                        'path' => $path,
+                        'type' => $file->getClientMimeType(),
+                        'meta_data' => [
+                            'name' => $file->getClientOriginalName(),
+                        ],
+                    ]);
+                    $mediaIds[] = $media->id;
+                }
             }
+
+            $social->fill($validated);
+            $social->photos_documents_case_studies = array_values(array_unique($mediaIds));
+            $social->date_of_entry = $date;
+            $social->save();
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'social_id' => $social->id,
+                'message' => 'Safeguard entry saved successfully.',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Safeguard Save Error: ' . $e->getMessage());
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to save entry.'
+            ], 500);
         }
-
-        $social->fill($validated);
-        $social->photos_documents_case_studies = $mediaIds;
-        $social->date_of_entry = $date;
-        $social->save();
-
-        return response()->json([
-            'status' => 'success',
-            'social_id' => $social->id,
-            'message' => 'Safeguard entry saved successfully.',
-        ]);
     }
 
+    /**
+     * Update entry
+     * REF: Enforced DB Transactions & direct S3 disk usage.
+     */
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
@@ -684,89 +688,112 @@ class SocialSafeguardEntryController extends Controller
             'photos_documents_case_studies.*' => 'nullable|file',
         ]);
 
-        // Find entry
-        $social = SocialSafeguardEntry::findOrFail($id);
+        try {
+            DB::beginTransaction();
 
-        // Handle uploaded files
-        $mediaIds = $social->photos_documents_case_studies ?? [];
-        if ($request->hasFile('photos_documents_case_studies')) {
-            foreach ($request->file('photos_documents_case_studies') as $file) {
-                $media = MediaFile::create([
-                    'path' => $file->store('media_files', 'public'),
-                    'type' => $file->getClientMimeType(),
-                    'meta_data' => ['name' => $file->getClientOriginalName()],
-                ]);
-                $mediaIds[] = $media->id;
+            $social = SocialSafeguardEntry::findOrFail($id);
+
+            // Defensively cast to array
+            $mediaIds = is_array($social->photos_documents_case_studies)
+                ? $social->photos_documents_case_studies
+                : json_decode($social->photos_documents_case_studies ?? '[]', true);
+
+            if ($request->hasFile('photos_documents_case_studies')) {
+                foreach ($request->file('photos_documents_case_studies') as $file) {
+                    // Upload directly to S3
+                    $path = $file->store('media_files', 's3');
+
+                    if (!$path) {
+                        throw new \Exception("Failed to upload file to S3: " . $file->getClientOriginalName());
+                    }
+
+                    $media = MediaFile::create([
+                        'path' => $path,
+                        'type' => $file->getClientMimeType(),
+                        'meta_data' => ['name' => $file->getClientOriginalName()],
+                    ]);
+                    $mediaIds[] = $media->id;
+                }
             }
+
+            $social->fill($validated);
+            $social->photos_documents_case_studies = array_values(array_unique($mediaIds));
+            $social->save();
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'social_id' => $social->id,
+                'message' => 'Entry updated successfully.',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Safeguard Update Error: ' . $e->getMessage());
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to update entry.'
+            ], 500);
         }
-
-        // Update only the fields user passed
-        $social->fill($validated);
-        $social->photos_documents_case_studies = $mediaIds;
-
-        $social->save();
-
-        return response()->json([
-            'status' => 'success',
-            'social_id' => $social->id,
-            'message' => 'Entry updated successfully.',
-        ]);
     }
 
+    /**
+     * Destroy Media File safely from S3 and DB
+     * REF: Enforced DB Transactions & direct S3 disk usage.
+     */
     public function destroyMedia($id)
     {
-        // Find media by ID
         $media = MediaFile::find($id);
 
         if (!$media) {
-            return response()->json(
-                [
-                    'status' => 'error',
-                    'message' => 'Media not found.',
-                ],
-                404,
-            );
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Media not found.',
+            ], 404);
         }
 
         try {
-            // Delete file from storage if exists
-            if (\Storage::disk('s3')->exists($media->path)) {
-                \Storage::disk('s3')->delete($media->path);
-            }
+            DB::beginTransaction();
 
-            // Remove references from SocialSafeguardEntry
+            // 1. Remove references from SocialSafeguardEntry records
             SocialSafeguardEntry::whereJsonContains('photos_documents_case_studies', $id)
                 ->get()
                 ->each(function ($entry) use ($id) {
-                    $photos = $entry->photos_documents_case_studies ?? [];
-                    $photos = array_values(array_diff($photos, [$id]));
-                    $entry->photos_documents_case_studies = $photos;
+                    $photos = is_array($entry->photos_documents_case_studies)
+                        ? $entry->photos_documents_case_studies
+                        : json_decode($entry->photos_documents_case_studies ?? '[]', true);
+
+                    $entry->photos_documents_case_studies = array_values(array_diff($photos, [$id]));
                     $entry->save();
                 });
 
-            // Delete media record
+            // 2. Delete media record from DB
             $media->delete();
+
+            // 3. Delete file from S3
+            if (Storage::disk('s3')->exists($media->path)) {
+                Storage::disk('s3')->delete($media->path);
+            }
+
+            // Commit transaction ONLY if both DB updates and S3 deletion succeed
+            DB::commit();
 
             return response()->json([
                 'status' => 'success',
                 'message' => 'File deleted successfully.',
             ]);
         } catch (\Exception $e) {
-            \Log::error('Media deletion failed: ' . $e->getMessage());
+            DB::rollBack();
+            Log::error('Media deletion failed: ' . $e->getMessage());
 
-            return response()->json(
-                [
-                    'status' => 'error',
-                    'message' => 'Failed to delete media.',
-                ],
-                500,
-            );
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to delete media.',
+            ], 500);
         }
     }
 
-    /**
-     * Global overview
-     */
     public function overview(Request $request)
     {
         $date = $request->input('date_of_entry', now()->format('Y-m-d'));

@@ -13,6 +13,7 @@ use App\Models\MediaFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class SocialSafeguardEntryApiController extends Controller
@@ -50,6 +51,7 @@ class SocialSafeguardEntryApiController extends Controller
 
     /**
      * Save or update a social safeguard entry
+     * REF: Enforced DB Transactions & direct S3 disk usage.
      */
     public function save(Request $request)
     {
@@ -62,39 +64,64 @@ class SocialSafeguardEntryApiController extends Controller
             'remarks' => 'nullable|string',
             'validity_date' => 'nullable|date',
             'date_of_entry' => 'nullable|date',
-            'photos_documents_case_studies.*' => 'nullable|file',
+            'photos_documents_case_studies.*' => 'nullable|file|max:10240', // 10MB limit for API
         ]);
 
         $entry = SafeguardEntry::findOrFail($validated['entry_id']);
         $date = $validated['date_of_entry'] ?? now()->format('Y-m-d');
 
-        $social = SocialSafeguardEntry::firstOrNew([
-            'safeguard_entry_id' => $entry->id,
-            'date_of_entry'      => $date,
-        ]);
+        try {
+            DB::beginTransaction();
 
-        $mediaIds = $social->photos_documents_case_studies ?? [];
+            $social = SocialSafeguardEntry::firstOrNew([
+                'safeguard_entry_id' => $entry->id,
+                'date_of_entry'      => $date,
+            ]);
 
-        if ($request->hasFile('photos_documents_case_studies')) {
-            foreach ($request->file('photos_documents_case_studies') as $file) {
-                $media = MediaFile::create([
-                    'path'      => $file->store('media_files', 'public'),
-                    'type'      => $file->getClientMimeType(),
-                    'meta_data' => ['name' => $file->getClientOriginalName()],
-                ]);
-                $mediaIds[] = $media->id;
+            // Defensively cast to array
+            $mediaIds = is_array($social->photos_documents_case_studies) 
+                        ? $social->photos_documents_case_studies 
+                        : json_decode($social->photos_documents_case_studies ?? '[]', true);
+
+            if ($request->hasFile('photos_documents_case_studies')) {
+                foreach ($request->file('photos_documents_case_studies') as $file) {
+                    // Upload directly to S3
+                    $path = $file->store('media_files', 's3');
+
+                    if (!$path) {
+                        throw new \Exception("Failed to upload file to S3: " . $file->getClientOriginalName());
+                    }
+
+                    $media = MediaFile::create([
+                        'path'      => $path,
+                        'type'      => $file->getClientMimeType(),
+                        'meta_data' => ['name' => $file->getClientOriginalName()],
+                    ]);
+                    $mediaIds[] = $media->id;
+                }
             }
+
+            $social->fill($validated);
+            $social->photos_documents_case_studies = array_values(array_unique($mediaIds));
+            $social->save();
+
+            DB::commit();
+
+            return response()->json([
+                'status'    => true,
+                'social_id' => $social->id,
+                'message'   => 'Entry saved successfully.',
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('API Safeguard Save Error: ' . $e->getMessage());
+
+            return response()->json([
+                'status'  => false,
+                'message' => 'Failed to save entry due to server error.'
+            ], 500);
         }
-
-        $social->fill($validated);
-        $social->photos_documents_case_studies = $mediaIds;
-        $social->save();
-
-        return response()->json([
-            'status'    => true,
-            'social_id' => $social->id,
-            'message'   => 'Entry saved successfully.',
-        ]);
     }
 
     /**
@@ -102,6 +129,8 @@ class SocialSafeguardEntryApiController extends Controller
      */
     public function destroy($id)
     {
+        // NOTE: In a complete system, consider deleting the associated S3 files here 
+        // to prevent orphaned files, similar to destroyMedia in the web controller.
         SocialSafeguardEntry::findOrFail($id)->delete();
 
         return response()->json([
@@ -150,50 +179,75 @@ class SocialSafeguardEntryApiController extends Controller
 
     /**
      * Upload media files for a social safeguard entry
+     * REF: Enforced DB Transactions & direct S3 disk usage.
      */
     public function upload(Request $request)
     {
         $request->validate([
             'social_id' => 'required|exists:social_safeguard_entries,id',
-            'media_files.*' => 'required|file',
+            'media_files.*' => 'required|file|max:10240',
         ]);
 
-        $socialEntry = SocialSafeguardEntry::findOrFail($request->social_id);
-        $mediaIds = $socialEntry->photos_documents_case_studies ?? [];
+        try {
+            DB::beginTransaction();
 
-        foreach ($request->file('media_files') as $file) {
-            $path = $file->store('uploads', 'public');
+            $socialEntry = SocialSafeguardEntry::findOrFail($request->social_id);
+            
+            $mediaIds = is_array($socialEntry->photos_documents_case_studies) 
+                        ? $socialEntry->photos_documents_case_studies 
+                        : json_decode($socialEntry->photos_documents_case_studies ?? '[]', true);
 
-            $media = MediaFile::create([
-                'path'      => $path,
-                'type'      => $file->getClientMimeType(),
-                'meta_data' => ['name' => $file->getClientOriginalName()],
+            foreach ($request->file('media_files') as $file) {
+                // Upload directly to S3
+                $path = $file->store('uploads', 's3');
+
+                if (!$path) {
+                    throw new \Exception("Failed to upload file to S3: " . $file->getClientOriginalName());
+                }
+
+                $media = MediaFile::create([
+                    'path'      => $path,
+                    'type'      => $file->getClientMimeType(),
+                    'meta_data' => ['name' => $file->getClientOriginalName()],
+                ]);
+
+                $mediaIds[] = $media->id;
+            }
+
+            $socialEntry->photos_documents_case_studies = array_values(array_unique($mediaIds));
+            $socialEntry->save();
+
+            DB::commit();
+
+            // Fetch uploaded files and format response leveraging the Model's S3 accessor
+            $uploadedFiles = MediaFile::whereIn('id', $mediaIds)
+                ->get()
+                ->map(function ($media) {
+                    return [
+                        'id'       => $media->id,
+                        'url'      => $media->url, // Utilizes getUrlAttribute() from HasS3Image trait
+                        'name'     => $media->meta_data['name'] ?? 'File',
+                        'type'     => $media->type,
+                        'meta_data'=> $media->meta_data,
+                    ];
+                });
+
+            return response()->json([
+                'status'    => true,
+                'files'     => $uploadedFiles,
+                'social_id' => $socialEntry->id,
+                'message'   => 'Files uploaded successfully.',
             ]);
 
-            $mediaIds[] = $media->id;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('API Media Upload Error: ' . $e->getMessage());
+
+            return response()->json([
+                'status'  => false,
+                'message' => 'Failed to upload files due to server error.'
+            ], 500);
         }
-
-        $socialEntry->photos_documents_case_studies = $mediaIds;
-        $socialEntry->save();
-
-        $uploadedFiles = MediaFile::whereIn('id', $mediaIds)
-            ->get()
-            ->map(function ($media) {
-                return [
-                    'id'       => $media->id,
-                    'url'      => Storage::url($media->path),
-                    'name'     => $media->meta_data['name'] ?? 'File',
-                    'type'     => $media->type,
-                    'meta_data'=> $media->meta_data,
-                ];
-            });
-
-        return response()->json([
-            'status'    => true,
-            'files'     => $uploadedFiles,
-            'social_id' => $socialEntry->id,
-            'message'   => 'Files uploaded successfully.',
-        ]);
     }
 
     /**
@@ -245,16 +299,21 @@ class SocialSafeguardEntryApiController extends Controller
 
     private function loadGallery($social)
     {
-        if (!$social || !$social->photos_documents_case_studies) {
+        // Defensively decode if it's a JSON string
+        $photoIds = is_array($social?->photos_documents_case_studies)
+            ? $social->photos_documents_case_studies
+            : json_decode($social?->photos_documents_case_studies ?? '[]', true);
+
+        if (empty($photoIds)) {
             return collect();
         }
 
-        return MediaFile::whereIn('id', $social->photos_documents_case_studies)
+        return MediaFile::whereIn('id', $photoIds)
             ->get()
             ->map(function ($media) {
                 return [
                     'id'       => $media->id,
-                    'url'      => Storage::url($media->path),
+                    'url'      => $media->url, // Utilizes getUrlAttribute() from HasS3Image trait
                     'name'     => $media->meta_data['name'] ?? 'File',
                     'type'     => $media->type,
                     'meta_data'=> $media->meta_data,
