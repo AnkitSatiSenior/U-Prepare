@@ -78,94 +78,101 @@
     <script src="https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/plugins/thumbnail/lg-thumbnail.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/plugins/zoom/lg-zoom.umd.min.js"></script>
 
-    <script>
-        const galleryData = @json($gallery); // ✅ pass data to JS
+   <script>
+    // ✅ Safely inject the S3 Base URL from Laravel's config
+    const s3BaseUrl = "{{ rtrim(Storage::disk('s3')->url(''), '/') }}";
+    const galleryData = @json($gallery); 
 
-        const monthList = document.getElementById('month-list');
-        const monthDetail = document.getElementById('month-detail');
-        const monthContent = document.getElementById('month-content');
-        const backBtn = document.getElementById('back-to-months');
+    const monthList = document.getElementById('month-list');
+    const monthDetail = document.getElementById('month-detail');
+    const monthContent = document.getElementById('month-content');
+    const backBtn = document.getElementById('back-to-months');
 
-        // Show month content
-        document.querySelectorAll('.month-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const month = card.dataset.month;
+    // Show month content
+    document.querySelectorAll('.month-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const month = card.dataset.month;
 
-                // filter gallery by this month
-                let html = '';
-                for (const [date, items] of Object.entries(galleryData)) {
-                    if (!date.startsWith(month)) continue;
+            // filter gallery by this month
+            let html = '';
+            for (const [date, items] of Object.entries(galleryData)) {
+                if (!date.startsWith(month)) continue;
 
-                    html +=
-                        `<h4 class="mt-4">📅 ${new Date(date).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}</h4>`;
+                html += `<h4 class="mt-4">📅 ${new Date(date).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}</h4>`;
 
-                    items.forEach((group, idx) => {
-                        html += `
-                        <div class="mb-3 p-3 border rounded bg-white shadow-sm h2">
-                            <p><strong> Item:</strong> ${group.master_name ?? 'N/A'}</p>
-                            <p><strong>Status:</strong> ${
-                                group.yes_no === 1 ? '✅ Yes' :
-                                group.yes_no === 2 ? '❌ No' : '⚪ N/A'
-                            }</p>
-                            <p><strong>Remarks:</strong> ${group.remarks ?? '-'}</p>
-                            <div id="lightgallery-${month}-${date}-${idx}" class="row g-3 lightgallery">`;
+                items.forEach((group, idx) => {
+                    html += `
+                    <div class="mb-3 p-3 border rounded bg-white shadow-sm h2">
+                        <p><strong> Item:</strong> ${group.master_name ?? 'N/A'}</p>
+                        <p><strong>Status:</strong> ${
+                            group.yes_no === 1 ? '✅ Yes' :
+                            group.yes_no === 2 ? '❌ No' : '⚪ N/A'
+                        }</p>
+                        <p><strong>Remarks:</strong> ${group.remarks ?? '-'}</p>
+                        <div id="lightgallery-${month}-${date}-${idx}" class="row g-3 lightgallery">`;
 
-                        group.media.forEach(media => {
-                            const path = `/storage/app/public/${media.path}`;
-                            if (media.type.includes('image')) {
-                                html += `
-                                <div class="col-md-3 col-6">
-                                    <a href="${path}" data-lg-size="1600-1067" data-sub-html="<p>${media.meta_data?.name ?? 'File'}</p>">
-                                        <img src="${path}" class="img-fluid rounded shadow-sm" style="height:200px;object-fit:cover;">
-                                    </a>
-                                </div>`;
-                            } else if (media.type.includes('pdf')) {
-                                html += `
-                                <div class="col-md-3 col-6">
-                                    <a href="${path}" target="_blank">
-                                        <div class="d-flex align-items-center justify-content-center bg-light border rounded" style="height:200px;">
-                                            <i class="fas fa-file-pdf fa-3x text-danger"></i>
-                                        </div>
-                                    </a>
-                                </div>`;
-                            } else {
-                                html += `
-                                <div class="col-md-3 col-6">
-                                    <a href="${path}" target="_blank">
-                                        <div class="d-flex align-items-center justify-content-center bg-light border rounded" style="height:200px;">
-                                            <i class="fas fa-file-pdf fa-2x text-danger"></i>
-                                        </div>
-                                    </a>
-                                </div>`;
-                            }
-                        });
+                    group.media.forEach(media => {
+                        // ✅ Construct the S3 path dynamically
+                        // Fallback check just in case the backend already appended 'http'
+                        const path = media.path.startsWith('http') 
+                            ? media.path 
+                            : `${s3BaseUrl}/${media.path}`;
 
-                        html += `</div></div>`;
+                        if (media.type.includes('image')) {
+                            html += `
+                            <div class="col-md-3 col-6">
+                                <a href="${path}" data-lg-size="1600-1067" data-sub-html="<p>${media.meta_data?.name ?? 'File'}</p>">
+                                    <img src="${path}" class="img-fluid rounded shadow-sm" style="height:200px;object-fit:cover;">
+                                </a>
+                            </div>`;
+                        } else if (media.type.includes('pdf')) {
+                            html += `
+                            <div class="col-md-3 col-6">
+                                <a href="${path}" target="_blank">
+                                    <div class="d-flex align-items-center justify-content-center bg-light border rounded" style="height:200px;">
+                                        <i class="fas fa-file-pdf fa-3x text-danger"></i>
+                                    </div>
+                                </a>
+                            </div>`;
+                        } else {
+                            html += `
+                            <div class="col-md-3 col-6">
+                                <a href="${path}" target="_blank">
+                                    <div class="d-flex align-items-center justify-content-center bg-light border rounded" style="height:200px;">
+                                        <i class="fas fa-file-alt fa-3x text-secondary"></i>
+                                    </div>
+                                </a>
+                            </div>`;
+                        }
                     });
-                }
 
-                monthContent.innerHTML = html;
-
-                // re-init lightGallery
-                document.querySelectorAll('.lightgallery').forEach(gallery => {
-                    lightGallery(gallery, {
-                        plugins: [lgZoom, lgThumbnail],
-                        speed: 500,
-                        selector: 'a[href$=".jpg"],a[href$=".jpeg"],a[href$=".png"],a[href$=".gif"],a[href$=".webp"]'
-                    });
+                    html += `</div></div>`;
                 });
+            }
 
-                // toggle views
-                monthList.classList.add('d-none');
-                monthDetail.classList.remove('d-none');
+            monthContent.innerHTML = html;
+
+            // re-init lightGallery
+            // ✅ Only target S3 image URLs for the gallery viewer
+            document.querySelectorAll('.lightgallery').forEach(gallery => {
+                lightGallery(gallery, {
+                    plugins: [lgZoom, lgThumbnail],
+                    speed: 500,
+                    selector: 'a[href$=".jpg"],a[href$=".jpeg"],a[href$=".png"],a[href$=".gif"],a[href$=".webp"],a[href*=".jpg?"],a[href*=".png?"]'
+                });
             });
-        });
 
-        // Back button
-        backBtn.addEventListener('click', () => {
-            monthDetail.classList.add('d-none');
-            monthList.classList.remove('d-none');
-            monthContent.innerHTML = '';
+            // toggle views
+            monthList.classList.add('d-none');
+            monthDetail.classList.remove('d-none');
         });
-    </script>
+    });
+
+    // Back button
+    backBtn.addEventListener('click', () => {
+        monthDetail.classList.add('d-none');
+        monthList.classList.remove('d-none');
+        monthContent.innerHTML = '';
+    });
+</script>
 </x-app-layout>
