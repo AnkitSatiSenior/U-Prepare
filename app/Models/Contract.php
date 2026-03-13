@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Traits\HasS3Storage;
+use App\Traits\HasS3Image;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Contract extends Model
 {
-    use HasFactory, SoftDeletes, HasS3Storage;
+    use HasFactory, SoftDeletes, HasS3Image;
 
     protected $fillable = [
         'contract_number',

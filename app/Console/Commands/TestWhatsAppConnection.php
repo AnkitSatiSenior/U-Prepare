@@ -6,6 +6,8 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Http\Client\ConnectionException;
+use Exception;
 
 class TestWhatsAppConnection extends Command
 {
@@ -22,39 +24,25 @@ class TestWhatsAppConnection extends Command
      */
     protected $description = 'Pings the Node.js WhatsApp microservice via x-api-key to verify connectivity.';
 
+    /**
+     * Execute the console command.
+     */
     public function handle(): int
     {
         $phone = $this->argument('phone');
         
-        // 1. Dynamic Payload Generation (Beautiful WhatsApp Template)
+        // 1. Dynamic Payload Generation
         if ($this->option('security')) {
-            $securityId = random_int(1000, 9999);
-            $userName = 'System Admin';
-            $projectName = 'U-Prepare Architecture';
-            
-            // Using WhatsApp Markdown: *bold*, _italics_, and newlines (\n)
-            $message = "🚨 *SECURITY EXPIRATION ALERT* 🚨\n\n"
-                     . "Hello *{$userName}*,\n\n"
-                     . "This is an automated notification from the *U-Prepare* compliance system. A critical security document has reached its expiration date.\n\n"
-                     . "📄 *Document Details:*\n"
-                     . "▪️ *Ref ID:* [SEC-{$securityId}]\n"
-                     . "▪️ *Project:* {$projectName}\n"
-                     . "▪️ *Status:* ❌ _EXPIRED_\n\n"
-                     . "Please log in to the administration portal to renew the clearance immediately.";
-                     
+            $message = $this->buildSecurityPayload();
         } else {
             $message = $this->option('message');
         }
         
         // 2. Endpoint Configuration
-        $baseUrl = rtrim(config('services.whatsapp.url', ''), '/');
-        $apiUrl = $baseUrl . '/api/whatsapp/send-text';
-        $apiKey = config('services.whatsapp.key', '');
+        $baseUrl = rtrim((string) config('services.whatsapp.url', ''), '/');
+        $apiKey  = (string) config('services.whatsapp.key', '');
 
         $this->components->info("🚀 Dispatching test message to {$phone}");
-        $this->line("🔗 Endpoint: {$apiUrl}");
-        $this->line("<fg=gray>Payload:</>");
-        $this->line("<fg=cyan>{$message}</>"); // Output the template to the console too
 
         // 3. Pre-flight Validation
         if (empty($apiKey) || empty($baseUrl)) {
@@ -62,12 +50,14 @@ class TestWhatsAppConnection extends Command
             return self::FAILURE;
         }
 
+        $apiUrl = $baseUrl . '/api/whatsapp/send-text';
+
         try {
-            // 4. HTTP Request (Timeout accounts for Tunnel latency)
+            // 4. HTTP Request
             $response = Http::withHeaders([
-                    'x-api-key' => $apiKey,
-                    'Accept'    => 'application/json',
-                    'Content-Type'=> 'application/json',
+                    'x-api-key'    => $apiKey,
+                    'Accept'       => 'application/json',
+                    'Content-Type' => 'application/json',
                 ])
                 ->timeout(30) 
                 ->post($apiUrl, [
@@ -78,28 +68,52 @@ class TestWhatsAppConnection extends Command
             // 5. Handle Success
             if ($response->successful() && $response->json('success')) {
                 $this->components->info('✅ Integration Successful!');
-                $this->line('Node API Response: ' . json_encode($response->json(), JSON_PRETTY_PRINT));
                 return self::SUCCESS;
             }
 
-            // 6. Handle Logic Failures (Validation or Auth)
+            // 6. Handle API Rejections (4xx / 5xx)
             $this->components->error('❌ API rejected the request.');
-            $this->table(['Status', 'Error'], [
-                [$response->status(), $response->json('error') ?? $response->body()]
-            ]);
+            $this->table(
+                ['Status', 'Error'], 
+                [[$response->status(), $response->json('error') ?? $response->body()]]
+            );
             
             return self::FAILURE;
 
-        } catch (\Exception $e) {
+        } catch (ConnectionException $e) {
             // 7. Handle Infrastructure/Network Failures
             $this->components->error('🚨 Connection Failed!');
             $this->line('Message: ' . $e->getMessage());
             
-            if (str_contains($e->getMessage(), 'Couldn\'t resolve host')) {
+            if (str_contains($e->getMessage(), 'resolve host')) {
                 $this->components->warn('Tip: Your Cloudflare Tunnel URL might have expired. Check your Ubuntu terminal.');
             }
 
             return self::FAILURE;
+        } catch (Exception $e) {
+            // Catch any other unexpected exceptions
+            $this->components->error('🚨 Unexpected Error!');
+            $this->line('Message: ' . $e->getMessage());
+            return self::FAILURE;
         }
+    }
+
+    /**
+     * Build the Markdown template for the security alert.
+     */
+    private function buildSecurityPayload(): string
+    {
+        $securityId = random_int(1000, 9999);
+        $userName = 'System Admin';
+        $projectName = 'U-Prepare Architecture';
+        
+        return "🚨 *SECURITY EXPIRATION ALERT* 🚨\n\n"
+             . "Hello *{$userName}*,\n\n"
+             . "This is an automated notification from the *U-Prepare* compliance system. A critical security document has reached its expiration date.\n\n"
+             . "📄 *Document Details:*\n"
+             . "▪️ *Ref ID:* [SEC-{$securityId}]\n"
+             . "▪️ *Project:* {$projectName}\n"
+             . "▪️ *Status:* ❌ _EXPIRED_\n\n"
+             . "Please log in to the administration portal to renew the clearance immediately.";
     }
 }
