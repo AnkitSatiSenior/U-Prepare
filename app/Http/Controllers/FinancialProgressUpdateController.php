@@ -11,11 +11,19 @@ use Illuminate\Http\Request;
 
 class FinancialProgressUpdateController extends Controller
 {
-public function index2(Request $request)
+    public function index2(Request $request)
 {
-    // Fetch all sub projects
-    $subProjects = SubPackageProject::all();
-$components = AlreadyDefinedWorkProgress::with('workService')->get();
+    // 1. Fetch all sub projects and eager load the parent packageProject to prevent N+1 queries
+    $subProjects = SubPackageProject::with('packageProject')->get();
+
+    // 2. Extract unique department IDs from the fetched sub-projects
+    $departmentIds = $subProjects->pluck('packageProject.department_id')->unique()->filter();
+
+    // 3. Fetch components scoped ONLY to the relevant departments
+    $components = AlreadyDefinedWorkProgress::with('workService')
+        ->whereHas('workService', function ($query) use ($departmentIds) {
+            $query->whereIn('department_id', $departmentIds);
+        })->get();
 
     // default empty collection
     $epcEntries = collect();
@@ -36,9 +44,9 @@ $components = AlreadyDefinedWorkProgress::with('workService')->get();
     }
 
     return view('admin.financial_progress_update.index-2', [
-        'subProjects' => $subProjects,
-        'epcEntries' => $epcEntries,     
-        'components' =>$components,          // <--- ensure name matches blade
+        'subProjects'          => $subProjects,
+        'epcEntries'           => $epcEntries,
+        'components'           => $components, 
         'selectedSubProjectId' => $selectedSubProjectId,
     ]);
 }
@@ -53,18 +61,18 @@ $components = AlreadyDefinedWorkProgress::with('workService')->get();
 
         $financialProgress = $subProject
             ? FinancialProgressUpdate::where('project_id', $selectedProjectId)
-                ->orderBy('created_at', 'desc') // optional: latest first
-                ->get()
-                ->map(function ($progress) {
-                    // Decode media IDs
-                    $mediaIds = is_array($progress->media) ? $progress->media : json_decode($progress->media, true) ?? [];
+            ->orderBy('created_at', 'desc') // optional: latest first
+            ->get()
+            ->map(function ($progress) {
+                // Decode media IDs
+                $mediaIds = is_array($progress->media) ? $progress->media : json_decode($progress->media, true) ?? [];
 
-                    // Get file paths
-                    $paths = MediaFile::whereIn('id', $mediaIds)->pluck('path')->toArray();
-                    $progress->media_paths = $paths;
+                // Get file paths
+                $paths = MediaFile::whereIn('id', $mediaIds)->pluck('path')->toArray();
+                $progress->media_paths = $paths;
 
-                    return $progress;
-                })
+                return $progress;
+            })
             : collect();
 
         return view('admin.financial_progress_update.index', compact('subProjects', 'subProject', 'financialProgress', 'selectedProjectId'));

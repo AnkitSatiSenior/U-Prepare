@@ -166,16 +166,17 @@
         @endif
 
         {{-- Upload EPC Images --}}
-        @if (canRoute('admin.work_progress_data.uploadImagesToLastProgress'))
-            <button type="button"
-                class="btn btn-sm btn-success shadow-sm d-flex align-items-center px-3 py-2 upload-image-btn"
-                data-bs-toggle="modal"
-                data-bs-target="#uploadImageModal"
-                data-project-id="{{ $progress->id }}"
-                title="Upload EPC Images">
-                <i class="fas fa-image me-1"></i> Upload Images
-            </button>
-        @endif
+@if (canRoute('admin.work_progress_data.uploadImagesToLastProgress'))
+    <button type="button"
+        class="btn btn-sm btn-success shadow-sm d-flex align-items-center px-3 py-2 upload-image-btn"
+        data-bs-toggle="modal"
+        data-bs-target="#uploadImageModal"
+        data-project-id="{{ $progress->id }}"
+        data-department-id="{{ $progress->packageProject?->department_id }}"
+        title="Upload EPC Images">
+        <i class="fas fa-image me-1"></i> Upload Images
+    </button>
+@endif
 
         {{-- Work Progress Gallery --}}
         @if (canRoute('admin.work_progress.gallery'))
@@ -217,13 +218,13 @@
                 <div class="mb-3">
                     <label for="work_component_id" class="form-label">Select Work Component <span class="text-danger">*</span></label>
                     <select name="work_component_id" id="work_component_id" class="form-control" required>
-                        <option value="">-- Select Component --</option>
-                        @foreach ($components as $component)
-                            <option value="{{ $component->id }}">
-                                 {{ $component->work_component }} - {{ $component->type_details }}
-                            </option>
-                        @endforeach
-                    </select>
+    <option value="">-- Select Component --</option>
+    @foreach ($components as $component)
+        <option value="{{ $component->id }}" data-department-id="{{ $component->workService?->department_id }}">
+             {{ $component->work_component }} - {{ $component->type_details }}
+        </option>
+    @endforeach
+</select>
                 </div>
 
                 <div class="mb-3">
@@ -251,8 +252,32 @@
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.upload-image-btn').forEach(button => {
         button.addEventListener('click', function() {
+            // Get IDs from the clicked button
             const projectId = this.getAttribute('data-project-id');
+            const departmentId = this.getAttribute('data-department-id');
+            
+            // Set the project ID in the hidden input
             document.getElementById('modal_project_id').value = projectId;
+            
+            // Get the select element and reset its value
+            const select = document.getElementById('work_component_id');
+            select.value = ""; 
+            
+            // Loop through all options and filter by department
+            Array.from(select.options).forEach(option => {
+                if (option.value === "") return; // Skip the default placeholder option
+                
+                const optionDeptId = option.getAttribute('data-department-id');
+                
+                // Show option if it matches the department, hide if it doesn't
+                if (optionDeptId === departmentId) {
+                    option.hidden = false;
+                    option.disabled = false;
+                } else {
+                    option.hidden = true;
+                    option.disabled = true;
+                }
+            });
         });
     });
 });
