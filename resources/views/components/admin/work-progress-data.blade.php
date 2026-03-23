@@ -13,7 +13,8 @@
         @else
             <x-admin.data-table 
                 :id="'work-program-' . $sp['id']" 
-                :headers="['ID', 'Component', 'Type/Details', 'Side/Location', 'Stage', '% Progress', 'Remarks', 'Images']" 
+                {{-- Changed 'ID' to '#' for the header --}}
+                :headers="['#', 'Component', 'Type/Details', 'Side/Location', 'Stage', '% Progress', 'Remarks', 'Images']" 
                 :pageLength="20" 
                 :excel="true" 
                 :print="true" 
@@ -27,7 +28,8 @@
                         $lastEntry = $entryData->last_entry ?? null;
                     @endphp
                     <tr>
-                        <td>{{ $component->id }}</td>
+                        {{-- 🛠️ ARCHITECT FIX: Use $loop->iteration for sequential numbering (1, 2, 3...) --}}
+                        <td>{{ $loop->iteration }}</td>
                         <td>{{ $component->work_component }}</td>
                         <td>{{ $component->type_details ?? '-' }}</td>
                         <td>{{ $component->side_location ?? '-' }}</td>
@@ -50,37 +52,37 @@
 
                                 {{-- Hidden gallery container --}}
                                 <div id="gallery-{{ $component->id }}" class="d-none">
-@foreach($lastEntry->images as $imgId)
-    @php
-        // 🛡️ ARCHITECT FIX: Defensive Programming.
-        // Use pre-loaded O(1) Memory lookup if the Controller provided it.
-        // Otherwise, gracefully fallback to the DB query for backward compatibility with other controllers.
-        if (isset($sp['mediaFiles'])) {
-            $media = $sp['mediaFiles']->get($imgId);
-        } else {
-            $media = \App\Models\MediaFile::find($imgId);
-        }
-    @endphp
+                                    @foreach($lastEntry->images as $imgId)
+                                        @php
+                                            // 🛡️ ARCHITECT FIX: Defensive Programming.
+                                            // Use pre-loaded O(1) Memory lookup if the Controller provided it.
+                                            // Otherwise, gracefully fallback to the DB query for backward compatibility with other controllers.
+                                            if (isset($sp['mediaFiles'])) {
+                                                $media = $sp['mediaFiles']->get($imgId);
+                                            } else {
+                                                $media = \App\Models\MediaFile::find($imgId);
+                                            }
+                                        @endphp
 
-    @if($media)
-        @php
-            // Securely resolve S3 URL.
-            $s3Url = \Illuminate\Support\Facades\Storage::disk('s3')->url($media->path);
-        @endphp
-        <a
-            href="{{ $s3Url }}"
-            data-sub-html="
-                <div class='text-center'>
-                    <h5 class='mb-1 text-white'>{{ $component->work_component }}</h5>
-                    <p class='mb-0 text-light'>Sub Project: {{ $sp['name'] }}</p>
-                </div>
-            "
-        >
-            {{-- Using the resolved S3 URL for the thumbnail --}}
-            <img src="{{ $s3Url }}" alt="Progress Image" loading="lazy" />
-        </a>
-    @endif
-@endforeach
+                                        @if($media)
+                                            @php
+                                                // Securely resolve S3 URL.
+                                                $s3Url = \Illuminate\Support\Facades\Storage::disk('s3')->url($media->path);
+                                            @endphp
+                                            <a
+                                                href="{{ $s3Url }}"
+                                                data-sub-html="
+                                                    <div class='text-center'>
+                                                        <h5 class='mb-1 text-white'>{{ $component->work_component }}</h5>
+                                                        <p class='mb-0 text-light'>Sub Project: {{ $sp['name'] }}</p>
+                                                    </div>
+                                                "
+                                            >
+                                                {{-- Using the resolved S3 URL for the thumbnail --}}
+                                                <img src="{{ $s3Url }}" alt="Progress Image" loading="lazy" />
+                                            </a>
+                                        @endif
+                                    @endforeach
                                 </div>
                             @else
                                 <span class="text-muted fst-italic">No Images</span>
