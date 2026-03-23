@@ -8,7 +8,7 @@
 
         @if (empty($sp['components']) || $sp['components']->isEmpty())
             <p class="text-muted fst-italic ms-4">
-                <i class="fas fa-info-circle me-1"></i> No Work Progress found.
+                <i class="fas fa-info-circle me-1"></i> No Work Progress found for this department.
             </p>
         @else
             <x-admin.data-table 
@@ -21,6 +21,7 @@
             >
                 @foreach ($sp['components'] as $component)
                     @php
+                        // Fetch the entries mapped to this specific component
                         $entryData = $sp['existingEntries']->get($component->id);
                         $totalProgress = $entryData->total_progress ?? 0;
                         $lastEntry = $entryData->last_entry ?? null;
@@ -31,7 +32,11 @@
                         <td>{{ $component->type_details ?? '-' }}</td>
                         <td>{{ $component->side_location ?? '-' }}</td>
                         <td>{{ $lastEntry->current_stage ?? '-' }}</td>
-                        <td>{{ $totalProgress }}%</td>
+                        <td>
+                            <span class="badge {{ $totalProgress == 100 ? 'bg-success' : 'bg-info' }}">
+                                {{ $totalProgress }}%
+                            </span>
+                        </td>
                         <td>{{ $lastEntry->remarks ?? '-' }}</td>
                         <td>
                             @if(!empty($lastEntry->images))
@@ -47,15 +52,14 @@
                                 <div id="gallery-{{ $component->id }}" class="d-none">
                                     @foreach($lastEntry->images as $imgId)
                                         @php
-                                            // 🚨 ARCHITECT WARNING: N+1 Query Hazard! 
-                                            // This MUST be refactored to be passed from the Controller via Eager Loading in the future.
-                                            $media = \App\Models\MediaFile::find($imgId);
+                                            // ✅ ARCHITECT FIX: O(1) Memory lookup instead of N+1 Database queries!
+                                            // Relies on the $mediaFiles array passed from the Controller
+                                            $media = $sp['mediaFiles']->get($imgId) ?? null;
                                         @endphp
 
                                         @if($media)
                                             @php
-                                                // Securely resolve S3 URL. If bucket is private, use temporaryUrl() instead of url()
-                                                // Example: \Illuminate\Support\Facades\Storage::disk('s3')->temporaryUrl($media->path, now()->addMinutes(30))
+                                                // Securely resolve S3 URL.
                                                 $s3Url = \Illuminate\Support\Facades\Storage::disk('s3')->url($media->path);
                                             @endphp
                                             <a
@@ -74,7 +78,7 @@
                                     @endforeach
                                 </div>
                             @else
-                                <span class="text-muted">-</span>
+                                <span class="text-muted fst-italic">No Images</span>
                             @endif
                         </td>
                     </tr>
