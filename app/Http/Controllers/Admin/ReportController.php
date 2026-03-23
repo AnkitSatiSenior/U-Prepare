@@ -809,123 +809,136 @@ public function subProjectsReport(Request $request)
 }
 
     public function showSubProject($contractId, $subProjectId, Request $request)
-    {
-        /*
+{
+    /*
     |--------------------------------------------------------------------------
     | Load Contract + Relations
     |--------------------------------------------------------------------------
     */
-        $contract = Contract::with(['project.procurementDetail.typeOfProcurement', 'contractor', 'updates', 'subProjects.boqEntries.physicalBoqProgresses', 'subProjects.epcEntries.physicalEpcProgresses', 'subProjects.financialProgressUpdates', 'subProjects.workProgressData.workComponent', 'subProjects.workProgressData.user'])->findOrFail($contractId);
+    $contract = Contract::with([
+        'project.procurementDetail.typeOfProcurement', 
+        'contractor', 
+        'updates', 
+        'subProjects.boqEntries.physicalBoqProgresses', 
+        'subProjects.epcEntries.physicalEpcProgresses', 
+        'subProjects.financialProgressUpdates', 
+        'subProjects.workProgressData.workComponent', 
+        'subProjects.workProgressData.user'
+    ])->findOrFail($contractId);
 
-        $sp = $contract->subProjects()->findOrFail($subProjectId);
+    $sp = $contract->subProjects()->findOrFail($subProjectId);
 
-        /*
+    /*
     |--------------------------------------------------------------------------
     | Finance & Physical Progress
     |--------------------------------------------------------------------------
     */
-        $finance = $this->calculateFinanceProgress($sp->id, $sp->contract_value);
-        $physical = $this->calculatePhysicalProgress($sp, strtolower($sp->type_of_procurement_name ?? 'epc'));
+    $finance = $this->calculateFinanceProgress($sp->id, $sp->contract_value);
+    $physical = $this->calculatePhysicalProgress($sp, strtolower($sp->type_of_procurement_name ?? 'epc'));
 
-        /*
+    /*
     |--------------------------------------------------------------------------
     | Work Progress (Grouped)
     |--------------------------------------------------------------------------
     */
-        $existingEntries = $sp->workProgressData->groupBy('work_component_id')->map(function ($items) {
-            $last = $items->sortByDesc('id')->first();
+    $existingEntries = $sp->workProgressData->groupBy('work_component_id')->map(function ($items) {
+        $last = $items->sortByDesc('id')->first();
 
-            return (object) [
-                'total_progress' => min(100, $items->sum('progress_percentage')),
-                'last_entry' => $last,
-                'last_stage' => $last->current_stage ?? null,
-                'last_remarks' => $last->remarks ?? null,
-                'images' => $last->images ?? [], // add images array
-            ];
-        });
+        return (object) [
+            'total_progress' => min(100, $items->sum('progress_percentage')),
+            'last_entry'     => $last,
+            'last_stage'     => $last->current_stage ?? null,
+            'last_remarks'   => $last->remarks ?? null,
+            'images'         => $last->images ?? [], // add images array
+        ];
+    });
 
-        $components = AlreadyDefinedWorkProgress::with('workService')->get();
+    /*
+    |--------------------------------------------------------------------------
+    | ✅ DOMAIN FIX: Filter Components by Department ID
+    |--------------------------------------------------------------------------
+    */
+    // 1. Get the department_id from the parent PackageProject via the Contract
+    $departmentId = $contract->project->department_id;
 
-        /*
+    // 2. Filter components strictly matching this department through WorkService
+    $components = AlreadyDefinedWorkProgress::with('workService')
+        ->whereHas('workService', function ($query) use ($departmentId) {
+            $query->where('department_id', $departmentId);
+        })
+        ->get();
+
+    /*
+    |--------------------------------------------------------------------------
+    | ✅ PERFORMANCE FIX: Resolve N+1 for Media Files
+    |--------------------------------------------------------------------------
+    */
+    // Fetch all images associated with this progress in a single query
+    $allImageIds = $existingEntries->pluck('images')->flatten()->filter()->unique()->toArray();
+    $mediaFiles = \App\Models\MediaFile::whereIn('id', $allImageIds)->get()->keyBy('id');
+
+    /*
     |--------------------------------------------------------------------------
     | SAFEGUARDS (SINGLE SOURCE OF TRUTH)
     |--------------------------------------------------------------------------
     */
-        $rawSafeguards = $sp->socialSafeguardProgress(null, $request->filled('start_date') ? Carbon::parse($request->start_date) : null, $request->filled('end_date') ? Carbon::parse($request->end_date) : null);
+    $rawSafeguards = $sp->socialSafeguardProgress(
+        null, 
+        $request->filled('start_date') ? Carbon::parse($request->start_date) : null, 
+        $request->filled('end_date') ? Carbon::parse($request->end_date) : null
+    );
 
-        // Normalize EXACTLY like subProjectsReport()
-        $safeguards = collect($rawSafeguards)
-            ->map(function ($val, $cid) {
-                return [
-                    'id' => (int) $cid,
-                    'compliance' => $val['compliance'],
-                    'phases' => collect($val['phases'])
-                        ->map(
-                            fn($ph) => [
-                                'id' => $ph['id'],
-                                'phase' => $ph['phase'],
-                                'percent' => (float) $ph['percent'],
-                            ],
-                        )
-                        ->values()
-                        ->toArray(),
-                ];
-            })
-            ->values()
-            ->toArray();
+    // Normalize EXACTLY like subProjectsReport()
+    $safeguards = collect($rawSafeguards)->map(function ($val, $cid) {
+        return [
+            'id' => (int) $cid,
+            'compliance' => $val['compliance'],
+            'phases' => collect($val['phases'])->map(fn($ph) => [
+                'id' => $ph['id'],
+                'phase' => $ph['phase'],
+                'percent' => (float) $ph['percent'],
+            ])->values()->toArray(),
+        ];
+    })->values()->toArray();
 
-        /*
-    |--------------------------------------------------------------------------
-    | Safeguard Table Headers (Same as Report)
-    |--------------------------------------------------------------------------
-    */
-        $compliancePhaseHeaders = collect($safeguards)->flatMap(fn($sg) => collect($sg['phases'])->pluck('phase'))->unique()->values();
+    $compliancePhaseHeaders = collect($safeguards)->flatMap(fn($sg) => collect($sg['phases'])->pluck('phase'))->unique()->values();
 
-        /*
+    /*
     |--------------------------------------------------------------------------
     | Sub-Project Payload
     |--------------------------------------------------------------------------
     */
-        $subProjectData = [
-            'id' => $sp->id,
-            'name' => $sp->name,
-            'contractValue' => $sp->contract_value,
-            'financePercent' => $finance['percent'],
-            'financeEntries' => $finance['submissions'],
-            'financeLastDate' => $finance['last_date'],
-            'physicalPercent' => $physical['percent'],
-            'physicalEntries' => $physical['submissions'],
-            'physicalLastDate' => $physical['last_date'],
-            'components' => $components,
-            'existingEntries' => $existingEntries,
-            'safeguards' => $safeguards,
-        ];
+    $subProjectData = [
+        'id'               => $sp->id,
+        'name'             => $sp->name,
+        'contractValue'    => $sp->contract_value,
+        'financePercent'   => $finance['percent'],
+        'financeEntries'   => $finance['submissions'],
+        'financeLastDate'  => $finance['last_date'],
+        'physicalPercent'  => $physical['percent'],
+        'physicalEntries'  => $physical['submissions'],
+        'physicalLastDate' => $physical['last_date'],
+        'components'       => $components,
+        'existingEntries'  => $existingEntries,
+        'safeguards'       => $safeguards,
+        'mediaFiles'       => $mediaFiles, // Passed securely to Blade for O(1) rendering
+    ];
 
-        /*
+    /*
     |--------------------------------------------------------------------------
     | Milestones
     |--------------------------------------------------------------------------
     */
-        $milestones = [];
+    $milestones = [];
 
-        if ($contract->commencement_date && $contract->revised_completion_date) {
-            $milestones = MilestoneHelper::generateAmendedWithProgress($contract, collect([$subProjectData]));
-        }
-
-        /*
-    |--------------------------------------------------------------------------
-    | Format Contract Attributes
-    |--------------------------------------------------------------------------
-    */
-        $this->formatContractAttributes($contract);
-
-        /*
-    |--------------------------------------------------------------------------
-    | Return View
-    |--------------------------------------------------------------------------
-    */
-        return view('admin.reports.subproject-show', compact('contract', 'subProjectData', 'compliancePhaseHeaders', 'milestones'));
+    if ($contract->commencement_date && $contract->revised_completion_date) {
+        $milestones = MilestoneHelper::generateAmendedWithProgress($contract, collect([$subProjectData]));
     }
+
+    $this->formatContractAttributes($contract);
+
+    return view('admin.reports.subproject-show', compact('contract', 'subProjectData', 'compliancePhaseHeaders', 'milestones'));
+}
 
     private function generateAmendedMilestonesWithProgress(Contract $contract, $subProjectsData)
     {
