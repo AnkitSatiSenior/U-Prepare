@@ -922,7 +922,7 @@ public function subProjectsReport(Request $request)
         'existingEntries'  => $existingEntries,
         'safeguards'       => $safeguards,
         'mediaFiles'       => $mediaFiles,
-        'safeguardExists'  => $sp->safeguard_exists, // Passed securely to Blade for O(1) rendering
+        'safeguardExists'  => $sp->packageProject->safeguard_exists, // Passed securely to Blade for O(1) rendering
     ];
 
     /*
