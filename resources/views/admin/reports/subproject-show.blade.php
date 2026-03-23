@@ -104,32 +104,33 @@
 
 
                     <!-- ==================== Safeguards Compliance ==================== -->
-                    <div class="col-12">
-                        <x-admin.card title="Safeguards Compliance" icon="fas fa-check"
-                            headerClass="bg-warning fw-bold text-white">
+{{-- 🛡️ Check if safeguard exists before rendering --}}
+                    @if (!empty($subProjectData['safeguardExists']))
+                        <div class="col-12">
+                            <x-admin.card title="Safeguards Compliance" icon="fas fa-check"
+                                headerClass="bg-warning fw-bold text-white">
 
-                            <x-admin.data-table id="safeguards-table" :headers="array_merge(['#', 'Compliance'], $compliancePhaseHeaders->toArray())" :excel="true"
-                                :print="true" :pageLength="10" resourceName="safeguards">
-                                @foreach ($subProjectData['safeguards'] as $sg)
-                                    @php
-                                        // phase => percent map
-                                        $phaseMap = collect($sg['phases'])->pluck('percent', 'phase')->toArray();
-                                    @endphp
+                                <x-admin.data-table id="safeguards-table" :headers="array_merge(['#', 'Compliance'], $compliancePhaseHeaders->toArray())" :excel="true"
+                                    :print="true" :pageLength="10" resourceName="safeguards">
+                                    @foreach ($subProjectData['safeguards'] as $sg)
+                                        @php
+                                            // phase => percent map
+                                            $phaseMap = collect($sg['phases'])->pluck('percent', 'phase')->toArray();
+                                        @endphp
 
-                                    <tr>
-                                        <td>{{ $loop->iteration }}</td>
-                                        <td>{{ $sg['compliance'] }}</td>
+                                        <tr>
+                                            <td>{{ $loop->iteration }}</td>
+                                            <td>{{ $sg['compliance'] }}</td>
 
-                                        @foreach ($compliancePhaseHeaders as $phaseName)
-                                            <td>{{ $phaseMap[$phaseName] ?? 0 }}%</td>
-                                        @endforeach
-                                    </tr>
-                                @endforeach
-                            </x-admin.data-table>
-                        </x-admin.card>
-
-
-                    </div>
+                                            @foreach ($compliancePhaseHeaders as $phaseName)
+                                                <td>{{ $phaseMap[$phaseName] ?? 0 }}%</td>
+                                            @endforeach
+                                        </tr>
+                                    @endforeach
+                                </x-admin.data-table>
+                            </x-admin.card>
+                        </div>
+                    @endif
 
                     <!-- ==================== Milestones ==================== -->
                     <div class="col-12">
