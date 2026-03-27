@@ -19,47 +19,49 @@ class PhysicalEpcProgressController extends Controller
 
         return view('admin.financial_progress_update.index-2', compact('subProjects'));
     }
-    public function index3(Request $request)
+  public function index3(Request $request)
     {
-        $request->validate([
-            'sub_package_project_id' => 'nullable|integer',
+        // 1. Delegate Validation strictly to Laravel. 
+        // This eliminates the manual if/else checks entirely.
+        $validated = $request->validate([
+            'sub_package_project_id' => 'required|integer|exists:sub_package_projects,id',
+        ], [
+            'sub_package_project_id.required' => 'Sub Package Project ID is required.',
+            'sub_package_project_id.exists' => 'Invalid Sub Package Project ID.',
         ]);
 
-        if (!$request->filled('sub_package_project_id')) {
-            return redirect()->back()->with('error', 'Sub Package Project ID is required.');
-        }
+        $subId = $validated['sub_package_project_id'];
+        $subPackageProject = SubPackageProject::find($subId);
 
-        $subPackageProject = SubPackageProject::find($request->sub_package_project_id);
-
-        if (!$subPackageProject) {
-            return redirect()->back()->with('error', 'Invalid Sub Package Project ID.');
-        }
-
-        // Fetch all progress entries without pagination, ordered by ID or SL No
+        // 2. Fetch Entries
         $progressEntries = PhysicalEpcProgress::with(['epcEntryData.subPackageProject'])
-            ->whereHas('epcEntryData', function ($q) use ($request) {
-                $q->where('sub_package_project_id', $request->sub_package_project_id);
-            })
-            ->orderBy('id', 'asc') // or ->orderBy('sl_no', 'asc') if sl_no exists in epc_entry_data
+            ->whereHas('epcEntryData', fn($q) => $q->where('sub_package_project_id', $subId))
+            ->orderBy('id', 'asc')
             ->get();
 
-        // Attach images
-        $progressEntries->transform(function ($entry) {
-            $imageIds = is_array($entry->images) ? $entry->images : json_decode($entry->images, true);
-            $entry->image_urls = $imageIds ? MediaFile::whereIn('id', $imageIds)->pluck('path')->toArray() : [];
-            return $entry;
-        });
+        // 3. Resolve the N+1 Query Bug (O(1) Data mapping)
+        $this->attachImagesPerformantly($progressEntries);
 
-        // Targets by activity & stage
-        $targetByActivityStage = EpcEntryData::where('sub_package_project_id', $request->sub_package_project_id)
+        // 4. Fix SQL strict mode violation using MIN(id)
+        $targetByActivityStage = EpcEntryData::where('sub_package_project_id', $subId)
             ->select('activity_name', 'stage_name')
             ->selectRaw('SUM(percent) as target_percent')
+            ->selectRaw('MIN(id) as sort_id') // Extract a valid aggregate for sorting
             ->groupBy('activity_name', 'stage_name')
-            ->orderBy('id', 'asc') // ordering by id
+            ->orderBy('sort_id', 'asc')       // Sort safely by the aggregated ID
             ->get();
 
-        // Achieved percent by activity & stage
-        $achievedByActivityStage = PhysicalEpcProgress::join('epcentry_data', 'physical_epc_progress.epcentry_data_id', '=', 'epcentry_data.id')->where('epcentry_data.sub_package_project_id', $request->sub_package_project_id)->select('epcentry_data.activity_name', 'epcentry_data.stage_name')->selectRaw('SUM(physical_epc_progress.percent) as achieved_percent')->groupBy('epcentry_data.activity_name', 'epcentry_data.stage_name')->orderBy('epcentry_data.id', 'asc')->get()->keyBy(fn($item) => $item->activity_name . '|' . $item->stage_name);
+        // 5. Fix SQL strict mode for achieved progress
+        $achievedByActivityStage = PhysicalEpcProgress::query()
+            ->join('epcentry_data', 'physical_epc_progress.epcentry_data_id', '=', 'epcentry_data.id')
+            ->where('epcentry_data.sub_package_project_id', $subId)
+            ->select('epcentry_data.activity_name', 'epcentry_data.stage_name')
+            ->selectRaw('SUM(physical_epc_progress.percent) as achieved_percent')
+            ->selectRaw('MIN(epcentry_data.id) as sort_id') // Aggregate for safe ordering
+            ->groupBy('epcentry_data.activity_name', 'epcentry_data.stage_name')
+            ->orderBy('sort_id', 'asc')
+            ->get()
+            ->keyBy(fn($item) => $item->activity_name . '|' . $item->stage_name);
 
         return view('admin.physical_epc_progress.index-2', [
             'progressEntries' => $progressEntries,
@@ -67,6 +69,34 @@ class PhysicalEpcProgressController extends Controller
             'targetByActivityStage' => $targetByActivityStage,
             'achievedByActivityStage' => $achievedByActivityStage,
         ]);
+    }
+
+    /**
+     * Resolves N+1 issues by batch-loading all required images in a single query.
+     */
+    private function attachImagesPerformantly($progressEntries): void
+    {
+        // Extract all unique image IDs from the entire collection
+        $allImageIds = $progressEntries->flatMap(function ($entry) {
+            return is_array($entry->images) ? $entry->images : json_decode($entry->images, true) ?? [];
+        })->unique()->filter()->toArray();
+
+        // Fetch all media files in exactly ONE query, keyed by their ID
+        $mediaFilesMap = [];
+        if (!empty($allImageIds)) {
+            $mediaFilesMap = MediaFile::whereIn('id', $allImageIds)->pluck('path', 'id')->toArray();
+        }
+
+        // Map the URLs back to the entries in memory
+        $progressEntries->transform(function ($entry) use ($mediaFilesMap) {
+            $imageIds = is_array($entry->images) ? $entry->images : json_decode($entry->images, true) ?? [];
+            
+            $entry->image_urls = collect($imageIds)->map(function ($id) use ($mediaFilesMap) {
+                return $mediaFilesMap[$id] ?? null;
+            })->filter()->values()->toArray();
+
+            return $entry;
+        });
     }
 
     public function index(Request $request)
