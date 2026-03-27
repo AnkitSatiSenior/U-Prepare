@@ -240,7 +240,7 @@ $entries = SafeguardEntry::query()
 
         // Load all assigned users with related sub-department, role, safeguards, and phases
         $assignedUsers = User::whereIn('id', function ($q) use ($subPackageProjectId) {
-            $q->select('user_id')->from('user_safeguard_subpackages')->where('sub_package_project_id', $subPackageProjectId);
+            $q->select('user_id')->from('user_safeguard_subpackage')->where('sub_package_project_id', $subPackageProjectId);
         })
             ->whereNotNull('sub_department_id')
             ->with([
