@@ -39,7 +39,7 @@
 
             <div class="container-fluid honpers mt-4">
                 <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 justify-content-center">
-                    @foreach ($leaders as $person)
+                    @foreach (getLeaders() as $person)
                     <div class="col d-flex flex-column align-items-center honper mb-4">
                         <figure class="d-flex justify-content-center mb-3">
                             <img src="{{ $person->image_url }}" alt="{{ $person->name }} Profile" loading="lazy"
