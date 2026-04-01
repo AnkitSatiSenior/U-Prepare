@@ -32,22 +32,21 @@
     {{-- ================= LEADERS ================= --}}
     <section class="about-sec pt-4">
         <div class="container-fluid p-0">
-            <div class="bg-bar position-relative">
+            <div class="bg-bar">
                 <div class="overlay"></div>
-                <img src="{{ asset('assets/img/honper-bgi.webp') }}" alt="Background Pattern" class="img-fluid" />
+                <img src="{{ asset('assets/img/honper-bgi.webp') }}" alt="Background Pattern" />
             </div>
 
             <div class="container-fluid honpers mt-4">
-                <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 justify-content-center">
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 justify-content-center">
                     @foreach (getLeaders() as $person)
                     <div class="col d-flex flex-column align-items-center honper mb-4">
-                        <figure class="d-flex justify-content-center mb-3">
-                            <img src="{{ $person->image_url }}" alt="{{ $person->name }} Profile" loading="lazy"
-                                class="img-fluid rounded-circle" />
+                       <figure class="d-flex justify-content-center mb-3">
+                            <img src="{{ $person->image_url }}" alt="{{ $person->name }} Profile" loading="lazy" class="img-fluid rounded-circle"/>
                         </figure>
                         <div class="caption text-center m-0">
-                            <h4 class="fw-bold">{{ $person->name }}</h4>
-                            <h5 class="text-muted">({{ $person->title }})</h5>
+                            <h4>{{ $person->name }}</h4>
+                            <h5>({{ $person->title }})</h5>
                         </div>
                     </div>
                     @endforeach
@@ -56,36 +55,37 @@
 
             {{-- ================= ANNOUNCEMENTS ================= --}}
             <div class="container-fluid pt-5">
-                <div class="row mb-4">
+                <div class="row">
                     <h2 class="fw-bold">
                         <span class="colthemb">U</span><span>-PREPARE</span>
                     </h2>
                 </div>
 
                 <div class="row">
-                    <div class="col-lg-7 col-xl-8 mb-4">
+                    <div class="col-lg-7 col-xl-8">
                         <p class="text-justify">
                             The Uttarakhand Disaster Resilience and Preparedness Project...
                         </p>
                     </div>
 
                     <div class="col-lg-5 col-xl-4">
-                        <div class="announcement-board h-100 shadow-sm rounded">
-                            <div class="head text-center p-3 bg-primary">
-                                <h3 class="m-0 d-flex justify-content-center align-items-center text-white">
+                        <div class="announcement-board h-100">
+                            <div class="head text-center">
+                                <h3 class="m-0 d-flex align-items-center text-white mb-2">
                                     <img src="{{ asset('assets/img/icons/megaphone-white.png') }}" class="me-2"
                                         alt="Announcements Icon">
-                                    {{ __('messages.announcements') }}
+                                    {!! request()->cookie('lang') === 'hi' ? 'घोषणा' : 'ANNOUNCEMENTS' !!}
                                 </h3>
                             </div>
-                            <div class="body p-3 bg-light">
+                            <div class="body p-3">
                                 <ul class="list-unstyled m-0">
                                     @foreach (getNews() as $item)
-                                    <li class="d-flex align-items-start mb-2 text-black">
+                                    <li class="d-flex align-items-start mb-1 text-black">
                                         <img class="me-2 mt-1" src="{{ asset('assets/img/icons/bullet.png') }}" alt="•">
                                         <a href="{{ route('news.show', $item->id) }}"
-                                            class="text-black text-decoration-none hover-primary">
-                                            {{ $item->title }}
+                                            class="text-black text-decoration-none">
+                                            {!! request()->cookie('lang') === 'hi' ? $item->title_hi : $item->title_en
+                                            !!}
                                         </a>
                                     </li>
                                     @endforeach
@@ -149,31 +149,32 @@
     </section>
 
     {{-- ================= COMPONENTS ================= --}}
-    <section class="components">
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-12">
-                    <div class="comp-head d-flex align-items-end justify-content-between mb-3">
-                        <div class="left mb-1">
-                            <h3 class="mb-0">
-                                <i class="bi bi-newspaper"></i>
-                                COMPONENTS
-                            </h3>
-                        </div>
-                        <div class="right">&nbsp;</div>
+  <section class="components">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="comp-head d-flex align-items-end justify-content-between mb-3">
+                    <div class="left mb-1">
+                        <h3 class="mb-0">
+                            <i class="bi bi-newspaper"></i>
+                            COMPONENTS
+                        </h3>
                     </div>
+                    <div class="right">&nbsp;</div>
                 </div>
             </div>
+        </div>
 
-            <div class="components-slider">
-                @forelse(getPackageComponents() as $comp)
+        <div class="components-slider">
+            @forelse(getPackageComponents() as $comp)
                 <div>
                     <div class="comps-item">
 
                         {{-- Clean Architecture: Using the Domain Accessor for S3 URL --}}
                         <div class="ci-img">
-                            <img src="{{ $comp->image_url }}" alt="{{ $comp->localized_title }} Cover Image"
-                                loading="lazy">
+                            <img src="{{ $comp->image_url }}" 
+                                 alt="{{ $comp->localized_title }} Cover Image" 
+                                 loading="lazy">
                         </div>
 
                         <div class="ci-content p-2">
@@ -197,43 +198,48 @@
 
                     </div>
                 </div>
-                @empty
-
-                @endforelse
-            </div>
-
+            @empty
+                
+            @endforelse
         </div>
-    </section>
+
+    </div>
+</section>
 
     {{-- ================= VIDEOS ================= --}}
-    <section class="videos">
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-12">
-                    <div class="vid-head d-flex align-items-end justify-content-between mb-3">
-                        <div class="left mb-1">
-                            <h3 class="mb-0">
-                                <i class="bi bi-camera-reels"></i>
-                                VIDEOS
-                            </h3>
-                        </div>
-
+   <section class="videos">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="vid-head d-flex align-items-end justify-content-between mb-3">
+                    <div class="left mb-1">
+                        <h3 class="mb-0">
+                            <i class="bi bi-camera-reels"></i>
+                            VIDEOS
+                        </h3>
                     </div>
+                   
                 </div>
             </div>
+        </div>
 
-            <div class="videos-slider">
-                {{-- Clean Architecture: No artificial for-loops. Let JS handle the slider UI. --}}
-                @forelse (getVideos() as $vid)
+        <div class="videos-slider">
+            {{-- Clean Architecture: No artificial for-loops. Let JS handle the slider UI. --}}
+            @forelse (getVideos() as $vid)
                 <div>
                     <div class="vid-item">
                         <div class="vid-img">
                             {{-- S3 URL via Domain Accessor --}}
-                            <img src="{{ $vid->image_url }}" alt="Video Thumbnail" loading="lazy" />
-
+                            <img src="{{ $vid->image_url }}" 
+                                 alt="Video Thumbnail" 
+                                 loading="lazy" />
+                            
                             {{-- Mapped the actual dynamic link --}}
-                            <a class="d-flex center" href="{{ $vid->link ?? '#' }}" target="_blank"
-                                rel="noopener noreferrer" aria-label="Play Video">
+                            <a class="d-flex center" 
+                               href="{{ $vid->link ?? '#' }}" 
+                               target="_blank" 
+                               rel="noopener noreferrer"
+                               aria-label="Play Video">
                                 <i class="bi bi-play-circle"></i>
                             </a>
                         </div>
@@ -242,15 +248,15 @@
                         </div>
                     </div>
                 </div>
-                @empty
+            @empty
                 {{-- Graceful Degradation --}}
                 <div class="col-12 text-center text-white py-4">
                     <p class="mb-0">No videos available at the moment.</p>
                 </div>
-                @endforelse
-            </div>
+            @endforelse
         </div>
-    </section>
+    </div>
+</section>
 
     {{-- ================= CONTACT / FEEDBACK ================= --}}
     <section class="contact">
