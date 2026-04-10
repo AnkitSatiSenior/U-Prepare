@@ -34,7 +34,7 @@ Schedule::call(function () {
 Schedule::call(function () {
     app(NotifyExpiredSecuritiesWhatsAppAction::class)->execute();
 })
-    ->dailyAt('08:05') // Staggered execution
+    ->dailyAt('10:00') // Staggered execution
     ->name('contracts:notify-expired-securities-whatsapp') // Unique Mutex Name
     ->withoutOverlapping()
     ->onOneServer();
