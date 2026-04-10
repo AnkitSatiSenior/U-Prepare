@@ -17,6 +17,13 @@ Artisan::command('inspire', function () {
  | Scans for expired securities and dispatches Email jobs.
  */
 Schedule::call(function () {
+    app(NotifyExpiredSecuritiesWhatsAppAction::class)->execute();
+})
+    ->dailyAt('10:00') // Staggered execution
+    ->name('contracts:notify-expired-securities-whatsapp') // Unique Mutex Name
+    ->withoutOverlapping()
+    ->onOneServer();
+Schedule::call(function () {
     app(NotifyExpiredSecuritiesAction::class)->execute();
 })
     ->dailyAt('08:00')
@@ -31,10 +38,3 @@ Schedule::call(function () {
  | Scans for expired securities and dispatches WhatsApp jobs.
  | Staggered by 5 minutes to prevent database read contention.
  */
-Schedule::call(function () {
-    app(NotifyExpiredSecuritiesWhatsAppAction::class)->execute();
-})
-    ->dailyAt('10:00') // Staggered execution
-    ->name('contracts:notify-expired-securities-whatsapp') // Unique Mutex Name
-    ->withoutOverlapping()
-    ->onOneServer();
