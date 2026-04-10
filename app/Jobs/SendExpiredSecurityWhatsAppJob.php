@@ -22,9 +22,6 @@ class SendExpiredSecurityWhatsAppJob implements ShouldQueue
 
     public int $tries = 3;
 
-    /**
-     * ✅ BUG FIX: Added $validPhone to the constructor to match the Action.
-     */
     public function __construct(
         public ContractSecurity $security,
         public User $user,
@@ -34,28 +31,30 @@ class SendExpiredSecurityWhatsAppJob implements ShouldQueue
 
     public function handle(): void
     {
-        // ✅ BUG FIX: Use the URL exactly as it is in your .env
-        $apiUrl = (string) config('services.whatsapp.url', '');
-        $apiKey = (string) config('services.whatsapp.key', '');
+        // 1. Endpoint Configuration (Matched exactly to TestWhatsAppConnection)
+        $baseUrl = rtrim((string) config('services.whatsapp.url', ''), '/');
+        $apiKey  = (string) config('services.whatsapp.key', '');
+        
+        $apiUrl  = $baseUrl . '/api/whatsapp/send-text';
         
         $logData = [
             'security_id' => $this->security->id,
-            'to_number'   => $this->validPhone, // ✅ Use the sanitized phone number
+            'to_number'   => $this->validPhone,
             'message'     => $this->message,
             'status'      => 'queued',
         ];
 
         try {
-            // ✅ BUG FIX: Use x-api-key header instead of Bearer token
+            // 2. HTTP Request (Matched Headers to TestWhatsAppConnection)
             $response = Http::withHeaders([
                     'x-api-key'    => $apiKey,
                     'Accept'       => 'application/json',
                     'Content-Type' => 'application/json',
                 ])
-                ->timeout(15) 
+                ->timeout(30) // Matched timeout to command
                 ->retry(2, 1000) 
                 ->post($apiUrl, [
-                    'number'  => $this->validPhone, // ✅ Use the sanitized phone number
+                    'number'  => $this->validPhone,
                     'message' => $this->message,
                 ]);
 
@@ -65,20 +64,21 @@ class SendExpiredSecurityWhatsAppJob implements ShouldQueue
                 throw new Exception("WhatsApp API returned success: false. Error: " . $response->json('error', 'Unknown'));
             }
 
-            // Log Success
+            // 3. Log Success
             $logData['status'] = 'sent';
             $logData['response'] = json_encode($response->json());
             WhatsAppLog::create($logData); 
 
         } catch (Exception $e) {
-            // Log Failure
+            // 4. Log Failure
             $logData['status'] = 'failed';
             $logData['error_message'] = $e->getMessage();
             WhatsAppLog::create($logData);
             
             Log::error("[WhatsApp Integration Failed]: " . $e->getMessage(), [
                 'user_id' => $this->user->id,
-                'phone'   => $this->validPhone
+                'phone'   => $this->validPhone,
+                'url'     => $apiUrl // Added URL to log for easier debugging
             ]);
 
             throw $e; 
