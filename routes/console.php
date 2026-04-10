@@ -23,13 +23,13 @@ Schedule::call(function () {
     ->name('contracts:notify-expired-securities-whatsapp') // Unique Mutex Name
     ->withoutOverlapping()
     ->onOneServer();
-Schedule::call(function () {
-    app(NotifyExpiredSecuritiesAction::class)->execute();
-})
-    ->dailyAt('08:00')
-    ->name('contracts:notify-expired-securities-email') // Unique Mutex Name
-    ->withoutOverlapping()
-    ->onOneServer();
+// Schedule::call(function () {
+//     app(NotifyExpiredSecuritiesAction::class)->execute();
+// })
+//     ->dailyAt('08:00')
+//     ->name('contracts:notify-expired-securities-email') // Unique Mutex Name
+//     ->withoutOverlapping()
+//     ->onOneServer();
 
 /*
  |--------------------------------------------------------------------------
