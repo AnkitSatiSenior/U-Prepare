@@ -11330,6 +11330,7 @@ namespace App\Models {
      * @property \Illuminate\Support\Carbon|null $created_at
      * @property float|null $long
      * @property float|null $lat
+     * @property string|null $remark
      * @property array|null $meta_data
      * @property string $type
      * @property string $path
@@ -11340,6 +11341,7 @@ namespace App\Models {
      * @method static \Illuminate\Database\Eloquent\Builder<MediaFile>|MediaFile wherePath($value)
      * @method static \Illuminate\Database\Eloquent\Builder<MediaFile>|MediaFile whereType($value)
      * @method static \Illuminate\Database\Eloquent\Builder<MediaFile>|MediaFile whereMetaData($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<MediaFile>|MediaFile whereRemark($value)
      * @method static \Illuminate\Database\Eloquent\Builder<MediaFile>|MediaFile whereLat($value)
      * @method static \Illuminate\Database\Eloquent\Builder<MediaFile>|MediaFile whereLong($value)
      * @method static \Illuminate\Database\Eloquent\Builder<MediaFile>|MediaFile whereCreatedAt($value)
@@ -22779,7 +22781,31 @@ namespace App\Models {
     /**
      * App\Models\WhatsAppLog
      *
+     * @property \Illuminate\Support\Carbon|null $deleted_at
+     * @property \Illuminate\Support\Carbon|null $updated_at
+     * @property \Illuminate\Support\Carbon|null $created_at
+     * @property \Illuminate\Support\Carbon|null $sent_at
+     * @property string|null $error_message
+     * @property array|null $response
+     * @property string $status
+     * @property string $message_body
+     * @property string $to_number
+     * @property mixed $security_id
+     * @property mixed $user_id
+     * @property int $id
      * @property-read \App\Models\User $user
+     * @method static \Illuminate\Database\Eloquent\Builder<WhatsAppLog>|WhatsAppLog whereId($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<WhatsAppLog>|WhatsAppLog whereUserId($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<WhatsAppLog>|WhatsAppLog whereSecurityId($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<WhatsAppLog>|WhatsAppLog whereToNumber($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<WhatsAppLog>|WhatsAppLog whereMessageBody($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<WhatsAppLog>|WhatsAppLog whereStatus($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<WhatsAppLog>|WhatsAppLog whereResponse($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<WhatsAppLog>|WhatsAppLog whereErrorMessage($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<WhatsAppLog>|WhatsAppLog whereSentAt($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<WhatsAppLog>|WhatsAppLog whereCreatedAt($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<WhatsAppLog>|WhatsAppLog whereUpdatedAt($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<WhatsAppLog>|WhatsAppLog whereDeletedAt($value)
      * @method static \Illuminate\Database\Eloquent\Builder<WhatsAppLog>|WhatsAppLog newModelQuery()
      * @method static \Illuminate\Database\Eloquent\Builder<WhatsAppLog>|WhatsAppLog newQuery()
      * @method static \Illuminate\Database\Eloquent\Builder<WhatsAppLog>|WhatsAppLog query()

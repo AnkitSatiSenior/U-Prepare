@@ -18,14 +18,17 @@ class MediaFile extends Model
         'path',
         'type',
         'meta_data',
+        'remark', // Added: Now mass-assignable via MediaFile::create()
         'lat',
         'long',
     ];
 
     protected $casts = [
         'meta_data' => 'array',
-        'lat' => 'decimal:8',  // Standardized coordinate precision
-        'long' => 'decimal:8',
+        'lat' => 'float',  // Changed to float for better mathematical handling in PHP
+        'long' => 'float',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     // Expose the URL dynamically when the model is converted to an array or JSON
@@ -33,17 +36,15 @@ class MediaFile extends Model
 
     /**
      * Replaces the hardcoded local storage path with S3 resolution.
-     * Maps to the logic provided by your HasS3Image trait.
      */
     public function getUrlAttribute(): string
     {
-        return $this->image_url; // Calls getImageUrlAttribute() from the HasS3Image trait
+        return $this->image_url; 
     }
 
     /**
      * ARCHITECTURE FIX: Native Eloquent relationships do not support foreign keys 
-     * stored inside JSON arrays on the inverse side. We must return a Builder instance.
-     * * @return Builder
+     * stored inside JSON arrays. Returning a Builder for manual querying.
      */
     public function workProgresses(): Builder
     {
@@ -51,19 +52,21 @@ class MediaFile extends Model
     }
 
     /**
-     * @deprecated Presentation logic should live in an API Resource or View Presenter.
-     * Kept for backwards compatibility per request.
+     * Presentation logic for LightGallery.
+     * Updated to include the new remark field.
      */
     public function toLightGallery(): array
     {
         $name = $this->meta_data['name'] ?? 'Media';
         $subject = $this->meta_data['subject'] ?? 'No Subject';
+        // Use the remark column, fallback to an empty string if null
+        $remark = $this->remark ?? ''; 
 
         return [
             'id' => $this->id,
-            'src' => $this->url, // Leverages the S3 accessor safely
+            'src' => $this->url,
             'thumb' => $this->url,
-            'subHtml' => "<h4>{$name}</h4><p>Subject: {$subject}</p>"
+            'subHtml' => "<h4>{$name}</h4><p>Subject: {$subject}</p><p><i>{$remark}</i></p>"
         ];
     }
 }

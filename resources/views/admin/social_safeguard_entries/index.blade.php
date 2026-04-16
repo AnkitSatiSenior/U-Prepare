@@ -1,402 +1,494 @@
 <x-app-layout>
     <div class="container py-5">
-
         <h2 class="mb-4 text-primary fw-bold">
             {{ $subProject->name }} — {{ $compliance->name }} Safeguard Entries
         </h2>
-        {{-- Flash messages --}}
+
         @if (session()->has('message'))
-            <div class="alert alert-{{ session('status') }} alert-dismissible fade show">
+            <div class="alert alert-{{ session('status') }} alert-dismissible fade show" role="alert">
                 {{ session('message') }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         @endif
 
-        {{-- Filter Form --}}
-        <div class="col-md-2">
-            <label class="form-label">Safeguard Compliance</label>
-            <select name="safeguard_compliance_id" class="form-control">
-                <option value="{{ $compliance->id }}">{{ $compliance->name }}</option>
-            </select>
-        </div>
-        <div class="row mb-4">
+        <div class="row mb-4 align-items-end">
             <input type="hidden" id="project-id" value="{{ $subProject->id }}">
             <input type="hidden" id="compliance-id" value="{{ $compliance->id }}">
 
-            <div class="col-md-2">
-                <label class="form-label">Contraction Phase</label>
-                <select id="phase-id" class="form-control">
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">Safeguard Compliance</label>
+                <select class="form-select" disabled>
+                    <option value="{{ $compliance->id }}">{{ $compliance->name }}</option>
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label for="phase-id" class="form-label fw-semibold">Contraction Phase</label>
+                <select id="phase-id" class="form-select">
                     <option value="">-- All --</option>
                     @foreach ($compliance->contractionPhases as $phase)
-                        <option value="{{ $phase->id }}" {{ $phase->id == $phase_id ? 'selected' : '' }}>
+                        <option value="{{ $phase->id }}" @selected($phase->id == $phase_id)>
                             {{ $phase->name }}
                         </option>
                     @endforeach
                 </select>
             </div>
 
-            <div class="col-md-2">
-                <label class="form-label">Date of Entry</label>
-                <input type="date" id="date-of-entry" class="form-control"
-                    value="{{ request('date_of_entry', now()->format('Y-m-d')) }}">
+            <div class="col-md-3">
+                <label for="date-of-entry" class="form-label fw-semibold">Date of Entry</label>
+                <input type="date" id="date-of-entry" class="form-control" value="{{ request('date_of_entry', now()->format('Y-m-d')) }}">
             </div>
 
-            <div class="col-md-2 d-flex align-items-end">
-                <button id="filter-btn" class="btn btn-primary w-100">Filter</button>
+            <div class="col-md-3">
+                <button id="filter-btn" class="btn btn-primary w-100">
+                    <i class="fas fa-filter me-1"></i> Filter
+                </button>
             </div>
         </div>
 
-        <script>
-            document.getElementById('filter-btn').addEventListener('click', function() {
-                const projectId = document.getElementById('project-id').value;
-                const complianceId = document.getElementById('compliance-id').value;
-                const phaseId = document.getElementById('phase-id').value || 0; // optional
-                const dateOfEntry = document.getElementById('date-of-entry').value;
-
-                // Use Laravel route template with placeholders
-                let urlTemplate =
-                    "{{ route('admin.social_safeguard_entries.index', ['project_id' => 'PROJECT_ID', 'compliance_id' => 'COMPLIANCE_ID', 'phase_id' => 'PHASE_ID']) }}";
-
-                // Replace placeholders with actual values
-                urlTemplate = urlTemplate
-                    .replace('PROJECT_ID', projectId)
-                    .replace('COMPLIANCE_ID', complianceId)
-                    .replace('PHASE_ID', phaseId);
-
-                // Append date_of_entry as query string
-                urlTemplate += `?date_of_entry=${dateOfEntry}`;
-
-                window.location.href = urlTemplate;
-            });
-        </script>
-
-        {{-- Entries Table --}}
         @php
-            // Pre-calculate SL numbers once
             $allSlNos = $entries->pluck('sl_no')->toArray();
-
-            // Gather all media IDs to eager load files
-            $allMediaIds = $entries
-                ->pluck('social.photos_documents_case_studies')
-                ->flatten()
-                ->filter()
-                ->unique()
-                ->toArray();
-
-            $mediaFiles = \App\Models\MediaFile::whereIn('id', $allMediaIds)->get()->keyBy('id');
         @endphp
 
         @if ($entries->isNotEmpty())
-            <form id="social-safeguard-form">
-                <div class="table-responsive">
-                    <x-admin.data-table id="social-safeguard-table" :headers="['SL No', 'Item', 'Yes/No', 'Remarks', 'Validity', 'Date of Entry', 'Action', 'Files']" :excel="true"
-                        :paging="false" :pageLength="1000">
-                        @foreach ($entries as $entry)
-                            @php
-                                $isParent = collect($allSlNos)->contains(
-                                    fn($sl) => Str::startsWith($sl, $entry->sl_no . '.'),
-                                );
-                                $level = substr_count($entry->sl_no, '.');
-                                $social = $entry->social ?? null;
-                                $locked = $entry->is_locked ?? false;
-                                $social = $entry->social;
-                                $filesExist = $social && !empty($social->photos_documents_case_studies);
-                                $filesExist = $social && !empty($social->photos_documents_case_studies);
-                            @endphp
+            <div class="table-responsive overflow-hidden">
+                <x-admin.data-table id="social-safeguard-table" :headers="['SL No', 'Item', 'Yes/No', 'Remarks', 'Validity', 'Date of Entry', 'Action', 'Files']" :excel="true" :paging="false" :pageLength="1000">
+                    @foreach ($entries as $entry)
+                        @php
+                            $isParent = collect($allSlNos)->contains(fn($sl) => Str::startsWith($sl, $entry->sl_no . '.'));
+                            $level = substr_count($entry->sl_no, '.');
+                            $social = $entry->social;
+                            $locked = $entry->is_locked ?? false;
+                            $filesExist = $social && !empty($social->photos_documents_case_studies);
+                        @endphp
 
-                            <tr class="{{ $isParent ? 'table-secondary fw-bold' : '' }}"
-                                data-entry-id="{{ $entry->id }}" data-social-id="{{ $social?->id }}"
-                                data-has-social="{{ $social ? 1 : 0 }}">
+                        <tr class="{{ $isParent ? 'table-secondary fw-bold' : '' }}" data-entry-id="{{ $entry->id }}" data-social-id="{{ $social?->id }}" data-has-social="{{ $social ? 1 : 0 }}">
+                            <td class="align-middle">{{ $entry->sl_no }}</td>
 
-                                {{-- SL No --}}
-                                <td>{{ $entry->sl_no }}</td>
+                            <td class="text-start align-middle" style="padding-left: {{ $level * 20 }}px;">
+                                {{ $entry->item_description ?? '-' }}
+                            </td>
 
-                                {{-- Item Description --}}
-                                <td class="text-start" style="padding-left: {{ $level * 20 }}px;">
-                                    {{ $entry->item_description ?? '-' }}
-                                </td>
+                            <td class="align-middle">
+                                @if ($isParent)
+                                    <span class="text-muted">—</span>
+                                @else
+                                    <select name="yes_no" class="form-select form-select-sm" @disabled($locked)>
+                                        <option value="">Select</option>
+                                        <option value="1" @selected($social?->yes_no === 1)>Yes</option>
+                                        <option value="0" @selected($social?->yes_no === 0)>No</option>
+                                        <option value="3" @selected($social?->yes_no === 3)>N/A</option>
+                                    </select>
+                                @endif
+                            </td>
 
-                                {{-- Yes/No --}}
-                                <td>
-                                    @if ($isParent)
-                                        <span class="text-muted">—</span>
-                                    @else
-                                        <select name="yes_no" class="form-control" {{ $locked ? 'disabled' : '' }}>
-                                            <option value="">Select</option>
-                                            <option value="1" {{ $social?->yes_no == 1 ? 'selected' : '' }}>Yes
-                                            </option>
-                                            <option value="0" {{ $social?->yes_no == 0 ? 'selected' : '' }}>No
-                                            </option>
-                                            <option value="3" {{ $social?->yes_no == 3 ? 'selected' : '' }}>N/A
-                                            </option>
-                                        </select>
-                                    @endif
-                                </td>
+                            <td class="align-middle">
+                                @if ($isParent)
+                                    <span class="text-muted">—</span>
+                                @else
+                                    <input type="text" name="remarks" class="form-control form-control-sm" value="{{ $social->remarks ?? '' }}" @readonly($locked)>
+                                @endif
+                            </td>
 
-                                {{-- Remarks --}}
-                                <td>
-                                    @if ($isParent)
-                                        <span class="text-muted">—</span>
-                                    @else
-                                        <input type="text" name="remarks" class="form-control"
-                                            value="{{ $social->remarks ?? '' }}" {{ $locked ? 'readonly' : '' }}>
-                                    @endif
-                                </td>
+                            <td class="align-middle">
+                                @if ($isParent)
+                                    <span class="text-muted">—</span>
+                                @elseif($entry->is_validity)
+                                    <input type="date" name="validity_date" class="form-control form-control-sm" value="{{ $social?->validity_date?->format('Y-m-d') ?? '' }}" @readonly($locked)>
+                                @else
+                                    <span class="text-muted">N/A</span>
+                                @endif
+                            </td>
 
-                                {{-- Validity --}}
-                                <td>
-                                    @if ($isParent)
-                                        <span class="text-muted">—</span>
-                                    @elseif($entry->is_validity)
-                                        <input type="date" name="validity_date" class="form-control"
-                                            value="{{ $social?->validity_date?->format('Y-m-d') ?? '' }}"
-                                            {{ $locked ? 'readonly' : '' }}>
-                                    @else
-                                        <span class="text-muted">N/A</span>
-                                    @endif
-                                </td>
+                            <td class="align-middle">
+                                @if ($isParent)
+                                    <span class="text-muted">—</span>
+                                @else
+                                    <input type="date" name="date_of_entry" class="form-control form-control-sm" value="{{ $social?->date_of_entry?->format('Y-m-d') ?? now()->format('Y-m-d') }}" max="{{ now()->format('Y-m-d') }}" @readonly($locked)>
+                                @endif
+                            </td>
 
-                                {{-- Date of Entry --}}
-                                <td>
-                                    @if ($isParent)
-                                        <span class="text-muted">—</span>
-                                    @else
-                                        <input type="date" name="date_of_entry" class="form-control"
-                                            value="{{ $social?->date_of_entry?->format('Y-m-d') ?? now()->format('Y-m-d') }}"
-                                            max="{{ now()->format('Y-m-d') }}" {{ $locked ? 'readonly' : '' }}>
-                                    @endif
-                                </td>
+                            <td class="align-middle">
+                                @if (!$isParent && !$locked)
+                                    @php
+                                        $isUpdateMode = $social && $phase_id != 2;
+                                        $actionUrl = $isUpdateMode ? route('admin.social.update', ['id' => $social->id]) : route('admin.social_safeguard_entries.save');
+                                    @endphp
+                                    <button type="button" class="btn btn-sm {{ $isUpdateMode ? 'btn-warning' : 'btn-success' }} save-row" data-url="{{ $actionUrl }}" data-method="{{ $isUpdateMode ? 'UPDATE' : 'STORE' }}">
+                                        <i class="fas {{ $isUpdateMode ? 'fa-edit' : 'fa-save' }}"></i>
+                                        {{ $isUpdateMode ? 'Update' : 'Save' }}
+                                    </button>
+                                @endif
+                            </td>
 
-                  <td>
-    @if (!$isParent && !$locked)
-        @php
-            // 1. Determine if this is an Update or a Store action
-            // Update only if: It has existing social data AND Phase is NOT 2
-            $isUpdateMode = $social && $phase_id != 2;
-
-            // 2. Generate the specific URL for this row
-            // If Update: Use the update route with the ID
-            // If Store: Use the save route
-            $actionUrl = $isUpdateMode 
-                ? route('admin.social.update', ['id' => $social->id]) 
-                : route('admin.social_safeguard_entries.save');
-        @endphp
-
-        <button type="button"
-            class="btn btn-sm {{ $isUpdateMode ? 'btn-warning' : 'btn-success' }} save-row"
-            {{-- Pass the calculate URL and the Method type to JS --}}
-            data-url="{{ $actionUrl }}"
-            data-method="{{ $isUpdateMode ? 'UPDATE' : 'STORE' }}">
-            
-            <i class="fas {{ $isUpdateMode ? 'fa-edit' : 'fa-save' }}"></i>
-            {{ $isUpdateMode ? 'Update' : 'Save' }}
-        </button>
-    @endif
-</td>
-
-                                <td
-                                    class="{{ $isParent ? 'bg-light' : ($filesExist ? 'bg-light-success' : 'bg-light-danger') }}">
-                                    @if ($isParent)
-                                        <span class="text-muted">—</span>
-                                    @else
-                                        <button type="button" class="btn btn-sm btn-primary open-upload-modal"
-                                            data-entry-id="{{ $entry->id }}" data-social-id="{{ $social?->id }}"
-                                            data-media-ids='@json($social?->photos_documents_case_studies ?? [])'>
-                                            {{ $filesExist ? 'Manage Files' : 'Upload Files' }}
-                                        </button>
-                                    @endif
-                                </td>
-
-
-
-                            </tr>
-                        @endforeach
-                    </x-admin.data-table>
-                </div>
-            </form>
+                            <td class="align-middle {{ $isParent ? 'bg-light' : ($filesExist ? 'bg-light-success' : 'bg-light-danger') }}">
+                                @if ($isParent)
+                                    <span class="text-muted">—</span>
+                                @else
+                                    <button type="button" class="btn btn-sm btn-outline-primary open-upload-modal text-black" data-entry-id="{{ $entry->id }}" data-social-id="{{ $social?->id }}" data-media-ids='@json($social?->photos_documents_case_studies ?? [])'>
+                                        <i class="fas {{ $filesExist ? 'fa-folder-open' : 'fa-upload' }}"></i>
+                                        {{ $filesExist ? 'Manage' : 'Upload' }}
+                                    </button>
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                </x-admin.data-table>
+            </div>
         @else
             <div class="alert alert-warning text-center">
-                @if (request()->has('sub_package_project_id'))
-                    No entries found for the selected filters.
-                @else
-                    Please select a project and date to view entries.
-                @endif
+                {{ request()->has('sub_package_project_id') ? 'No entries found for the selected filters.' : 'Please select a project and date to view entries.' }}
             </div>
         @endif
 
+        <div class="modal fade" id="uploadModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold"><i class="fas fa-images text-primary"></i> Media Manager</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <ul class="nav nav-tabs mb-3" role="tablist">
+                            <li class="nav-item">
+                                <button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button">Upload Files</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link" id="view-tab" data-bs-toggle="tab" data-bs-target="#view" type="button">View Uploaded</button>
+                            </li>
+                        </ul>
 
+                        <div class="tab-content">
+                            <div class="tab-pane fade show active" id="upload">
+                                <form id="upload-form">
+                                    <input type="hidden" id="modal-social-id">
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Select Files</label>
+                                        <input type="file" multiple class="form-control" id="file-input" accept="image/*,application/pdf,.doc,.docx">
+                                    </div>
 
-        {{-- Upload Modal --}}
-        <x-upload-modal />
+                                    <div class="table-responsive d-none" id="upload-table-container">
+                                        <table class="table table-bordered table-hover align-middle">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th style="width: 60px;">Preview</th>
+                                                    <th>File Name</th>
+                                                    <th style="width: 40%;">Remark</th>
+                                                    <th style="width: 100px;">Size</th>
+                                                    <th style="width: 80px;" class="text-center">Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="upload-table-body"></tbody>
+                                        </table>
+                                    </div>
 
-        <!-- Hidden Delete Form -->
-        <form id="delete-file-form" method="POST" style="display:none;">
+                                    <div class="text-end mt-3">
+                                        <button type="submit" class="btn btn-primary d-none" id="upload-btn">
+                                            <i class="fas fa-cloud-upload-alt me-1"></i> Upload All Files
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <div class="tab-pane fade" id="view">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover align-middle">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 50px;">#</th>
+                                                <th style="width: 60px;">Preview</th>
+                                                <th>File Name</th>
+                                                <th>Remark</th>
+                                                <th style="width: 120px;" class="text-center">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="view-table-body">
+                                            <tr><td colspan="5" class="text-center text-muted">No files uploaded yet.</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <form id="delete-file-form" method="POST" class="d-none">
             @csrf
             @method('DELETE')
         </form>
+    </div>
 
-      <script>
-    $(document).ready(function() {
-        const canDeleteFiles = @json(canRoute('admin.media.destroy'));
-        const deleteRouteTemplate = @json(route('admin.media.destroy', ':id'));
 
-        // -----------------------------
-        // Open Upload Modal
-        // -----------------------------
-        $(document).on('click', '.open-upload-modal', function() {
-            const entryId = $(this).data('entry-id');
-            const socialId = $(this).data('social-id');
-            const mediaIds = $(this).data('media-ids') || [];
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+            const canDeleteFiles = @json(canRoute('admin.media.destroy'));
+            const deleteRouteTemplate = @json(route('admin.media.destroy', ':id'));
+            const uploadEndpoint = @json(route('admin.media_files.upload')); 
+            
+            const uploadModalEl = document.getElementById('uploadModal');
+            const uploadModal = new bootstrap.Modal(uploadModalEl);
+            const fileInput = document.getElementById('file-input');
+            const uploadTableContainer = document.getElementById('upload-table-container');
+            const uploadTableBody = document.getElementById('upload-table-body');
+            const uploadBtn = document.getElementById('upload-btn');
+            const uploadForm = document.getElementById('upload-form');
+            const viewTableBody = document.getElementById('view-table-body');
+            const viewTabBtn = document.getElementById('view-tab');
+            
+            let selectedFiles = [];
 
-            $('#modal-entry-id').val(entryId);
-            $('#modal-social-id').val(socialId);
+            const showAlert = (msg, type) => {
+                const alertEl = document.createElement("div");
+                alertEl.className = `alert alert-${type} alert-dismissible fade show shadow-sm position-fixed top-0 start-50 translate-middle-x mt-4`;
+                alertEl.style.zIndex = 1060;
+                alertEl.innerHTML = `${msg} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+                document.body.appendChild(alertEl);
+                setTimeout(() => alertEl.remove(), 4000);
+            };
 
-            const tbody = $('#view-table-body');
-            tbody.html('<tr><td colspan="4" class="text-center">Loading...</td></tr>');
+            document.getElementById('filter-btn')?.addEventListener('click', () => {
+                const projectId = document.getElementById('project-id').value;
+                const complianceId = document.getElementById('compliance-id').value;
+                const phaseId = document.getElementById('phase-id').value || 0;
+                const dateOfEntry = document.getElementById('date-of-entry').value;
 
-            if (!mediaIds.length) {
-                tbody.html('<tr><td colspan="4" class="text-center">No files uploaded yet.</td></tr>');
-                $('#uploadModal').modal('show');
-                return;
-            }
+                const urlTemplate = "{{ route('admin.social_safeguard_entries.index', ['project_id' => '__PROJ__', 'compliance_id' => '__COMP__', 'phase_id' => '__PHASE__']) }}"
+                    .replace('__PROJ__', projectId)
+                    .replace('__COMP__', complianceId)
+                    .replace('__PHASE__', phaseId);
 
-            // Fetch file details from backend
-            $.get("{{ route('media-files.by-ids') }}", { ids: mediaIds })
-                .done(function(files) {
-                    tbody.empty();
+                window.location.href = `${urlTemplate}?date_of_entry=${encodeURIComponent(dateOfEntry)}`;
+            });
+
+            document.body.addEventListener('click', async (e) => {
+                const saveBtn = e.target.closest('.save-row');
+                if (saveBtn) {
+                    const row = saveBtn.closest("tr");
+                    const { url, method } = saveBtn.dataset;
+                    const socialId = row.dataset.socialId;
+
+                    if (method === 'UPDATE' && (!socialId || socialId === '0')) {
+                        return showAlert("Social entry missing for update.", "warning");
+                    }
+
+                    const data = new FormData();
+                    data.append("yes_no", row.querySelector("[name='yes_no']")?.value || "");
+                    data.append("remarks", row.querySelector("[name='remarks']")?.value || "");
+                    data.append("validity_date", row.querySelector("[name='validity_date']")?.value || "");
+                    data.append("date_of_entry", row.querySelector("[name='date_of_entry']")?.value || "");
+
+                    const originalHtml = saveBtn.innerHTML;
+                    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    saveBtn.disabled = true;
+
+                    try {
+                        const response = await fetch(url, {
+                            method: "POST",
+                            headers: { "X-CSRF-TOKEN": csrfToken },
+                            body: data
+                        });
+
+                        const result = await response.json();
+                        if (result.status === "success") {
+                            showAlert("Saved successfully!", "success");
+                            if (result.locked) {
+                                row.querySelectorAll("input, select").forEach(el => el.disabled = true);
+                                saveBtn.remove();
+                            } else {
+                                row.dataset.socialId = result.social_id || socialId;
+                                saveBtn.dataset.method = 'UPDATE';
+                                saveBtn.classList.replace('btn-success', 'btn-warning');
+                                saveBtn.innerHTML = '<i class="fas fa-edit"></i> Update';
+                            }
+                        } else {
+                            showAlert(result.message || "Error saving data.", "danger");
+                            saveBtn.innerHTML = originalHtml;
+                        }
+                    } catch (error) {
+                        showAlert("An unexpected error occurred.", "danger");
+                        saveBtn.innerHTML = originalHtml;
+                    } finally {
+                        saveBtn.disabled = false;
+                    }
+                }
+
+                const openModalBtn = e.target.closest('.open-upload-modal');
+                if (openModalBtn) {
+                    document.getElementById('modal-social-id').value = openModalBtn.dataset.socialId;
+                    const mediaIds = JSON.parse(openModalBtn.dataset.mediaIds || "[]");
+                    
+                    selectedFiles = [];
+                    renderUploadTable();
+                    fileInput.value = "";
+                    
+                    loadViewTable(mediaIds);
+                    bootstrap.Tab.getOrCreateInstance(document.getElementById('upload-tab')).show();
+                    uploadModal.show();
+                }
+
+                const deleteBtn = e.target.closest('.delete-file');
+                if (deleteBtn) {
+                    if (!confirm('Are you sure you want to delete this file?')) return;
+                    const form = document.getElementById('delete-file-form');
+                    form.action = deleteRouteTemplate.replace(':id', deleteBtn.dataset.id);
+                    form.submit();
+                }
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                selectedFiles = Array.from(e.target.files);
+                renderUploadTable();
+            });
+
+            uploadTableBody.addEventListener('click', (e) => {
+                const removeBtn = e.target.closest('.remove-file');
+                if (removeBtn) {
+                    const index = parseInt(removeBtn.dataset.index, 10);
+                    selectedFiles.splice(index, 1);
+                    renderUploadTable();
+                }
+            });
+
+            const renderUploadTable = () => {
+                uploadTableBody.innerHTML = '';
+                
+                if (selectedFiles.length === 0) {
+                    uploadTableContainer.classList.add('d-none');
+                    uploadBtn.classList.add('d-none');
+                    fileInput.value = ""; 
+                    return;
+                }
+
+                uploadTableContainer.classList.remove('d-none');
+                uploadBtn.classList.remove('d-none');
+
+                selectedFiles.forEach((file, index) => {
+                    const isImage = file.type.startsWith('image/');
+                    const previewUrl = isImage ? URL.createObjectURL(file) : null;
+                    const previewHtml = isImage 
+                        ? `<img src="${previewUrl}" class="rounded border" style="width: 40px; height: 40px; object-fit: cover;">` 
+                        : `<div class="bg-light border rounded d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;"><i class="fas fa-file-alt text-muted"></i></div>`;
+
+                    uploadTableBody.insertAdjacentHTML('beforeend', `
+                        <tr>
+                            <td>${previewHtml}</td>
+                            <td class="text-truncate" style="max-width: 200px;" title="${file.name}">${file.name}</td>
+                            <td>
+                                <input type="text" id="remark-${index}" class="form-control form-control-sm" placeholder="Add a remark...">
+                            </td>
+                            <td class="small text-muted">${(file.size / 1024).toFixed(1)} KB</td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-sm btn-outline-danger border-0 remove-file" data-index="${index}">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `);
+                });
+            };
+
+            uploadForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const socialId = document.getElementById('modal-social-id').value;
+                
+                if (!socialId || socialId === '0') {
+                    return showAlert('Please save the entry row first before uploading files.', 'warning');
+                }
+
+                const formData = new FormData();
+                formData.append('social_id', socialId);
+
+                selectedFiles.forEach((file, index) => {
+                    formData.append(`media_files[${index}]`, file);
+                    const remarkInput = document.getElementById(`remark-${index}`);
+                    formData.append(`remarks[${index}]`, remarkInput ? remarkInput.value : '');
+                });
+
+                const originalBtnHtml = uploadBtn.innerHTML;
+                uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Uploading...';
+                uploadBtn.disabled = true;
+
+                try {
+                    const response = await fetch(uploadEndpoint, {
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': csrfToken },
+                        body: formData
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.status === 'success') {
+                        showAlert('Files uploaded successfully!', 'success');
+                        selectedFiles = [];
+                        renderUploadTable();
+                        
+                        const currentMediaIds = data.files.map(f => f.id);
+                        document.querySelector(`tr[data-social-id="${socialId}"] .open-upload-modal`).dataset.mediaIds = JSON.stringify(currentMediaIds);
+                        
+                        loadViewTable(currentMediaIds);
+                        bootstrap.Tab.getOrCreateInstance(viewTabBtn).show();
+                    } else {
+                        showAlert(data.message || 'Upload failed.', 'danger');
+                    }
+                } catch (error) {
+                    showAlert('An unexpected error occurred during upload.', 'danger');
+                } finally {
+                    uploadBtn.innerHTML = originalBtnHtml;
+                    uploadBtn.disabled = false;
+                }
+            });
+
+            const loadViewTable = async (mediaIds) => {
+                viewTableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i></td></tr>';
+
+                if (!mediaIds || mediaIds.length === 0) {
+                    viewTableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No files uploaded yet.</td></tr>';
+                    return;
+                }
+
+                try {
+                    const url = new URL("{{ route('media-files.by-ids') }}", window.location.origin);
+                    mediaIds.forEach(id => url.searchParams.append('ids[]', id));
+
+                    const response = await fetch(url);
+                    const files = await response.json();
+                    viewTableBody.innerHTML = '';
 
                     files.forEach((file, index) => {
                         const fileName = file.meta_data?.name ?? `File #${file.id}`;
-                        // Architecture Principle: Consume the URL provided by the backend. No path guessing.
-                        const fileUrl = file.url; 
                         const isImage = file.mime_type?.startsWith('image');
+                        const previewHtml = isImage 
+                            ? `<img src="${file.url}" class="rounded border" style="width: 40px; height: 40px; object-fit: cover;">` 
+                            : `<div class="bg-light border rounded d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;"><i class="fas fa-file-alt text-muted"></i></div>`;
+                        
+                        const deleteBtnHtml = canDeleteFiles 
+                            ? `<button type="button" class="btn btn-sm btn-outline-danger delete-file" data-id="${file.id}"><i class="fas fa-trash"></i></button>` 
+                            : '';
 
-                        tbody.append(`
+                        viewTableBody.insertAdjacentHTML('beforeend', `
                             <tr data-id="${file.id}">
                                 <td>${index + 1}</td>
-                                <td>${fileName}</td>
-                                <td>${file.mime_type ?? '-'}</td>
-                                <td>
-                                    ${
-                                        isImage
-                                        ? `<img src="${fileUrl}" height="40" class="rounded" alt="${fileName}">`
-                                        : `<a href="${fileUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary ms-2">View</a>`
-                                    }
-                                    ${
-                                        canDeleteFiles 
-                                        ? `<button type="button" class="btn btn-sm btn-danger delete-file ms-2" data-id="${file.id}">
-                                                <i class="fas fa-trash"></i> Delete
-                                           </button>` 
-                                        : ''
-                                    }
+                                <td>${previewHtml}</td>
+                                <td class="text-truncate" style="max-width: 200px;" title="${fileName}">${fileName}</td>
+                                <td class="text-muted small">${file.remark || '-'}</td>
+                                <td class="text-center">
+                                    <a href="${file.url}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary me-1">
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </a>
+                                    ${deleteBtnHtml}
                                 </td>
                             </tr>
                         `);
                     });
-                })
-                .fail(function() {
-                    tbody.html('<tr><td colspan="4" class="text-center text-danger">Failed to load media. Please try again.</td></tr>');
-                });
-
-            $('#uploadModal').modal('show');
-        });
-
-        // -----------------------------
-        // Delete File
-        // -----------------------------
-        $(document).on('click', '.delete-file', function() {
-            const btn = $(this);
-            const fileId = btn.data('id');
-            if (!fileId) return;
-
-            if (!confirm('Are you sure you want to delete this file?')) return;
-
-            const form = $('#delete-file-form');
-            const action = deleteRouteTemplate.replace(':id', fileId);
-            form.attr('action', action);
-            form.submit();
-        });
-    });
-</script>
-
-
-    </div>
- <script>
-    document.addEventListener("DOMContentLoaded", () => {
-        document.querySelectorAll(".save-row").forEach(button => {
-            button.addEventListener("click", async function() {
-                let row = this.closest("tr");
-                
-                // Get the pre-calculated URL and Method from the button
-                let actionUrl = this.dataset.url;
-                let actionMethod = this.dataset.method; // 'STORE' or 'UPDATE'
-
-                // Validation: Only require socialId if we are strictly updating
-                // If we are 'Storing' (even if Phase 2), we might not need socialId check
-                let socialId = row.dataset.socialId;
-                if (actionMethod === 'UPDATE' && !socialId) {
-                    return alert("Social entry missing for update.");
-                }
-
-                let data = new FormData();
-                // Add your form fields
-                data.append("yes_no", row.querySelector("[name='yes_no']").value);
-                data.append("remarks", row.querySelector("[name='remarks']").value);
-                
-                // Handle optional date
-                let validityDateInput = row.querySelector("[name='validity_date']");
-                data.append("validity_date", validityDateInput ? validityDateInput.value : '');
-                
-                data.append("date_of_entry", row.querySelector("[name='date_of_entry']").value);
-
-                // IMPORTANT: If 'STORE', you usually need to send the parent ID (e.g. compliance_id)
-                // Ensure your row has this input, or append it here manually if needed:
-                // data.append("compliance_id", row.dataset.complianceId); 
-
-                try {
-                    let response = await fetch(actionUrl, { // Use the dynamic URL
-                        method: "POST",
-                        headers: {
-                            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content
-                        },
-                        body: data
-                    });
-
-                    let result = await response.json();
-
-                    if (result.status === "success") {
-                        showAlert("Saved successfully!", "success");
-                        
-                        // If it was a Store action, you might want to reload or update the UI 
-                        // to assign the new ID so the next click becomes an 'Update'
-                        if (actionMethod === 'STORE') {
-                            // Optional: Reload to fetch new IDs or update row dataset manually
-                            // window.location.reload(); 
-                        }
-
-                        if (result.locked) {
-                            row.querySelectorAll("input, select").forEach(x => x.setAttribute("disabled", true));
-                            this.remove();
-                        }
-                    } else {
-                        showAlert(result.message ?? "Error saving.", "danger");
-                    }
                 } catch (error) {
-                    console.error(error);
-                    showAlert("An unexpected error occurred.", "danger");
+                    viewTableBody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Failed to load media files.</td></tr>';
                 }
-            });
+            };
         });
-
-        function showAlert(msg, type) {
-            const el = document.createElement("div");
-            el.className = `alert alert-${type}`; // Fixed syntax here
-            el.textContent = msg;
-            document.querySelector(".container").prepend(el);
-            setTimeout(() => el.remove(), 2500);
-        }
-    });
-</script>
-    {{-- JS Scripts --}}
-    <x-upload-js :subProjectId="$subProject->id" :complianceId="$compliance->id" :phaseId="$phase_id" />
+    </script>
+  
 </x-app-layout>

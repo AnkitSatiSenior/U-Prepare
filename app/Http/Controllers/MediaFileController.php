@@ -12,15 +12,21 @@ use Illuminate\Http\JsonResponse;
 
 class MediaFileController extends Controller
 {
-    public function getByIds(Request $request)
+  public function getByIds(Request $request)
     {
         $ids = $request->input('ids', []);
+
+        // Optimization: Prevent an empty database query if no IDs are passed
+        if (empty($ids)) {
+            return response()->json([]);
+        }
 
         // The model automatically appends the 'url' attribute via HasS3Image trait
         $files = MediaFile::whereIn('id', $ids)->get([
             'id',
             'path',
             'type',
+            'remark', // Added the remark column here
             'meta_data',
             'lat',
             'long',
@@ -233,71 +239,84 @@ class MediaFileController extends Controller
         }
     }
 
-    public function upload(Request $request)
-    {
-        try {
-            $validated = $request->validate([
-                'social_id' => 'required|exists:social_safeguard_entries,id',
-                'media_files' => 'required|array|min:1',
-                'media_files.*' => 'file|max:10240',
+   public function upload(Request $request)
+{
+    try {
+        $validated = $request->validate([
+            'social_id'   => 'required|exists:social_safeguard_entries,id',
+            'media_files' => 'required|array|min:1',
+            'media_files.*' => 'file|max:10240',
+            // Added: Validation for remarks, matching the index of media_files
+            'remarks'     => 'nullable|array',
+            'remarks.*'   => 'nullable|string|max:5000',
+        ]);
+
+        $socialEntry = SocialSafeguardEntry::findOrFail($validated['social_id']);
+
+        $existingMediaIds = $socialEntry->photos_documents_case_studies ?? [];
+        $newMediaIds = [];
+        $uploadedFiles = [];
+
+        // We use the index ($key) to map the specific remark to the specific file
+        foreach ($request->file('media_files') as $key => $file) {
+            
+            // ✅ S3 STORAGE: Direct upload to S3
+            $path = $file->store('uploads', 's3');
+
+            // ✅ REMARK LOGIC: Extract remark for this specific file index
+            $remark = $request->input("remarks.$key");
+
+            $media = MediaFile::create([
+                'path'      => $path,
+                'type'      => $file->getClientMimeType(),
+                'remark'    => $remark, // Now persisted to DB
+                'meta_data' => [
+                    'name' => $file->getClientOriginalName(),
+                ],
             ]);
 
-            $socialEntry = SocialSafeguardEntry::findOrFail($validated['social_id']);
+            $newMediaIds[] = $media->id;
 
-            $existingMediaIds = $socialEntry->photos_documents_case_studies ?? [];
-            $newMediaIds = [];
-            $uploadedFiles = [];
-
-            foreach ($request->file('media_files') as $file) {
-                // ✅ S3 FIX: Store directly to the 's3' disk
-                $path = $file->store('uploads', 's3');
-
-                $media = MediaFile::create([
-                    'path' => $path,
-                    'type' => $file->getClientMimeType(),
-                    'meta_data' => [
-                        'name' => $file->getClientOriginalName(),
-                    ],
-                ]);
-
-                $newMediaIds[] = $media->id;
-
-                $uploadedFiles[] = [
-                    'id' => $media->id,
-                    // ✅ S3 FIX: Use the model's appended URL property
-                    'url' => $media->url,
-                    'name' => $media->meta_data['name'],
-                    'type' => $media->type,
-                    'meta_data' => $media->meta_data,
-                ];
-            }
-
-            $socialEntry->photos_documents_case_studies = array_values(
-                array_unique(array_merge($existingMediaIds, $newMediaIds))
-            );
-            $socialEntry->save();
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Files uploaded successfully.',
-                'social_id' => $socialEntry->id,
-                'files' => $uploadedFiles,
-            ], 200);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => $e->errors()['media_files'][0] ?? 'Validation failed.',
-                'errors' => $e->errors(),
-            ], 422);
-
-        } catch (\Throwable $e) {
-            Log::error('Upload failed', ['error' => $e->getMessage()]);
-
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Upload failed. Please try again.',
-            ], 500);
+            $uploadedFiles[] = [
+                'id'        => $media->id,
+                'url'       => $media->url,
+                'name'      => $media->meta_data['name'],
+                'type'      => $media->type,
+                'remark'    => $media->remark,
+                'meta_data' => $media->meta_data,
+            ];
         }
+
+        // Atomic update of the JSON column in the parent entry
+        $socialEntry->photos_documents_case_studies = array_values(
+            array_unique(array_merge($existingMediaIds, $newMediaIds))
+        );
+        $socialEntry->save();
+
+        return response()->json([
+            'status'    => 'success',
+            'message'   => 'Files and remarks uploaded successfully.',
+            'social_id' => $socialEntry->id,
+            'files'     => $uploadedFiles,
+        ], 200);
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return response()->json([
+            'status'  => 'error',
+            'message' => 'Validation failed.',
+            'errors'  => $e->errors(),
+        ], 422);
+
+    } catch (\Throwable $e) {
+        Log::error('Upload failed', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+
+        return response()->json([
+            'status'  => 'error',
+            'message' => 'Upload failed. Please try again.',
+        ], 500);
     }
+}
 }
