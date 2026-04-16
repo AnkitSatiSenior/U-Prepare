@@ -1,9 +1,9 @@
 <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-light border-bottom-0">
-                <h5 class="modal-title fw-semibold text-dark" id="uploadModalLabel">
-                    <i class="fas fa-images text-primary me-2"></i>Media Manager
+        <div class="modal-content shadow">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold" id="uploadModalLabel">
+                    <i class="fas fa-images me-2"></i>Media Manager
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -31,13 +31,13 @@
                             <input type="hidden" name="social_id" id="modal-social-id">
 
                             <div class="mb-4">
-                                <label for="file-input" class="form-label fw-medium text-secondary small text-uppercase">Select Media Files</label>
+                                <label for="file-input" class="form-label fw-medium small text-uppercase">Select Media Files</label>
                                 <input type="file" class="form-control" id="file-input" multiple accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx">
                             </div>
 
                             <div class="table-responsive d-none border rounded" id="upload-table-container">
-                                <table class="table table-hover align-middle mb-0">
-                                    <thead class="table-light text-secondary small">
+                                <table class="table align-middle mb-0">
+                                    <thead class="small">
                                         <tr>
                                             <th style="width: 60px;" class="text-center">Preview</th>
                                             <th>File Name</th>
@@ -60,11 +60,11 @@
 
                     <div class="tab-pane fade" id="view-pane" role="tabpanel">
                         <div class="table-responsive border rounded">
-                            <table class="table table-hover align-middle mb-0" id="view-table">
-                                <thead class="table-light text-secondary small">
+                            <table class="table align-middle mb-0" id="view-table">
+                                <thead class="small">
                                     <tr>
                                         <th style="width: 50px;" class="text-center">#</th>
-                                        <th style="width: 60px;" class="text-center">Preview</th>
+                                        <th style="width: 60px;" class="text-center">Previews</th>
                                         <th>File Name</th>
                                         <th style="width: 35%;">Remark</th>
                                         <th style="width: 120px;" class="text-center">Action</th>
@@ -72,8 +72,8 @@
                                 </thead>
                                 <tbody id="view-table-body">
                                     <tr>
-                                        <td colspan="5" class="text-center py-4 text-muted">
-                                            <i class="fas fa-inbox fa-2x mb-2 text-light"></i><br>
+                                        <td colspan="5" class="text-center py-4">
+                                            <i class="fas fa-inbox fa-2x mb-2"></i><br>
                                             No files uploaded yet.
                                         </td>
                                     </tr>
@@ -86,4 +86,3 @@
         </div>
     </div>
 </div>
-

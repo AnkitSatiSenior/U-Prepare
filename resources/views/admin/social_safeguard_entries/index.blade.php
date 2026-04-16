@@ -51,7 +51,7 @@
         @endphp
 
         @if ($entries->isNotEmpty())
-            <div class="table-responsive overflow-hidden">
+            <div class="table-responsive">
                 <x-admin.data-table id="social-safeguard-table" :headers="['SL No', 'Item', 'Yes/No', 'Remarks', 'Validity', 'Date of Entry', 'Action', 'Files']" :excel="true" :paging="false" :pageLength="1000">
                     @foreach ($entries as $entry)
                         @php
@@ -125,7 +125,7 @@
                                 @if ($isParent)
                                     <span class="text-muted">—</span>
                                 @else
-                                    <button type="button" class="btn btn-sm btn-primary open-upload-modal " data-entry-id="{{ $entry->id }}" data-social-id="{{ $social?->id }}" data-media-ids='@json($social?->photos_documents_case_studies ?? [])'>
+                                    <button type="button" class="btn btn-sm btn-outline-primary open-upload-modal" data-entry-id="{{ $entry->id }}" data-social-id="{{ $social?->id }}" data-media-ids='@json($social?->photos_documents_case_studies ?? [])'>
                                         <i class="fas {{ $filesExist ? 'fa-folder-open' : 'fa-upload' }}"></i>
                                         {{ $filesExist ? 'Manage' : 'Upload' }}
                                     </button>
@@ -141,70 +141,73 @@
             </div>
         @endif
 
+        {{-- MEDIA UPLOAD MODAL --}}
         <div class="modal fade" id="uploadModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-xl">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title fw-bold"><i class="fas fa-images text-primary"></i> Media Manager</h5>
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header bg-light border-bottom-0">
+                        <h5 class="modal-title fw-bold text-dark"><i class="fas fa-images text-primary me-2"></i> Media Manager</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
-                    <div class="modal-body">
-                        <ul class="nav nav-tabs mb-3" role="tablist">
-                            <li class="nav-item">
-                                <button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button">Upload Files</button>
-                            </li>
-                            <li class="nav-item">
-                                <button class="nav-link" id="view-tab" data-bs-toggle="tab" data-bs-target="#view" type="button">View Uploaded</button>
-                            </li>
-                        </ul>
+                    <div class="modal-body p-0">
+                        <div class="px-4 pt-3 border-bottom">
+                            <ul class="nav nav-tabs border-0" role="tablist">
+                                <li class="nav-item">
+                                    <button class="nav-link active fw-medium" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button">Upload Files</button>
+                                </li>
+                                <li class="nav-item">
+                                    <button class="nav-link fw-medium" id="view-tab" data-bs-toggle="tab" data-bs-target="#view" type="button">View Uploaded</button>
+                                </li>
+                            </ul>
+                        </div>
 
-                        <div class="tab-content">
+                        <div class="tab-content p-4">
                             <div class="tab-pane fade show active" id="upload">
                                 <form id="upload-form">
                                     <input type="hidden" id="modal-social-id">
                                     
-                                    <div class="mb-3">
-                                        <label class="form-label fw-semibold">Select Files</label>
-                                        <input type="file" multiple class="form-control" id="file-input" accept="image/*,application/pdf,.doc,.docx">
+                                    <div class="mb-4">
+                                        <label class="form-label fw-semibold text-secondary small text-uppercase">Select Media Files</label>
+                                        <input type="file" multiple class="form-control" id="file-input" accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx">
                                     </div>
 
-                                    <div class="table-responsive d-none" id="upload-table-container">
-                                        <table class="table table-bordered table-hover align-middle">
-                                            <thead class="table-light">
+                                    <div class="table-responsive d-none border rounded" id="upload-table-container">
+                                        <table class="table  align-middle mb-0">
+                                            <thead class=" text-secondary small">
                                                 <tr>
-                                                    <th style="width: 60px;">Preview</th>
-                                                    <th>File Name</th>
-                                                    <th style="width: 40%;">Remark</th>
-                                                    <th style="width: 100px;">Size</th>
-                                                    <th style="width: 80px;" class="text-center">Action</th>
+                                                    <th style="width: 60px;" class="text-center text-white">Preview</th>
+                                                    <th class="text-white">File Name</th>
+                                                    <th style="width: 40%;" class="text-white">Remark</th>
+                                                    <th style="width: 100px;" class="text-white">Size</th>
+                                                    <th style="width: 60px;" class="text-center text-white">Action</th>
                                                 </tr>
                                             </thead>
                                             <tbody id="upload-table-body"></tbody>
                                         </table>
                                     </div>
 
-                                    <div class="text-end mt-3">
-                                        <button type="submit" class="btn btn-primary d-none" id="upload-btn">
-                                            <i class="fas fa-cloud-upload-alt me-1"></i> Upload All Files
+                                    <div class="text-end mt-4 d-none" id="upload-action-container">
+                                        <button type="submit" class="btn btn-primary px-4" id="upload-btn">
+                                            <i class="fas fa-cloud-upload-alt me-2"></i> Upload All Files
                                         </button>
                                     </div>
                                 </form>
                             </div>
 
                             <div class="tab-pane fade" id="view">
-                                <div class="table-responsive">
-                                    <table class="table table-bordered table-hover align-middle">
-                                        <thead class="table-light">
+                                <div class="table-responsive border rounded">
+                                    <table class="table align-middle mb-0">
+                                        <thead class="text-secondary small">
                                             <tr>
-                                                <th style="width: 50px;">#</th>
-                                                <th style="width: 60px;">Preview</th>
-                                                <th>File Name</th>
-                                                <th>Remark</th>
-                                                <th style="width: 120px;" class="text-center">Action</th>
+                                                <th style="width: 50px;" class="text-center text-white">#</th>
+                                                <th style="width: 60px;" class="text-center text-white">Preview</th>
+                                                <th class="text-white">File Name</th>
+                                                <th class="text-white">Remark</th>
+                                                <th style="width: 120px;" class="text-center text-white">Action</th>
                                             </tr>
                                         </thead>
                                         <tbody id="view-table-body">
-                                            <tr><td colspan="5" class="text-center text-muted">No files uploaded yet.</td></tr>
+                                            <tr><td colspan="5" class="text-center py-4 text-muted"><i class="fas fa-inbox fa-2x mb-2 text-light"></i><br>No files uploaded yet.</td></tr>
                                         </tbody>
                                     </table>
                                 </div>
@@ -228,100 +231,209 @@
             const canDeleteFiles = @json(canRoute('admin.media.destroy'));
             const deleteRouteTemplate = @json(route('admin.media.destroy', ':id'));
             const uploadEndpoint = @json(route('admin.media_files.upload')); 
-            
-            const uploadModalEl = document.getElementById('uploadModal');
-            const uploadModal = new bootstrap.Modal(uploadModalEl);
-            const fileInput = document.getElementById('file-input');
-            const uploadTableContainer = document.getElementById('upload-table-container');
-            const uploadTableBody = document.getElementById('upload-table-body');
-            const uploadBtn = document.getElementById('upload-btn');
-            const uploadForm = document.getElementById('upload-form');
-            const viewTableBody = document.getElementById('view-table-body');
-            const viewTabBtn = document.getElementById('view-tab');
-            
-            let selectedFiles = [];
 
-            const showAlert = (msg, type) => {
-                const alertEl = document.createElement("div");
-                alertEl.className = `alert alert-${type} alert-dismissible fade show shadow-sm position-fixed top-0 start-50 translate-middle-x mt-4`;
-                alertEl.style.zIndex = 1060;
-                alertEl.innerHTML = `${msg} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
-                document.body.appendChild(alertEl);
-                setTimeout(() => alertEl.remove(), 4000);
-            };
-
+            // 1. FILTER LOGIC
             document.getElementById('filter-btn')?.addEventListener('click', () => {
                 const projectId = document.getElementById('project-id').value;
                 const complianceId = document.getElementById('compliance-id').value;
                 const phaseId = document.getElementById('phase-id').value || 0;
                 const dateOfEntry = document.getElementById('date-of-entry').value;
 
-                const urlTemplate = "{{ route('admin.social_safeguard_entries.index', ['project_id' => '__PROJ__', 'compliance_id' => '__COMP__', 'phase_id' => '__PHASE__']) }}"
-                    .replace('__PROJ__', projectId)
-                    .replace('__COMP__', complianceId)
-                    .replace('__PHASE__', phaseId);
-
+                let urlTemplate = "{{ route('admin.social_safeguard_entries.index', ['project_id' => 'PROJECT_ID', 'compliance_id' => 'COMPLIANCE_ID', 'phase_id' => 'PHASE_ID']) }}";
+                urlTemplate = urlTemplate.replace('PROJECT_ID', projectId).replace('COMPLIANCE_ID', complianceId).replace('PHASE_ID', phaseId);
+                
                 window.location.href = `${urlTemplate}?date_of_entry=${encodeURIComponent(dateOfEntry)}`;
             });
 
-            document.body.addEventListener('click', async (e) => {
-                const saveBtn = e.target.closest('.save-row');
-                if (saveBtn) {
-                    const row = saveBtn.closest("tr");
-                    const { url, method } = saveBtn.dataset;
-                    const socialId = row.dataset.socialId;
+            // 2. ALERT HELPER
+            const showAlert = (msg, type) => {
+                const el = document.createElement("div");
+                el.className = `alert alert-${type} shadow-sm`;
+                el.textContent = msg;
+                document.querySelector(".container").prepend(el);
+                setTimeout(() => el.remove(), 4000);
+            };
 
-                    if (method === 'UPDATE' && (!socialId || socialId === '0')) {
+            // 3. ROW SAVING LOGIC (Fixed Backend Validation Mapping)
+            document.querySelectorAll(".save-row").forEach(button => {
+                button.addEventListener("click", async function() {
+                    let row = this.closest("tr");
+                    let actionUrl = this.dataset.url;
+                    let actionMethod = this.dataset.method;
+
+                    let socialId = row.dataset.socialId;
+                    if (actionMethod === 'UPDATE' && (!socialId || socialId === '0')) {
                         return showAlert("Social entry missing for update.", "warning");
                     }
 
-                    const data = new FormData();
-                    data.append("yes_no", row.querySelector("[name='yes_no']")?.value || "");
-                    data.append("remarks", row.querySelector("[name='remarks']")?.value || "");
-                    data.append("validity_date", row.querySelector("[name='validity_date']")?.value || "");
-                    data.append("date_of_entry", row.querySelector("[name='date_of_entry']")?.value || "");
+                    let data = new FormData();
+                    data.append("yes_no", row.querySelector("[name='yes_no']").value);
+                    data.append("remarks", row.querySelector("[name='remarks']").value);
+                    
+                    let validityDateInput = row.querySelector("[name='validity_date']");
+                    data.append("validity_date", validityDateInput ? validityDateInput.value : '');
+                    data.append("date_of_entry", row.querySelector("[name='date_of_entry']").value);
 
-                    const originalHtml = saveBtn.innerHTML;
-                    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                    saveBtn.disabled = true;
+                    // ✅ FIX: Appending the required backend validation fields
+                    data.append("already_define_safeguard_entry_id", row.dataset.entryId);
+                    data.append("sub_package_project_id", document.getElementById('project-id').value);
+                    data.append("social_compliance_id", document.getElementById('compliance-id').value);
+                    data.append("contraction_phase_id", document.getElementById('phase-id').value);
+
+                    const originalHtml = this.innerHTML;
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    this.disabled = true;
 
                     try {
-                        const response = await fetch(url, {
+                        let response = await fetch(actionUrl, {
                             method: "POST",
                             headers: { "X-CSRF-TOKEN": csrfToken },
                             body: data
                         });
 
-                        const result = await response.json();
+                        let result = await response.json();
+
                         if (result.status === "success") {
                             showAlert("Saved successfully!", "success");
-                            if (result.locked) {
-                                row.querySelectorAll("input, select").forEach(el => el.disabled = true);
-                                saveBtn.remove();
-                            } else {
+                            
+                            if (actionMethod === 'STORE') {
                                 row.dataset.socialId = result.social_id || socialId;
-                                saveBtn.dataset.method = 'UPDATE';
-                                saveBtn.classList.replace('btn-success', 'btn-warning');
-                                saveBtn.innerHTML = '<i class="fas fa-edit"></i> Update';
+                                this.dataset.method = 'UPDATE';
+                                this.classList.replace('btn-success', 'btn-warning');
+                                this.innerHTML = '<i class="fas fa-edit"></i> Update';
+                                
+                                const uploadBtn = row.querySelector('.open-upload-modal');
+                                if (uploadBtn) uploadBtn.dataset.socialId = result.social_id || socialId;
+                            } else {
+                                this.innerHTML = originalHtml;
+                            }
+
+                            if (result.locked) {
+                                row.querySelectorAll("input, select").forEach(x => x.setAttribute("disabled", true));
+                                this.remove();
                             }
                         } else {
-                            showAlert(result.message || "Error saving data.", "danger");
-                            saveBtn.innerHTML = originalHtml;
+                            // Extract validation errors if present
+                            let errorMsg = result.message ?? "Error saving.";
+                            if (result.errors) {
+                                errorMsg = Object.values(result.errors).flat().join(" | ");
+                            }
+                            showAlert(errorMsg, "danger");
+                            this.innerHTML = originalHtml;
                         }
                     } catch (error) {
                         showAlert("An unexpected error occurred.", "danger");
-                        saveBtn.innerHTML = originalHtml;
+                        this.innerHTML = originalHtml;
                     } finally {
-                        saveBtn.disabled = false;
+                        this.disabled = false;
                     }
+                });
+            });
+
+            // 4. MEDIA UPLOAD LOGIC
+            const uploadModalEl = document.getElementById('uploadModal');
+            const uploadModal = new bootstrap.Modal(uploadModalEl);
+            const fileInput = document.getElementById('file-input');
+            const uploadTableContainer = document.getElementById('upload-table-container');
+            const uploadTableBody = document.getElementById('upload-table-body');
+            const uploadActionContainer = document.getElementById('upload-action-container');
+            const uploadBtn = document.getElementById('upload-btn');
+            const uploadForm = document.getElementById('upload-form');
+            const viewTableBody = document.getElementById('view-table-body');
+            
+            let fileState = [];
+
+            const syncRemarks = () => {
+                document.querySelectorAll('.remark-input').forEach(input => {
+                    const index = parseInt(input.dataset.index, 10);
+                    if (fileState[index]) fileState[index].remark = input.value;
+                });
+            };
+
+            const formatBytes = (bytes, decimals = 1) => {
+                if (!+bytes) return '0 B';
+                const k = 1024, dm = decimals < 0 ? 0 : decimals, sizes = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+            };
+
+            const renderUploadTable = () => {
+                uploadTableBody.innerHTML = '';
+                
+                if (fileState.length === 0) {
+                    uploadTableContainer.classList.add('d-none');
+                    uploadActionContainer.classList.add('d-none');
+                    fileInput.value = ''; 
+                    return;
                 }
 
+                uploadTableContainer.classList.remove('d-none');
+                uploadActionContainer.classList.remove('d-none');
+
+                fileState.forEach((item, index) => {
+                    const { file, remark } = item;
+                    const isImage = file.type.startsWith('image/');
+                    const previewUrl = isImage ? URL.createObjectURL(file) : null;
+                    
+                    const previewHtml = isImage 
+                        ? `<img src="${previewUrl}" class="rounded border shadow-sm" style="width: 40px; height: 40px; object-fit: cover;">` 
+                        : `<div class="bg-light border rounded d-flex align-items-center justify-content-center text-secondary shadow-sm" style="width: 40px; height: 40px;"><i class="fas fa-file-alt"></i></div>`;
+
+                    uploadTableBody.insertAdjacentHTML('beforeend', `
+                        <tr>
+                            <td class="text-center">${previewHtml}</td>
+                            <td class="text-truncate fw-medium text-dark" style="max-width: 200px;" title="${file.name}">${file.name}</td>
+                            <td>
+                                <input type="text" class="form-control form-control-sm remark-input bg-light" data-index="${index}" value="${remark}" placeholder="Add an optional remark...">
+                            </td>
+                            <td class="small text-muted">${formatBytes(file.size)}</td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-sm btn-light text-danger remove-file border-0" data-index="${index}">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `);
+                });
+            };
+
+            fileInput.addEventListener('change', (e) => {
+                syncRemarks();
+                const newFiles = Array.from(e.target.files).map(file => ({ file, remark: '' }));
+                fileState = [...fileState, ...newFiles];
+                renderUploadTable();
+            });
+
+            uploadTableBody.addEventListener('click', (e) => {
+                const removeBtn = e.target.closest('.remove-file');
+                if (removeBtn) {
+                    syncRemarks();
+                    const index = parseInt(removeBtn.dataset.index, 10);
+                    
+                    if (fileState[index].file.type.startsWith('image/')) {
+                        const img = uploadTableBody.querySelector(`tr:nth-child(${index + 1}) img`);
+                        if (img) URL.revokeObjectURL(img.src);
+                    }
+                    
+                    fileState.splice(index, 1);
+                    renderUploadTable();
+                }
+            });
+
+            document.body.addEventListener('click', (e) => {
                 const openModalBtn = e.target.closest('.open-upload-modal');
                 if (openModalBtn) {
-                    document.getElementById('modal-social-id').value = openModalBtn.dataset.socialId;
+                    const socialId = openModalBtn.dataset.socialId;
+                    
+                    if (!socialId || socialId === '0' || socialId === '') {
+                        showAlert('Please save the entry row first before uploading files.', 'warning');
+                        return;
+                    }
+
+                    document.getElementById('modal-social-id').value = socialId;
                     const mediaIds = JSON.parse(openModalBtn.dataset.mediaIds || "[]");
                     
-                    selectedFiles = [];
+                    fileState = [];
                     renderUploadTable();
                     fileInput.value = "";
                     
@@ -339,77 +451,23 @@
                 }
             });
 
-            fileInput.addEventListener('change', (e) => {
-                selectedFiles = Array.from(e.target.files);
-                renderUploadTable();
-            });
-
-            uploadTableBody.addEventListener('click', (e) => {
-                const removeBtn = e.target.closest('.remove-file');
-                if (removeBtn) {
-                    const index = parseInt(removeBtn.dataset.index, 10);
-                    selectedFiles.splice(index, 1);
-                    renderUploadTable();
-                }
-            });
-
-            const renderUploadTable = () => {
-                uploadTableBody.innerHTML = '';
-                
-                if (selectedFiles.length === 0) {
-                    uploadTableContainer.classList.add('d-none');
-                    uploadBtn.classList.add('d-none');
-                    fileInput.value = ""; 
-                    return;
-                }
-
-                uploadTableContainer.classList.remove('d-none');
-                uploadBtn.classList.remove('d-none');
-
-                selectedFiles.forEach((file, index) => {
-                    const isImage = file.type.startsWith('image/');
-                    const previewUrl = isImage ? URL.createObjectURL(file) : null;
-                    const previewHtml = isImage 
-                        ? `<img src="${previewUrl}" class="rounded border" style="width: 40px; height: 40px; object-fit: cover;">` 
-                        : `<div class="bg-light border rounded d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;"><i class="fas fa-file-alt text-muted"></i></div>`;
-
-                    uploadTableBody.insertAdjacentHTML('beforeend', `
-                        <tr>
-                            <td>${previewHtml}</td>
-                            <td class="text-truncate" style="max-width: 200px;" title="${file.name}">${file.name}</td>
-                            <td>
-                                <input type="text" id="remark-${index}" class="form-control form-control-sm" placeholder="Add a remark...">
-                            </td>
-                            <td class="small text-muted">${(file.size / 1024).toFixed(1)} KB</td>
-                            <td class="text-center">
-                                <button type="button" class="btn btn-sm btn-outline-danger border-0 remove-file" data-index="${index}">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    `);
-                });
-            };
-
             uploadForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                syncRemarks();
+
                 const socialId = document.getElementById('modal-social-id').value;
-                
-                if (!socialId || socialId === '0') {
-                    return showAlert('Please save the entry row first before uploading files.', 'warning');
-                }
+                if (!socialId || fileState.length === 0) return;
 
                 const formData = new FormData();
                 formData.append('social_id', socialId);
 
-                selectedFiles.forEach((file, index) => {
-                    formData.append(`media_files[${index}]`, file);
-                    const remarkInput = document.getElementById(`remark-${index}`);
-                    formData.append(`remarks[${index}]`, remarkInput ? remarkInput.value : '');
+                fileState.forEach((item, index) => {
+                    formData.append(`media_files[${index}]`, item.file);
+                    formData.append(`remarks[${index}]`, item.remark);
                 });
 
                 const originalBtnHtml = uploadBtn.innerHTML;
-                uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Uploading...';
+                uploadBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Uploading...';
                 uploadBtn.disabled = true;
 
                 try {
@@ -420,22 +478,23 @@
                     });
 
                     const data = await response.json();
-                    
+
                     if (data.status === 'success') {
                         showAlert('Files uploaded successfully!', 'success');
-                        selectedFiles = [];
+                        
+                        fileState = [];
                         renderUploadTable();
                         
                         const currentMediaIds = data.files.map(f => f.id);
                         document.querySelector(`tr[data-social-id="${socialId}"] .open-upload-modal`).dataset.mediaIds = JSON.stringify(currentMediaIds);
                         
                         loadViewTable(currentMediaIds);
-                        bootstrap.Tab.getOrCreateInstance(viewTabBtn).show();
+                        bootstrap.Tab.getOrCreateInstance(document.getElementById('view-tab')).show();
                     } else {
                         showAlert(data.message || 'Upload failed.', 'danger');
                     }
                 } catch (error) {
-                    showAlert('An unexpected error occurred during upload.', 'danger');
+                    showAlert('An unexpected network error occurred.', 'danger');
                 } finally {
                     uploadBtn.innerHTML = originalBtnHtml;
                     uploadBtn.disabled = false;
@@ -446,7 +505,7 @@
                 viewTableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i></td></tr>';
 
                 if (!mediaIds || mediaIds.length === 0) {
-                    viewTableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No files uploaded yet.</td></tr>';
+                    viewTableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted"><i class="fas fa-inbox fa-2x mb-2 text-light"></i><br>No files uploaded yet.</td></tr>';
                     return;
                 }
 
@@ -463,20 +522,20 @@
                         const isImage = file.mime_type?.startsWith('image');
                         const previewHtml = isImage 
                             ? `<img src="${file.url}" class="rounded border" style="width: 40px; height: 40px; object-fit: cover;">` 
-                            : `<div class="bg-light border rounded d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;"><i class="fas fa-file-alt text-muted"></i></div>`;
+                            : `<div class="bg-light border rounded d-flex align-items-center justify-content-center text-secondary" style="width: 40px; height: 40px;"><i class="fas fa-file-alt"></i></div>`;
                         
                         const deleteBtnHtml = canDeleteFiles 
-                            ? `<button type="button" class="btn btn-sm btn-outline-danger delete-file" data-id="${file.id}"><i class="fas fa-trash"></i></button>` 
+                            ? `<button type="button" class="btn btn-sm btn-outline-danger border-0 delete-file" data-id="${file.id}"><i class="fas fa-trash"></i></button>` 
                             : '';
 
                         viewTableBody.insertAdjacentHTML('beforeend', `
                             <tr data-id="${file.id}">
-                                <td>${index + 1}</td>
-                                <td>${previewHtml}</td>
-                                <td class="text-truncate" style="max-width: 200px;" title="${fileName}">${fileName}</td>
+                                <td class="text-center">${index + 1}</td>
+                                <td class="text-center">${previewHtml}</td>
+                                <td class="text-truncate fw-medium text-dark" style="max-width: 200px;" title="${fileName}">${fileName}</td>
                                 <td class="text-muted small">${file.remark || '-'}</td>
                                 <td class="text-center">
-                                    <a href="${file.url}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary me-1">
+                                    <a href="${file.url}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-light text-primary me-1 border-0">
                                         <i class="fas fa-external-link-alt"></i>
                                     </a>
                                     ${deleteBtnHtml}
@@ -485,10 +544,10 @@
                         `);
                     });
                 } catch (error) {
-                    viewTableBody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Failed to load media files.</td></tr>';
+                    viewTableBody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Failed to load media files.</td></tr>';
                 }
             };
         });
     </script>
-  
+   
 </x-app-layout>
