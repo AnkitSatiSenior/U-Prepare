@@ -125,7 +125,7 @@
                                 @if ($isParent)
                                     <span class="text-muted">—</span>
                                 @else
-                                    <button type="button" class="btn btn-sm btn-outline-primary open-upload-modal text-black" data-entry-id="{{ $entry->id }}" data-social-id="{{ $social?->id }}" data-media-ids='@json($social?->photos_documents_case_studies ?? [])'>
+                                    <button type="button" class="btn btn-sm btn-primary open-upload-modal " data-entry-id="{{ $entry->id }}" data-social-id="{{ $social?->id }}" data-media-ids='@json($social?->photos_documents_case_studies ?? [])'>
                                         <i class="fas {{ $filesExist ? 'fa-folder-open' : 'fa-upload' }}"></i>
                                         {{ $filesExist ? 'Manage' : 'Upload' }}
                                     </button>
