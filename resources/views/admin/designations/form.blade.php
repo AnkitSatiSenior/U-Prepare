@@ -1,19 +1,16 @@
 <x-app-layout>
     <div class="container-fluid">
-        <!-- Header + Breadcrumb -->
         <x-admin.breadcrumb-header
-    icon="fas fa-id-card-alt text-primary"
-    :title="isset($designation) ? 'Edit Designation' : 'Create New Designation'"
-    :breadcrumbs="[
-        ['route' => 'dashboard', 'label' => '<i class=\'fas fa-home\'></i>'],
-        ['label' => 'Admin'],
-        ['route' => 'admin.designations.index', 'label' => 'Designations'],
-        ['label' => isset($designation) ? 'Edit' : 'Create']
-    ]"
-/>
+            icon="fas fa-id-card-alt text-primary"
+            :title="isset($designation) ? 'Edit Designation' : 'Create New Designation'"
+            :breadcrumbs="[
+                ['route' => 'dashboard', 'label' => '<i class=\'fas fa-home\'></i>'],
+                ['label' => 'Admin'],
+                ['route' => 'admin.designations.index', 'label' => 'Designations'],
+                ['label' => isset($designation) ? 'Edit' : 'Create']
+            ]"
+        />
 
-
-        <!-- Success/Error Messages -->
         <div class="row mb-3">
             <div class="col-md-12">
                 @if (session('success'))
@@ -32,7 +29,7 @@
                 @endif
             </div>
         </div>
-        <!-- Form Card -->
+
         <div class="card shadow-sm">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0 text-primary">
@@ -54,18 +51,42 @@
                     @endif
 
                     <div class="row g-3">
-                        <!-- Designation Title -->
                         <div class="col-md-6">
                             <x-label for="title" value="Designation Title" required />
-                            <x-input id="title" name="title" type="text" :value="old('title', $designation->title ?? '')"
-                                placeholder="Enter designation title" required autofocus />
-                            <x-input-error for="title" class="mt-2" />
+                            <x-input 
+                                id="title" 
+                                name="title" 
+                                type="text" 
+                                class="{{ $errors->has('title') ? 'is-invalid' : '' }}"
+                                :value="old('title', $designation->title ?? '')"
+                                placeholder="e.g. Senior Software Engineer" 
+                                required 
+                                autofocus 
+                            />
+                            @error('title')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
 
-
+                        <div class="col-md-6">
+                            <x-label for="level" value="Hierarchy Rank (Level)" required />
+                            <x-input 
+                                id="level" 
+                                name="level" 
+                                type="number" 
+                                class="{{ $errors->has('level') ? 'is-invalid' : '' }}"
+                                :value="old('level', $designation->level ?? '0')"
+                                min="0" 
+                                max="1000" 
+                                required 
+                            />
+                            <small class="text-muted">Used for organizational ranking (Higher = more senior).</small>
+                            @error('level')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
                     </div>
 
-                    <!-- Form Actions -->
                     <div class="mt-4 d-flex justify-content-end border-top pt-3">
                         <x-button type="button" variant="secondary"
                             onclick="window.location.href='{{ route('admin.designations.index') }}'" class="me-2">

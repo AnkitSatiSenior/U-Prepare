@@ -1,18 +1,15 @@
 <x-app-layout>
     <div class="container-fluid">
-        <!-- Breadcrumb -->
         <x-admin.breadcrumb-header
-    icon="fas fa-id-card-alt text-primary"
-    title="Designations Management"
-    :breadcrumbs="[
-        ['route' => 'dashboard', 'label' => '<i class=\'fas fa-home\'></i>'],
-        ['label' => 'Admin'],
-        ['label' => 'Designations']
-    ]"
-/>
+            icon="fas fa-id-card-alt text-primary"
+            title="Designations Management"
+            :breadcrumbs="[
+                ['route' => 'dashboard', 'label' => '<i class=\'fas fa-home\'></i>'],
+                ['label' => 'Admin'],
+                ['label' => 'Designations']
+            ]"
+        />
 
-
-        <!-- Success/Error Messages -->
         @if (session('success'))
             <div class="row mb-3">
                 <div class="col-md-12">
@@ -29,7 +26,6 @@
             </div>
         @endif
 
-        <!-- Designations Table -->
         <div class="card shadow-sm">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0 text-primary">
@@ -41,14 +37,34 @@
             </div>
 
             <div class="card-body">
-                <x-admin.data-table id="designations-table" :headers="['ID', 'Title', 'Created At', 'Actions']" :excel="true" :print="true"
-                    title="Designations Export" searchPlaceholder="Search designations..." resourceName="designations"
+                {{-- Updated headers to include 'Level' --}}
+                <x-admin.data-table id="designations-table" 
+                    :headers="['ID', 'Title', 'Level', 'Created At', 'Actions']" 
+                    :excel="true" 
+                    :print="true"
+                    title="Designations Export" 
+                    searchPlaceholder="Search designations..." 
+                    resourceName="designations"
                     :pageLength="10">
+                    
                     @foreach ($designations as $designation)
                         <tr>
                             <td>{{ $designation->id }}</td>
-                            <td>{{ $designation->title }}</td>
-                            <td>{{ $designation->created_at->format('M d, Y h:i A') }}</td>
+                            <td class="fw-bold text-dark">{{ $designation->title }}</td>
+                            
+                            {{-- Added Level Badge for visual hierarchy --}}
+                            <td>
+                                <span class="badge bg-light text-primary border border-primary">
+                                    <i class="fas fa-signal me-1"></i> Rank {{ $designation->level }}
+                                </span>
+                            </td>
+
+                            <td>
+                                <span class="text-muted">
+                                    {{ $designation->created_at->format('M d, Y') }}
+                                </span>
+                            </td>
+
                             <td>
                                 <div class="d-flex justify-content-end gap-2">
                                     <a href="{{ route('admin.designations.edit', $designation) }}"

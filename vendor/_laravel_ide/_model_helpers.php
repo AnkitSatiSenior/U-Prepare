@@ -6180,6 +6180,7 @@ namespace App\Models {
      * @method static \Illuminate\Database\Eloquent\Builder<Designation>|Designation newModelQuery()
      * @method static \Illuminate\Database\Eloquent\Builder<Designation>|Designation newQuery()
      * @method static \Illuminate\Database\Eloquent\Builder<Designation>|Designation query()
+     * @method static \Illuminate\Database\Eloquent\Builder<Designation>|Designation highestRank() {@see App\Models\Designation::scopeHighestRank()}
      * @method static \Illuminate\Database\Eloquent\Builder<Designation>|Designation select(mixed $columns)
      * @method static \Illuminate\Database\Eloquent\Builder<Designation>|Designation selectSub(\Closure|\Illuminate\Database\Query\Builder|\Illuminate\Database\Eloquent\Builder<mixed>|string $query, string $as)
      * @method static \Illuminate\Database\Eloquent\Builder<Designation>|Designation selectRaw(string $expression)
