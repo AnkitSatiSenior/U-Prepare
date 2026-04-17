@@ -112,4 +112,24 @@ class User extends Authenticatable
             return $fallback;
         }
     }
+    /**
+     * Scope to find targeted users for Escalation mapping.
+     */
+    public function scopeMappedToEscalation($query, array $levels, int $subPackageId, int $complianceId)
+    {
+        return $query->where(function ($q) use ($levels) {
+            // Must meet the Level requirement via Role OR Designation
+            $q->whereHas('role', fn($r) => $r->whereIn('level', $levels))
+              ->orWhereHas('designation', fn($d) => $d->whereIn('level', $levels));
+        })
+        // Must be explicitly mapped in the pivot table for this EXACT violation
+        ->whereExists(function ($query) use ($subPackageId, $complianceId) {
+            $query->select(\Illuminate\Support\Facades\DB::raw(1))
+                  ->from('user_safeguard_subpackage as uss')
+                  ->whereColumn('uss.user_id', 'users.id')
+                  ->where('uss.sub_package_project_id', $subPackageId)
+                  ->where('uss.safeguard_compliance_id', $complianceId)
+                  ->whereNull('uss.deleted_at'); 
+        });
+    }
 }
