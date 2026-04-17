@@ -1,6 +1,5 @@
 <x-app-layout>
     <div class="container-fluid">
-        <!-- Breadcrumbs and Header -->
         <div class="row mb-4">
             <div class="col-md-12">
                 <div class="d-flex justify-content-between align-items-center">
@@ -17,6 +16,7 @@
                 </div>
             </div>
         </div>
+
         @if (session('success'))
             <div class="row mb-3">
                 <div class="col-md-12">
@@ -32,7 +32,7 @@
                 </div>
             </div>
         @endif
-        <!-- Card with Table -->
+
         <div class="card shadow-sm">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0 text-success">
@@ -43,16 +43,21 @@
                 </a>
             </div>
             <div class="card-body">
-                <x-admin.data-table :headers="['ID', 'Role Name', 'Actions']" id="roles-table" :excel="true" :print="true"
+                {{-- 1. Added 'Level' to the headers array --}}
+                <x-admin.data-table :headers="['ID', 'Role Name', 'Level', 'Actions']" id="roles-table" :excel="true" :print="true"
                     :pageLength="10">
                     @foreach ($roles as $role)
                         <tr>
                             <td>{{ $role->id }}</td>
+                            <td>{{ $role->name }}</td>
+                            
+                            {{-- 2. Added the Level column with a badge --}}
                             <td>
-
-                                {{ $role->name }}
-
+                                <span class="badge bg-info text-dark">
+                                    <i class="fas fa-layer-group me-1"></i> Level {{ $role->level }}
+                                </span>
                             </td>
+
                             <td>
                                 <div class="d-flex justify-content-end">
                                     <a href="{{ route('admin.roles.edit', $role) }}"

@@ -1,6 +1,5 @@
 <x-app-layout>
     <div class="container-fluid">
-        <!-- Breadcrumbs and Header -->
         <div class="row mb-4">
             <div class="col-md-12">
                 <div class="d-flex justify-content-between align-items-center">
@@ -20,7 +19,6 @@
             </div>
         </div>
 
-        <!-- Session Alerts -->
         @if(session('success'))
             <div class="row mb-3">
                 <div class="col-md-12">
@@ -62,7 +60,6 @@
             </div>
         @endif
 
-        <!-- Form Card -->
         <div class="card shadow-sm">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0 text-success">
@@ -78,8 +75,8 @@
                     @csrf
                     @if(isset($role)) @method('PUT') @endif
 
-                    <div class="row mb-3">
-                        <div class="col-md-6">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
                             <x-label for="name" value="Role Name" required />
                             <x-input 
                                 type="text" 
@@ -90,6 +87,24 @@
                                 required
                             />
                             @error('name')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <x-label for="level" value="Role Level (Hierarchy)" required />
+                            <x-input 
+                                type="number" 
+                                name="level" 
+                                id="level" 
+                                class="form-control {{ $errors->has('level') ? 'is-invalid' : '' }}"
+                                value="{{ old('level', $role->level ?? '0') }}" 
+                                min="0" 
+                                max="1000"
+                                required
+                            />
+                            <small class="text-muted">Defines hierarchy (0 = lowest, 1000 = highest).</small>
+                            @error('level')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>

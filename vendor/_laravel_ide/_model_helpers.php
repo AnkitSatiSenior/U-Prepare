@@ -17225,6 +17225,7 @@ namespace App\Models {
      *
      * @property \Illuminate\Support\Carbon|null $updated_at
      * @property \Illuminate\Support\Carbon|null $created_at
+     * @property integer $level
      * @property string $name
      * @property int $id
      * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\SafeguardCompliance> $safeguardCompliances
@@ -17235,6 +17236,7 @@ namespace App\Models {
      * @property-read int|null $routes_count
      * @method static \Illuminate\Database\Eloquent\Builder<Role>|Role whereId($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Role>|Role whereName($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<Role>|Role whereLevel($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Role>|Role whereCreatedAt($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Role>|Role whereUpdatedAt($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Role>|Role newModelQuery()

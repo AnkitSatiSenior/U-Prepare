@@ -9,7 +9,22 @@ class Role extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name'];
+    /**
+     * The attributes that are mass assignable.
+     * Added 'level' to allow creation/updates via Role::create().
+     */
+    protected $fillable = [
+        'name',
+        'level', 
+    ];
+
+    /**
+     * The attributes that should be cast.
+     * Ensures 'level' is always treated as an integer in your logic.
+     */
+    protected $casts = [
+        'level' => 'integer',
+    ];
 
     /**
      * Role has many SafeguardCompliances
