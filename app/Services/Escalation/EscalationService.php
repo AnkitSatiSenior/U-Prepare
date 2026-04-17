@@ -2,33 +2,101 @@
 
 namespace App\Services\Escalation;
 
-// --- ALL REQUIRED IMPORTS ---
-use App\Models\User;
 use App\Models\SubPackageProject;
 use App\Models\SafeguardCompliance;
+use App\Models\EscalationLog;
 use App\Jobs\SendEscalationEmailJob;
 use App\Jobs\SendEscalationWhatsAppJob;
+use App\Services\Escalation\BaseEscalationService;
+use App\Services\Escalation\PhysicalProgressEscalationService;
+use App\Services\Escalation\FinancialEscalationService;
+use App\Services\Escalation\SecurityEscalationService;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
-class EscalationService
+/**
+ * MASTER ESCALATION SERVICE — ORCHESTRATOR
+ *
+ * This is the single entry point called by:
+ *   - The Artisan scheduled command (runs daily via cron)
+ *   - The manual "Run Engine" button in the admin UI
+ *
+ * It coordinates all 4 escalation categories:
+ *   1. Social Safeguard   — Pre-Construction pending while During Construction started
+ *   2. Physical Progress  — No BOQ/EPC entries in expected timeframe
+ *   3. Financial Progress — No financial bill submission in expected interval
+ *   4. Contract Security  — Security certificate near expiry or expired
+ */
+class EscalationService extends BaseEscalationService
 {
-    /**
-     * Process a single SubPackageProject.
-     */
-    public function processSubProject(SubPackageProject $subProject, $console = null)
-    {
-        if ($console) $console->info("Evaluating SubProject: [ID: {$subProject->id}] {$subProject->name}");
+    public function __construct(
+        private readonly PhysicalProgressEscalationService $physicalService,
+        private readonly FinancialEscalationService         $financialService,
+        private readonly SecurityEscalationService          $securityService,
+    ) {}
 
-        // Fetch all active compliance categories (e.g., 1 for Environmental, 2 for Social)
+    /**
+     * MAIN ENTRY POINT
+     * Run the full escalation engine across all categories.
+     */
+    public function runFullEngine($console = null): void
+    {
+        if ($console) $console->info('════════════════════════════════════════════');
+        if ($console) $console->info('  ESCALATION ENGINE — FULL RUN');
+        if ($console) $console->info('════════════════════════════════════════════');
+
+        $subProjects = SubPackageProject::all();
+
+        if ($console) $console->info("Found {$subProjects->count()} sub-projects to evaluate.");
+        if ($console) $console->newLine();
+
+        // ── Category 1: Social Safeguard ──────────────────────────────────────
+        if ($console) $console->info('▶ [1/4] Processing SOCIAL SAFEGUARD escalations...');
+        foreach ($subProjects as $subProject) {
+            $this->processSubProject($subProject, $console);
+        }
+
+        // ── Category 2: Physical Progress ─────────────────────────────────────
+        if ($console) $console->newLine();
+        if ($console) $console->info('▶ [2/4] Processing PHYSICAL PROGRESS escalations...');
+        foreach ($subProjects as $subProject) {
+            $this->physicalService->processSubProject($subProject, $console);
+        }
+
+        // ── Category 3: Financial Progress ────────────────────────────────────
+        if ($console) $console->newLine();
+        if ($console) $console->info('▶ [3/4] Processing FINANCIAL PROGRESS escalations...');
+        foreach ($subProjects as $subProject) {
+            $this->financialService->processSubProject($subProject, $console);
+        }
+
+        // ── Category 4: Contract Security ─────────────────────────────────────
+        if ($console) $console->newLine();
+        if ($console) $console->info('▶ [4/4] Processing CONTRACT SECURITY escalations...');
+        $this->securityService->processAllSecurities($console);
+
+        if ($console) $console->newLine();
+        if ($console) $console->info('════════════════════════════════════════════');
+        if ($console) $console->info('  ENGINE COMPLETE ✅');
+        if ($console) $console->info('════════════════════════════════════════════');
+    }
+
+    /**
+     * Process a single SubPackageProject for SOCIAL SAFEGUARD violations.
+     * Kept for backward compatibility with existing command and controller code.
+     */
+    public function processSubProject(SubPackageProject $subProject, $console = null): void
+    {
+        if ($console) $console->line("Evaluating SubProject: [ID: {$subProject->id}] {$subProject->name}");
+
         $compliances = SafeguardCompliance::all();
 
         foreach ($compliances as $compliance) {
-            $daysViolated = $this->detectViolation($subProject, $compliance->id, $console);
+            $daysViolated = $this->detectSocialViolation($subProject, $compliance->id, $console);
 
             if ($daysViolated !== null) {
                 if ($console) $console->warn("  ⚠️ [{$compliance->name}] Violation Detected! Days Elapsed: {$daysViolated}");
-                $this->triggerEscalation($subProject, $compliance, $daysViolated, $console);
+                $this->triggerEscalation($subProject, EscalationLog::CATEGORY_SOCIAL, $daysViolated, $compliance, $console);
             } else {
                 if ($console) $console->line("  🟢 [{$compliance->name}] No Violation.");
             }
@@ -36,145 +104,49 @@ class EscalationService
     }
 
     /**
-     * VIOLATION DETECTOR: Checks if Phase 2 started but Phase 1 is incomplete.
+     * SOCIAL SAFEGUARD VIOLATION DETECTOR
+     * Checks if Phase 2 (During Construction) started while Phase 1 (Pre-Construction) is incomplete.
+     *
+     * (Previously named detectViolation — renamed to avoid collision with BaseEscalationService contract.)
      */
-    public function detectViolation(SubPackageProject $subProject, int $complianceId, $console = null): ?int
+    public function detectSocialViolation(SubPackageProject $subProject, int $complianceId, $console = null): ?int
     {
-        // 1. Fetch progress specifically for THIS compliance type
         $progressData = $subProject->socialSafeguardProgress($complianceId);
-        
+
         if (empty($progressData[$complianceId])) {
-            if ($console) $console->line("  - Skipping: No safeguard data entered yet.");
-            return null; 
+            if ($console) $console->line('  - Skipping: No safeguard data entered yet.');
+            return null;
         }
 
-        $phases = collect($progressData[$complianceId]['phases']);
+        $phases          = collect($progressData[$complianceId]['phases']);
         $preConstruction = $phases->firstWhere('id', 1);
 
-        // CHECK 1: If Pre-Construction is 100% complete, no violation.
         if ($preConstruction && $preConstruction['percent'] >= 100) {
-            if ($console) $console->line("  - Skipping: Pre-Construction is 100% complete.");
-            return null; 
+            if ($console) $console->line('  - Skipping: Pre-Construction is 100% complete.');
+            return null;
         }
 
-        // CHECK 2: Has 'During Construction' (Phase 2) started?
         $firstDuringEntry = DB::table('social_safeguard_entries')
             ->where('sub_package_project_id', $subProject->id)
-            ->where('social_compliance_id', $complianceId)
-            ->where('contraction_phase_id', 2)
+            ->where('social_compliance_id',   $complianceId)
+            ->where('contraction_phase_id',   2)
             ->orderBy('date_of_entry', 'asc')
             ->first();
 
         if (!$firstDuringEntry) {
-            if ($console) $console->line("  - Skipping: During Construction (Phase 2) has not started yet.");
-            return null; // Phase 2 hasn't started yet
+            if ($console) $console->line('  - Skipping: During Construction (Phase 2) has not started yet.');
+            return null;
         }
 
-        // Calculate exact days violated
         $startDate = Carbon::parse($firstDuringEntry->date_of_entry);
         return (int) $startDate->startOfDay()->diffInDays(now()->startOfDay());
     }
 
     /**
-     * USES THE ESCALATION MATRIX: Determines which threshold rule to apply.
+     * Backward-compat alias used by EscalationLogController::triggerEngine()
+     * when it calls $service->processSubProject($project) in a loop.
+     * This override ensures the controller still works after refactor.
+     *
+     * For a FULL engine run (all 4 categories), use runFullEngine() instead.
      */
-    private function triggerEscalation(SubPackageProject $subProject, SafeguardCompliance $compliance, int $daysViolated, $console = null)
-    {
-        // 🚨 THIS CALLS YOUR ESCALATION MATRIX FILE 🚨
-        $rules = EscalationMatrix::getRules();
-        $applicableDayMark = null;
-
-        // Sort days descending (30, 28, 26... 1) to find the highest crossed threshold
-        $sortedDays = array_keys($rules);
-        rsort($sortedDays); 
-
-        foreach ($sortedDays as $day) {
-            if ($daysViolated >= $day) {
-                $applicableDayMark = $day;
-                break;
-            }
-        }
-
-        if ($applicableDayMark === null) {
-            if ($console) $console->line("  - No escalation rules qualify for Day {$daysViolated}.");
-            return; 
-        }
-
-        if ($console) $console->line("  -> Applying Matrix Rule for Day {$applicableDayMark} (Actual Days: {$daysViolated})");
-
-        // Execute the specific actions defined in the Matrix
-        foreach ($rules[$applicableDayMark] as $action) {
-            $this->executeAction($subProject, $compliance, $applicableDayMark, $action, $daysViolated, $console);
-        }
-    }
-
-    /**
-     * Executes the action: Checks idempotency, finds users, dispatches Jobs, and logs it.
-     */
-    private function executeAction(SubPackageProject $subProject, SafeguardCompliance $compliance, int $dayMark, array $action, int $actualDaysViolated, $console = null)
-    {
-        $level = $action['level'];
-
-        // 1. Idempotency Check: Prevent duplicate alerts for the same threshold
-        $alreadySent = DB::table('escalation_logs')
-            ->where('escalatable_id', $subProject->id)
-            ->where('escalatable_type', get_class($subProject))
-            ->where('compliance_id', $compliance->id)
-            ->where('day_mark', $dayMark)
-            ->where('level', $level)
-            ->exists();
-
-        if ($alreadySent) {
-            if ($console) $console->line("  - 🔴 SKIPPED Level {$level}: Alert already sent previously (Idempotency Lock).");
-            return; 
-        }
-
-        // 2. Fetch Targeted Users strictly mapped to this project & compliance
-        $usersToNotify = User::mappedToEscalation([$level], $subProject->id, $compliance->id)->get();
-
-        if ($usersToNotify->isEmpty()) {
-            if ($console) $console->line("  - 🔴 SKIPPED Level {$level}: No users at this level are assigned to this project's {$compliance->name} compliance.");
-            return; 
-        }
-
-        // --- PREPARE THE WHATSAPP MESSAGE TEXT ONCE ---
-        $isAlert = $action['type'] === 'alert';
-        $messageTitle = $isAlert 
-            ? "⚠️ URGENT ALERT: Compliance Violation" 
-            : "⚠️ REMINDER #{$action['count_so_far']}: Compliance Violation";
-
-        $whatsappMessage = "{$messageTitle}\n\n"
-                         . "Project: {$subProject->name}\n"
-                         . "Compliance: {$compliance->name}\n"
-                         . "Overdue By: {$actualDaysViolated} Days\n\n"
-                         . "Phase 1 is incomplete while Phase 2 has started. Please resolve immediately.";
-
-        // 3. Dispatch Jobs for each user
-        foreach ($usersToNotify as $user) {
-            if ($console) $console->info("  - 🟢 DISPATCHING JOBS: To User ID {$user->id} ({$user->name}) at Level {$level}.");
-            
-            // Dispatch Email Job
-            if ($user->email) {
-                SendEscalationEmailJob::dispatch($subProject, $compliance, $user, $action, $actualDaysViolated);
-            }
-
-            // Dispatch WhatsApp Job
-            if ($user->phone_no) {
-                $validPhone = $user->phone_no; 
-                SendEscalationWhatsAppJob::dispatch($subProject, $user, $validPhone, $whatsappMessage);
-            }
-        }
-
-        // 4. Record to Database so we can view it in the UI and prevent duplicates
-        DB::table('escalation_logs')->insert([
-            'escalatable_id'   => $subProject->id,
-            'escalatable_type' => get_class($subProject),
-            'compliance_id'    => $compliance->id,
-            'day_mark'         => $dayMark,
-            'level'            => $level,
-            'type'             => $action['type'],
-            'created_at'       => now(),
-            'updated_at'       => now(),
-        ]);
-    }
 }
