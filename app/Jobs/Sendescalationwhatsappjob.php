@@ -1,25 +1,26 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
 use App\Models\User;
+use App\Models\WhatsAppLog;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Exception;
 
 /**
- * SEND ESCALATION WHATSAPP JOB — MULTI-CATEGORY
+ * SEND ESCALATION WHATSAPP JOB
  *
- * Sends a WhatsApp message to a user via the configured WhatsApp API.
- * Works for ALL 4 escalation categories — the message content is
- * fully assembled by BaseEscalationService before dispatch.
- *
- * Usage:
- *   SendEscalationWhatsAppJob::dispatch($user, $phoneNumber, $messageText);
+ * Matches the EXACT same API pattern as SendExpiredSecurityWhatsAppJob
+ * (x-api-key header, same endpoint, WhatsAppLog logging).
  */
 class SendEscalationWhatsAppJob implements ShouldQueue
 {
@@ -29,51 +30,83 @@ class SendEscalationWhatsAppJob implements ShouldQueue
     public int $timeout = 30;
 
     public function __construct(
-        private readonly User   $user,
-        private readonly string $phone,
-        private readonly string $message,
+        public readonly User   $user,
+        public readonly string $validPhone,
+        public readonly string $message,
     ) {}
 
     public function handle(): void
     {
-        // ── Sanitise phone number ────────────────────────────────────────────
-        // Strip all non-digit characters, then ensure country code is present.
-        $phone = preg_replace('/\D/', '', $this->phone);
+        $baseUrl = rtrim((string) config('services.whatsapp.url', ''), '/');
+        $apiKey  = (string) config('services.whatsapp.key', '');
+        $apiUrl  = $baseUrl . '/api/whatsapp/send-text';
 
-        // If number doesn't start with a country code (heuristic: < 11 digits),
-        // prepend the default country code from config.
-        if (strlen($phone) < 11) {
-            $defaultCode = config('whatsapp.default_country_code', '91'); // India default
-            $phone = $defaultCode . $phone;
+        $logData = [
+            'user_id'      => $this->user->id,
+            'to_number'    => $this->validPhone,
+            'message_body' => $this->message,
+            'status'       => 'queued',
+            'sent_at'      => now(),
+        ];
+
+        if (empty($baseUrl) || empty($apiKey)) {
+            Log::warning('[EscalationWhatsApp] WhatsApp not configured — skipping.', [
+                'user_id' => $this->user->id,
+            ]);
+            return;
         }
 
         try {
-            $apiUrl   = config('whatsapp.api_url');
-            $apiToken = config('whatsapp.api_token');
-
-            if (!$apiUrl || !$apiToken) {
-                Log::warning("WhatsApp not configured — skipping escalation WhatsApp for User #{$this->user->id}");
-                return;
-            }
-
-            $response = Http::withToken($apiToken)
-                ->timeout(20)
+            $response = Http::withHeaders([
+                    'x-api-key'    => $apiKey,      // ← exact same as existing jobs
+                    'Accept'       => 'application/json',
+                    'Content-Type' => 'application/json',
+                ])
+                ->timeout(30)
+                ->retry(2, 1000)
                 ->post($apiUrl, [
-                    'phone'   => $phone,
+                    'number'  => $this->validPhone,
                     'message' => $this->message,
                 ]);
 
-            if ($response->successful()) {
-                Log::info("Escalation WhatsApp sent to User #{$this->user->id} ({$phone})");
-            } else {
-                Log::warning(
-                    "Escalation WhatsApp API returned non-200 for User #{$this->user->id}",
-                    ['status' => $response->status(), 'body' => $response->body()]
-                );
+            $response->throw();
+
+            if (!$response->json('success')) {
+                throw new Exception('WhatsApp API returned success:false — ' . $response->json('error', 'Unknown'));
             }
-        } catch (\Exception $e) {
-            Log::error("Escalation WhatsApp FAILED for User #{$this->user->id}: {$e->getMessage()}");
-            throw $e;
+
+            $logData['status']   = 'sent';
+            $logData['response'] = json_encode($response->json());
+            WhatsAppLog::create($logData);
+
+        } catch (Exception $e) {
+            $logData['status']        = 'failed';
+            $logData['error_message'] = $e->getMessage();
+            WhatsAppLog::create($logData);
+
+            Log::error('[EscalationWhatsApp] Failed: ' . $e->getMessage(), [
+                'user_id' => $this->user->id,
+                'phone'   => $this->validPhone,
+            ]);
+
+            throw $e; // Re-throw so queue retries
         }
+    }
+
+    /**
+     * Sanitise and format phone number to Indian format (91XXXXXXXXXX).
+     * Call this BEFORE dispatching the job.
+     */
+    public static function formatPhone(?string $phone): ?string
+    {
+        if (empty($phone)) return null;
+
+        $clean = preg_replace('/[^0-9]/', '', $phone);
+
+        if (strlen($clean) === 10)                                    return '91' . $clean;
+        if (strlen($clean) === 12 && str_starts_with($clean, '91')) return $clean;
+        if (strlen($clean) === 11 && str_starts_with($clean, '0'))  return '91' . substr($clean, 1);
+
+        return null;
     }
 }
