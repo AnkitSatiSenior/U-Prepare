@@ -66,6 +66,9 @@ use Illuminate\Support\Facades\Artisan;
 
 
 use Illuminate\Support\Facades\Mail;
+use App\Http\Controllers\Admin\EscalationLogController;
+
+// Inside your Admin middleware group:
 
 Route::get('/up', function () {
     Artisan::call('up');
@@ -263,6 +266,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
             Route::put('sub_package_project_tests/{subPackageProjectTest}', [SubPackageProjectTestController::class, 'update'])->name('sub_package_project_tests.update');
             Route::delete('sub_package_project_tests/{subPackageProjectTest}', [SubPackageProjectTestController::class, 'destroy'])->name('sub_package_project_tests.destroy');
             Route::post('sub_package_project_tests/{id}/restore', [SubPackageProjectTestController::class, 'restore'])->name('sub_package_project_tests.restore');
+Route::get('escalation-logs', [EscalationLogController::class, 'index'])->name('escalation_logs.index');
+Route::post('escalation-logs/trigger', [EscalationLogController::class, 'triggerEngine'])->name('escalation_logs.trigger');
 
             Route::prefix('contracts/{contract}')
                 ->name('contracts.')
