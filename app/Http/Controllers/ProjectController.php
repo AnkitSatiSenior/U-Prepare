@@ -3,67 +3,79 @@
 namespace App\Http\Controllers;
 
 use App\Models\Project;
+use App\Models\FundingAgency;
+use App\Http\Requests\StoreProjectRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use App\Http\Requests\UpdateProjectRequest;
 
 class ProjectController extends Controller
 {
-    // Display a list of projects
     public function index()
     {
-        $projects = Project::query()->latest()->paginate(10);
-
+        $projects = Project::with('fundingAgency')->latest()->paginate(15);
         return view('admin.project.index', compact('projects'));
     }
 
-    // Show form to create a new project
     public function create()
     {
-        return view('admin.project.create');
+        $agencies = FundingAgency::where('is_active', true)->orderBy('name')->get();
+        
+        // Example districts for Uttarakhand dropdown
+        $districts = ['Dehradun', 'Haridwar', 'Nainital', 'Almora', 'Pauri', 'Tehri', 'Chamoli', 'Rudraprayag', 'Uttarkashi', 'Bageshwar', 'Champawat', 'Pithoragarh', 'Udham Singh Nagar'];
+        
+        return view('admin.project.create', compact('agencies', 'districts'));
     }
 
-    // Store a new project
-    public function store(Request $request)
+    public function store(StoreProjectRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'budget' => 'nullable|numeric|min:0',
-        ]);
+        try {
+            DB::transaction(function () use ($request) {
+                Project::create($request->validated());
+            });
 
-        Project::create($validated);
-
-        return redirect()->route('admin.project.index')->with('success', 'Project created successfully.');
+            return redirect()->route('admin.project.index')
+                ->with('success', 'EAP Project "' . $request->name . '" has been created successfully.');
+        } catch (\Exception $e) {
+            return back()->withInput()->with('error', 'Failed to create project: ' . $e->getMessage());
+        }
     }
 
-    // Show single project details
     public function show(Project $project)
     {
+        $project->load('fundingAgency');
         return view('admin.project.show', compact('project'));
     }
 
-    // Show form to edit project
     public function edit(Project $project)
     {
-        return view('admin.project.edit', compact('project'));
+        $agencies = FundingAgency::where('is_active', true)->get();
+        $districts = ['Dehradun', 'Haridwar', 'Nainital', 'Almora', 'Pauri', 'Tehri', 'Chamoli', 'Rudraprayag', 'Uttarkashi', 'Bageshwar', 'Champawat', 'Pithoragarh', 'Udham Singh Nagar'];
+        
+        return view('admin.project.edit', compact('project', 'agencies', 'districts'));
     }
 
-    // Update an existing project
-    public function update(Request $request, Project $project)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'budget' => 'nullable|numeric|min:0',
-        ]);
+public function update(UpdateProjectRequest $request, Project $project)
+{
+    try {
+        DB::transaction(function () use ($request, $project) {
+            // We use validated() to ensure only allowed fields are updated
+            $project->update($request->validated());
+        });
 
-        $project->update($validated);
-
-        return redirect()->route('admin.project.index')->with('success', 'Project updated successfully.');
+        return redirect()->route('admin.project.index')
+            ->with('success', 'Project "' . $project->name . '" updated successfully.');
+            
+    } catch (\Exception $e) {
+        \Log::error("EAP Project Update Failed: " . $e->getMessage());
+        
+        return back()->withInput()->with('error', 'Update failed. Please check the logs for details.');
     }
+}
 
-    // Soft delete the project
     public function destroy(Project $project)
     {
         $project->delete();
-
-        return redirect()->route('admin.project.index')->with('success', 'Project deleted successfully.');
+        return redirect()->route('admin.project.index')->with('success', 'Project moved to trash.');
     }
 }

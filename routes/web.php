@@ -21,6 +21,7 @@ use App\Http\Controllers\AlreadyDefineEpcController;
 use App\Http\Controllers\FinancialProgressUpdateController;
 use App\Http\Controllers\Admin\SafeguardComplianceController;
 use App\Http\Controllers\Admin\DepartmentController;
+use App\Http\Controllers\FundingAgencyController;
 use App\Http\Controllers\Admin\PhysicalBoqProgressController;
 use App\Http\Controllers\SocialSafeguardEntryController;
 use App\Http\Controllers\Admin\ProjectsCategoryController;
@@ -64,7 +65,6 @@ use App\Http\Controllers\Admin\ProjectSubprojectLinkController;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Illuminate\Support\Facades\Artisan;
 
-
 use Illuminate\Support\Facades\Mail;
 use App\Http\Controllers\Admin\EscalationLogController;
 
@@ -82,13 +82,11 @@ Route::get('/send-test-mail', function () {
     $to_email = 'yuvrajkohli8090ylt@gmail.com';
 
     Mail::raw('Hello! This is a test email from Laravel using Zoho SMTP.', function ($message) use ($to_email) {
-        $message->to($to_email)
-            ->subject('Laravel Zoho SMTP Test Mail');
+        $message->to($to_email)->subject('Laravel Zoho SMTP Test Mail');
     });
 
     return 'Test email sent to ' . $to_email;
 });
-
 
 Route::get('/link-storage', function () {
     Artisan::call('storage:link');
@@ -141,6 +139,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::prefix('admin')
         ->name('admin.')
         ->group(function () {
+            Route::resource('funding-agency', FundingAgencyController::class);
+
             Route::get('/summary/dynamic-report', [ProjectAccessSummaryController::class, 'dynamicComplianceReport'])->name('package-safeguard.dynamic-report');
 
             Route::get('safeguards/list', [ProjectAccessSummaryController::class, 'getSafeguardsWithPhases'])->name('safeguards.list');
@@ -266,8 +266,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
             Route::put('sub_package_project_tests/{subPackageProjectTest}', [SubPackageProjectTestController::class, 'update'])->name('sub_package_project_tests.update');
             Route::delete('sub_package_project_tests/{subPackageProjectTest}', [SubPackageProjectTestController::class, 'destroy'])->name('sub_package_project_tests.destroy');
             Route::post('sub_package_project_tests/{id}/restore', [SubPackageProjectTestController::class, 'restore'])->name('sub_package_project_tests.restore');
-Route::get('escalation-logs', [EscalationLogController::class, 'index'])->name('escalation_logs.index');
-Route::post('escalation-logs/trigger', [EscalationLogController::class, 'triggerEngine'])->name('escalation_logs.trigger');
+            Route::get('escalation-logs', [EscalationLogController::class, 'index'])->name('escalation_logs.index');
+            Route::post('escalation-logs/trigger', [EscalationLogController::class, 'triggerEngine'])->name('escalation_logs.trigger');
 
             Route::prefix('contracts/{contract}')
                 ->name('contracts.')
@@ -386,7 +386,7 @@ Route::post('escalation-logs/trigger', [EscalationLogController::class, 'trigger
             Route::put('/procurement-work-programs/update-single/{id}', [ProcurementWorkProgramController::class, 'updateSingle'])->name('procurement-work-programs.update-single');
             Route::resource('contractors', ContractorController::class);
             Route::resource('contracts', ContractController::class);
-             Route::resource('procurement-details', ProcurementDetailController::class)->except(['create', 'store']);
+            Route::resource('procurement-details', ProcurementDetailController::class)->except(['create', 'store']);
             Route::prefix('package-projects/{packageProject}/procurement-details')->group(function () {
                 Route::get('create', [ProcurementDetailController::class, 'create'])->name('procurement-details.create');
                 Route::post('/', [ProcurementDetailController::class, 'store'])->name('procurement-details.store');
@@ -396,7 +396,7 @@ Route::post('escalation-logs/trigger', [EscalationLogController::class, 'trigger
             Route::get('media-files', [MediaFileController::class, 'index'])->name('media.index');
             Route::get('/physical-epc-report', [PhysicalEpcProgressController::class, 'index3'])->name('physicalprogress.index3');
             Route::get('/safeguard-entries-all', [SafeguardEntryController::class, 'index2'])->name('safeguard_entries.index2');
-           
+
             Route::post('safeguard_entries/import', [SafeguardEntryController::class, 'import'])->name('safeguard_entries.import');
             Route::post('safeguard_entries/bulk-delete-entry', [SafeguardEntryController::class, 'bulkDelete'])->name('safeguard_entries.bulkDelete.entry');
             Route::resource('safeguard_entries', SafeguardEntryController::class);
@@ -432,7 +432,6 @@ Route::post('escalation-logs/trigger', [EscalationLogController::class, 'trigger
             Route::resource('project', ProjectController::class);
             Route::resource('projects-category', ProjectsCategoryController::class);
             Route::resource('package-projects', PackageProjectController::class);
-
 
             Route::resource('package-statuses', PackageStatusController::class)->except(['create', 'edit', 'show']);
         });

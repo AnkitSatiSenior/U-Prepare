@@ -1,83 +1,48 @@
 <x-app-layout>
     <div class="container-fluid">
-        <!-- Breadcrumb -->
-         <x-admin.breadcrumb-header 
-                icon="fas fa-info-circle text-info" 
-                title="Projects" 
-                :breadcrumbs="[
-                    ['route' => 'dashboard', 'label' => '<i class=\'fas fa-home\'></i>'], 
-                    ['route' => 'admin.project.index', 'label' => 'Projects'], 
-                    ['label' => 'View Projects']
-                ]"  /> 
+        <x-admin.breadcrumb-header 
+            icon="fas fa-project-diagram text-info" 
+            title="EAP Projects" 
+            :breadcrumbs="[
+                ['route' => 'dashboard', 'label' => '<i class=\'fas fa-home\'></i>'], 
+                ['route' => 'admin.project.index', 'label' => 'Projects'], 
+                ['label' => 'Project List']
+            ]" /> 
 
-
-
-        <!-- Success/Error Messages -->
         @if (session('success'))
-            <div class="row mb-3">
-                <div class="col-md-12">
-                    <x-alert type="success" :message="session('success')" dismissible />
-                </div>
-            </div>
+            <x-alert type="success" :message="session('success')" dismissible />
         @endif
 
-        @if (session('error'))
-            <div class="row mb-3">
-                <div class="col-md-12">
-                    <x-alert type="danger" :message="session('error')" dismissible />
-                </div>
-            </div>
-        @endif
-
-        <!-- Projects Table -->
-        <div class="card shadow-sm">
-            
-           
-            
+        <div class="card shadow-sm border-0">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0 h4">
-                    <i class="fas fa-list me-2"></i> Add New External Aided Projects  
-                </h5>
-                <a href="{{ route('admin.project.create') }}" class="h3 btn btn-sm btn-primary">
+                <h5 class="mb-0 text-dark fw-bold">External Aided Projects (EAP)</h5>
+                <a href="{{ route('admin.project.create') }}" class="btn btn-primary shadow-sm">
                     <i class="fas fa-plus-circle me-1"></i> Add Project
                 </a>
             </div>
 
             <div class="card-body">
-                <x-admin.data-table id="projects-table" :headers="['ID', 'Name', 'Budget (₹)', 'Created At', 'Actions']" :excel="true" :print="true"
-                    title="Projects Export" searchPlaceholder="Search projects..." resourceName="projects"
-                    :pageLength="10">
+                <x-admin.data-table id="projects-table" :headers="['ID', 'Name (Short)', 'Agency', 'Budget (INR Cr)', 'Status', 'Actions']" :excel="true" :print="true">
                     @foreach ($projects as $project)
                         <tr>
                             <td>{{ $project->id }}</td>
-                            <td>{{ $project->name }}</td>
                             <td>
-                                @if($project->budget)
-                                    ₹{{ number_format($project->budget / 10000000, 2) }} CR
-                                @else
-                                    N/A
-                                @endif
+                                <strong>{{ $project->name }}</strong><br>
+                                <small class="text-muted">{{ $project->project_short_name }}</small>
                             </td>
-                            <td>{{ $project->created_at->format('M d, Y h:i A') }}</td>
+                            <td>{{ $project->fundingAgency->name ?? 'N/A' }}</td>
+                            <td>₹{{ number_format($project->outlay_inr / 10000000, 2) }}</td>
                             <td>
-                                <div class="d-flex justify-content-end gap-2">
-                                    <a href="{{ route('admin.project.show', $project) }}"
-                                        class="btn btn-sm btn-outline-info">
-                                        <i class="fas fa-eye me-1"></i> View
-                                    </a>
-                                    <a href="{{ route('admin.project.edit', $project) }}"
-                                        class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-edit me-1"></i> Edit
-                                    </a>
-
-                                    <form action="{{ route('admin.project.destroy', $project) }}"
-                                        method="POST"
-                                        onsubmit="return confirm('Are you sure you want to delete this project?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                                            <i class="fas fa-trash-alt me-1"></i> Delete
-                                        </button>
+                                <span class="badge {{ $project->is_dli_based ? 'bg-info' : 'bg-secondary' }}">
+                                    {{ $project->is_dli_based ? 'DLI' : 'Non-DLI' }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{{ route('admin.project.edit', $project) }}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
+                                    <form action="{{ route('admin.project.destroy', $project) }}" method="POST" onsubmit="return confirm('Delete project?')">
+                                        @csrf @method('DELETE')
+                                        <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
                                     </form>
                                 </div>
                             </td>
