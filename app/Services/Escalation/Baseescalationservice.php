@@ -9,7 +9,7 @@ use App\Jobs\SendEscalationEmailJob;
 use App\Jobs\SendEscalationWhatsAppJob;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Log
 
 /**
  * BASE ESCALATION SERVICE
