@@ -10,6 +10,8 @@ use App\Models\SubDepartment;
 use App\Models\Designation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use App\Http\Requests\Admin\UpdateUserRequest;
+use App\Services\UserService;
 use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
@@ -87,50 +89,24 @@ class UserController extends Controller
         ]);
     }
 
-    public function update(Request $request, User $user)
+  private UserService $userService;
+
+    public function __construct(UserService $userService)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
-            'password' => 'nullable|min:6|confirmed',
-            'role_id' => 'required|exists:roles,id',
-            'department_id' => 'nullable|exists:departments,id',
-            'sub_department_id' => 'nullable|exists:sub_departments,id',
-            'designation_id' => 'nullable|exists:designations,id',
-            'gender' => 'nullable|in:male,female,other',
-            'phone_no' => 'nullable|string|max:20',
-            'district' => 'nullable|string|max:100',
-            'status' => 'required|in:active,inactive',
-            'profile_photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-        ]);
+        $this->userService = $userService;
+    }
 
-        $data = [
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'role_id' => $validated['role_id'],
-            'department_id' => $validated['department_id'] ?? null,
-            'sub_department_id' => $validated['sub_department_id'] ?? null,
-            'designation_id' => $validated['designation_id'] ?? null,
-            'gender' => $validated['gender'] ?? null,
-            'phone_no' => $validated['phone_no'] ?? null,
-            'district' => $validated['district'] ?? null,
-            'status' => $validated['status'],
-        ];
+    public function update(UpdateUserRequest $request, User $user)
+    {
+        $this->userService->updateUser(
+            $user, 
+            $request->validated(), 
+            $request->file('profile_photo')
+        );
 
-        if ($request->filled('password')) {
-            $data['password'] = Hash::make($request->password);
-        }
-
-        if ($request->hasFile('profile_photo')) {
-            if ($user->profile_photo_path && Storage::disk('s3')->exists($user->profile_photo_path)) {
-                Storage::disk('s3')->delete($user->profile_photo_path);
-            }
-            $data['profile_photo_path'] = $request->file('profile_photo')->store('profile-photos', 'public');
-        }
-
-        $user->update($data);
-
-        return redirect()->route('admin.users.index')->with('success', 'User updated successfully.');
+        return redirect()
+            ->route('admin.users.index')
+            ->with('success', 'User updated successfully.');
     }
 
     public function destroy(User $user)
