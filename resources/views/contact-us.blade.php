@@ -12,33 +12,14 @@
         <div class="row g-5 justify-content-center">
             <div class="col-lg-5 col-md-6">
                 <div class="p-4 p-md-5 bg-light rounded-4 shadow-sm h-100 border border-light-subtle d-flex flex-column">
-                    <h3 class="h4 fw-semibold mb-4 text-dark">
-                        <i class="bi bi-building me-2 text-theme"></i>Headquarters
-                    </h3>
-                    
-                    <address class="text-muted mb-4">
-                        <div class="d-flex mb-3">
-                            <i class="bi bi-geo-alt fs-5 text-theme me-3"></i>
-                            <span>
-                                <strong>USDMA Headquarters</strong><br>
-                                IT Park, Sahastradhara Road<br>
-                                Dehradun, Uttarakhand, India
-                            </span>
-                        </div>
-                    </address>
-
-                    <div class="ratio ratio-16x9 mb-5 rounded-3 overflow-hidden shadow-sm border border-light-subtle">
-                        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3442.544205053256!2d78.08280947666888!3d30.3639011033622!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3908d70048644c07%3A0xa0a0da3e097c93a4!2sUSDMA%20New%20Building%20IT%20park!5e0!3m2!1sen!2sin!4v1777462587826!5m2!1sen!2sin" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-                    </div>
-
-                    <h3 class="h4 fw-semibold mb-4 text-dark">
+                     <h3 class="h4 fw-semibold mb-4 text-dark">
                         <i class="bi bi-headset me-2 text-theme"></i>Get in Touch
                     </h3>
                     
                     <div class="d-flex flex-column gap-3 text-muted mt-auto">
                         <div class="d-flex align-items-center">
                             <i class="bi bi-telephone fs-5 text-theme me-3"></i>
-                            <a href="tel:1800-180-4276" class="text-decoration-none text-muted">1800-180-4276</a>
+                            <a href="tel:1800-180-4276" class="text-decoration-none text-muted">1800-180-4276</a></br>
                             <a href="tel:+91-7906309285" class="text-decoration-none text-muted">+91 79063 09285</a>
                         </div>
                         <div class="d-flex align-items-center">
@@ -50,6 +31,26 @@
                             <a href="https://www.u-prepare.com" target="_blank" rel="noopener noreferrer" class="text-decoration-none text-muted">www.u-prepare.com</a>
                         </div>
                     </div>
+                    <h3 class="h4 fw-semibold mb-4 text-dark">
+                        <i class="bi bi-building me-2 text-theme"></i>Our Office
+                    </h3>
+                    
+                    <address class="text-muted mb-4">
+                        <div class="d-flex mb-3">
+                            <i class="bi bi-geo-alt fs-5 text-theme me-3"></i>
+                            <span>
+                                <strong>USDMA</strong><br>
+                                IT Park, Sahastradhara Road<br>
+                                Dehradun, Uttarakhand, India
+                            </span>
+                        </div>
+                    </address>
+
+                    <div class="ratio ratio-16x9 mb-5 rounded-3 overflow-hidden shadow-sm border border-light-subtle">
+                        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3442.544205053256!2d78.08280947666888!3d30.3639011033622!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3908d70048644c07%3A0xa0a0da3e097c93a4!2sUSDMA%20New%20Building%20IT%20park!5e0!3m2!1sen!2sin!4v1777462587826!5m2!1sen!2sin" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                    </div>
+
+                   
                 </div>
             </div>
 
