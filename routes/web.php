@@ -60,13 +60,11 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ProjectAccessSummaryController;
 use App\Http\Controllers\PermissionGroupController;
 use App\Http\Controllers\Admin\ActivityLogController;
-use Symfony\Component\Process\Process;
 use App\Http\Controllers\Admin\ProjectSubprojectLinkController;
-use Symfony\Component\Process\Exception\ProcessFailedException;
 use Illuminate\Support\Facades\Artisan;
-
 use Illuminate\Support\Facades\Mail;
 use App\Http\Controllers\Admin\EscalationLogController;
+use App\Http\Middleware\SetLocale;
 
 // Inside your Admin middleware group:
 
@@ -95,36 +93,55 @@ Route::get('/link-storage', function () {
 });
 Route::get('/media-files/by-ids', [MediaFileController::class, 'getByIds'])->name('media-files.by-ids');
 
-Route::get('/en/grievance', [GrievancePublicController::class, 'create'])->name('grievances.create');
-Route::post('/grievance', [GrievancePublicController::class, 'store'])->name('grievances.store');
-Route::get('/en/grievance/status/{grievance_no}', [GrievancePublicController::class, 'status'])->name('grievances.status');
-Route::get('/en/grievance/status', [GrievancePublicController::class, 'status2'])->name('grievances.status.with');
-Route::post('/activity-log-location', [\App\Http\Controllers\Admin\ActivityLogController::class, 'updateLocation'])->name('activity_logs.update_location');
-
-Route::post('/grievance/status', [GrievancePublicController::class, 'statusSearch'])->name('grievances.status.check');
-Route::post('/get-subcategories', [GrievancePublicController::class, 'getSubCats'])->name('grievance.get.scats');
-Route::post('/get-districts', [GrievancePublicController::class, 'getDistricts'])->name('grievance.get.districts');
-Route::post('/get-blocks', [GrievancePublicController::class, 'getBlocks'])->name('grievance.get.blocks');
-Route::post('/get-projects', [GrievancePublicController::class, 'getProjects'])->name('grievance.get.projects');
-
-Route::get('/en/news', [AdminNewsController::class, 'publicIndex'])->name('news.index');
-// Hindi news listing
-Route::get('/hi/news', [AdminNewsController::class, 'publicIndex'])->name('news.index.hi');
-Route::post('/admin/clear-cache', [PageController::class, 'clearCache'])->name('admin.clear.cache');
-Route::post('/admin/storage-link', [PageController::class, 'storageLink'])->name('admin.storage.link');
-// Show single news item
-Route::get('/news/{news}', [AdminNewsController::class, 'show'])->name('news.show');
-Route::get('/hi/news/{news}', [AdminNewsController::class, 'show'])->name('news.show.hi');
-Route::get('/en/tenders', [AdminTenderController::class, 'publicIndex'])->name('tender.index.public');
-
-// Public form submission
 Route::post('/feedback', [FeedbackController::class, 'store'])->name('feedback.store');
-Route::get('/en/{slug}', [PageController::class, 'showPage'])->name('page.show');
-Route::get('/hi/{slug}', [PageController::class, 'showPageHi'])->name('page.show.hi');
-Route::get('/', [PageController::class, 'showWelcomePage'])->name('welcome.default');
-Route::get('/{lang}/{slug}', [PageController::class, 'showLocalizedPage'])
-    ->where(['lang' => 'en|hi'])
-    ->name('pages.localized');
+Route::post('/activity-log-location', [ActivityLogController::class, 'updateLocation'])->name('activity_logs.update_location');
+
+Route::prefix('grievance')
+    ->name('grievances.')
+    ->group(function () {
+        Route::post('/', [GrievancePublicController::class, 'store'])->name('store');
+        Route::post('/status', [GrievancePublicController::class, 'statusSearch'])->name('status.check');
+    });
+
+Route::prefix('grievance')
+    ->name('grievance.')
+    ->group(function () {
+        Route::post('/subcategories', [GrievancePublicController::class, 'getSubCats'])->name('get.scats');
+        Route::post('/districts', [GrievancePublicController::class, 'getDistricts'])->name('get.districts');
+        Route::post('/blocks', [GrievancePublicController::class, 'getBlocks'])->name('get.blocks');
+        Route::post('/projects', [GrievancePublicController::class, 'getProjects'])->name('get.projects');
+    });
+
+Route::middleware(SetLocale::class)->group(function () {
+    Route::get('/', [PageController::class, 'showWelcomePage'])
+        ->defaults('locale', 'en')
+        ->name('welcome.default');
+
+    Route::prefix('{locale}')
+        ->whereIn('locale', ['en', 'hi'])
+        ->group(function () {
+            Route::get('/', [PageController::class, 'showWelcomePage'])->name('home.localized');
+
+            Route::prefix('grievance')
+                ->name('grievances.')
+                ->group(function () {
+                    Route::get('/', [GrievancePublicController::class, 'create'])->name('create');
+                    Route::get('/status', [GrievancePublicController::class, 'status2'])->name('status.with');
+                    Route::get('/status/{grievance_no}', [GrievancePublicController::class, 'status'])->name('status');
+                });
+
+            Route::prefix('news')
+                ->name('news.')
+                ->group(function () {
+                    Route::get('/', [AdminNewsController::class, 'publicIndex'])->name('index');
+                    Route::get('/{news}', [AdminNewsController::class, 'show'])->name('show');
+                });
+
+            Route::get('/tenders', [AdminTenderController::class, 'publicIndex'])->name('tender.index.public');
+            Route::get('/{slug}', [PageController::class, 'showLocalizedPage'])->name('pages.localized');
+        });
+});
+
 Route::get('/get-subdepartments/{id}', [ProjectAccessSummaryController::class, 'getSubDepartmentsByDepartment']);
 Route::get('/get-phases/{id}', [ProjectAccessSummaryController::class, 'getPhases']);
 Route::get('/api/get-users-by-subdepartment/{id}', [ProjectAccessSummaryController::class, 'getUsersBySubDepartment']);
@@ -139,6 +156,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::prefix('admin')
         ->name('admin.')
         ->group(function () {
+            Route::post('/clear-cache', [PageController::class, 'clearCache'])->name('clear.cache');
+            Route::post('/storage-link', [PageController::class, 'storageLink'])->name('storage.link');
+
             Route::resource('funding-agency', FundingAgencyController::class);
 
             Route::get('/summary/dynamic-report', [ProjectAccessSummaryController::class, 'dynamicComplianceReport'])->name('package-safeguard.dynamic-report');
