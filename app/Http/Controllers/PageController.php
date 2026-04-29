@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StorePageRequest;
+use App\Http\Requests\UpdatePageRequest;
+use App\Models\Page;
 use App\Services\PageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -97,10 +100,10 @@ class PageController extends Controller
         return view('admin.pages.create');
     }
 
-    public function createPage(Request $request): RedirectResponse
+    public function createPage(StorePageRequest $request): RedirectResponse
     {
         try {
-            $this->pages->createPage($request);
+            $this->pages->createPage($request->validated());
 
             return redirect()
                 ->route('admin.pages.list')
@@ -115,14 +118,14 @@ class PageController extends Controller
     public function showEditForm(int $id): View
     {
         return view('admin.pages.edit', [
-            'page' => \App\Models\Page::findOrFail($id),
+            'page' => Page::findOrFail($id),
         ]);
     }
 
-    public function updatePage(Request $request, int $id): RedirectResponse
+    public function updatePage(UpdatePageRequest $request, int $id): RedirectResponse
     {
         try {
-            $this->pages->updatePage($request, $id);
+            $this->pages->updatePage($request->validated(), $id, $request->boolean('status'));
 
             return redirect()
                 ->route('admin.pages.list')

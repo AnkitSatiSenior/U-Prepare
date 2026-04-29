@@ -4,12 +4,10 @@ namespace App\Services;
 
 use App\Models\NavbarItem;
 use App\Models\Page;
-use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class PageService
@@ -60,10 +58,11 @@ class PageService
         return Cache::remember('admin_pages:list', 600, fn () => Page::latest()->get());
     }
 
-    public function createPage(Request $request): Page
+    public function createPage(array $validated): Page
     {
-        $validated = $this->validatePageRequest($request);
-        $validated['slug'] = $validated['slug'] ?? Page::createSlug($validated['title']);
+        $validated['slug'] = !empty($validated['slug'])
+            ? Str::slug($validated['slug'])
+            : Page::createSlug($validated['title']);
         $validated['status'] = false;
 
         $page = Page::create($validated);
@@ -72,13 +71,12 @@ class PageService
         return $page;
     }
 
-    public function updatePage(Request $request, int $id): Page
+    public function updatePage(array $validated, int $id, bool $status): Page
     {
-        return DB::transaction(function () use ($request, $id) {
+        return DB::transaction(function () use ($validated, $id, $status) {
             $page = Page::findOrFail($id);
-            $validated = $this->validatePageRequest($request, $page->id);
-            $validated['slug'] = $validated['slug'] ?? $page->slug;
-            $validated['status'] = $request->boolean('status');
+            $validated['slug'] = !empty($validated['slug']) ? Str::slug($validated['slug']) : $page->slug;
+            $validated['status'] = $status;
 
             $page->update($validated);
 
@@ -195,23 +193,4 @@ class PageService
         return $locale === 'hi' ? 'hi' : 'en';
     }
 
-    private function validatePageRequest(Request $request, ?int $id = null): array
-    {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'title_hi' => 'nullable|string|max:255',
-            'slug' => 'sometimes|nullable|string|max:255|unique:pages,slug,' . $id,
-            'body_eng' => 'sometimes|nullable|string',
-            'body_hindi' => 'sometimes|nullable|string',
-            'meta_title' => 'nullable|string|max:255',
-            'meta_description' => 'nullable|string',
-            'meta_keywords' => 'nullable|string',
-        ]);
-
-        if (!empty($validated['slug'])) {
-            $validated['slug'] = Str::slug($validated['slug']);
-        }
-
-        return $validated;
-    }
 }

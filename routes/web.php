@@ -61,36 +61,16 @@ use App\Http\Controllers\ProjectAccessSummaryController;
 use App\Http\Controllers\PermissionGroupController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\ProjectSubprojectLinkController;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Mail;
 use App\Http\Controllers\Admin\EscalationLogController;
+use App\Http\Controllers\SystemController;
 use App\Http\Middleware\SetLocale;
 
 // Inside your Admin middleware group:
 
-Route::get('/up', function () {
-    Artisan::call('up');
-});
+Route::get('/up', [SystemController::class, 'up'])->name('system.up');
 
-// Route::get('/down', function(){
-//     Artisan::call('down');
-// });
-
-Route::get('/send-test-mail', function () {
-    $to_email = 'yuvrajkohli8090ylt@gmail.com';
-
-    Mail::raw('Hello! This is a test email from Laravel using Zoho SMTP.', function ($message) use ($to_email) {
-        $message->to($to_email)->subject('Laravel Zoho SMTP Test Mail');
-    });
-
-    return 'Test email sent to ' . $to_email;
-});
-
-Route::get('/link-storage', function () {
-    Artisan::call('storage:link');
-    $output = Artisan::output();
-    return back()->with('success', "Storage linked successfully! \n$output");
-});
+Route::get('/send-test-mail', [SystemController::class, 'sendTestMail'])->name('system.mail.test');
+Route::get('/link-storage', [SystemController::class, 'linkStorage'])->name('system.storage.link');
 Route::get('/media-files/by-ids', [MediaFileController::class, 'getByIds'])->name('media-files.by-ids');
 
 Route::post('/feedback', [FeedbackController::class, 'store'])->name('feedback.store');
@@ -316,7 +296,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
             Route::resource('videos', \App\Http\Controllers\Admin\VideoController::class);
 
             Route::get('update-progress', [FinancialProgressUpdateController::class, 'index2'])->name('financial-progress-updates.index2');
-            Route::resource('grievances', GrievanceController::class);
+            Route::resource('grievances', GrievanceController::class)->except(['show']);
             Route::get('social-safeguard-entries/{project_id}/{compliance_id}/report-details', [SocialSafeguardEntryController::class, 'reportDetails'])->name('social_safeguard_entries.report_details');
 
             // permanent delete
@@ -413,7 +393,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
             });
 
             Route::get('media-gallery', [MediaFileController::class, 'gallery'])->name('media.gallery');
-            Route::get('media-files', [MediaFileController::class, 'index'])->name('media.index');
+            Route::get('media-files', [MediaFileController::class, 'index'])->name('media.files.index');
             Route::get('/physical-epc-report', [PhysicalEpcProgressController::class, 'index3'])->name('physicalprogress.index3');
             Route::get('/safeguard-entries-all', [SafeguardEntryController::class, 'index2'])->name('safeguard_entries.index2');
 
