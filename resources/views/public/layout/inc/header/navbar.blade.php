@@ -1,14 +1,14 @@
 @php
-    $locale = app()->getLocale();
+    $locale = currentPublicLocale();
     $localePrefix = $locale === 'hi' ? 'hi' : 'en';
     $currentSlug = request()->segment(2) ?? request()->segment(1);
     $pageTitle = $page->translated_title ?? $page->title ?? 'Home';
     $navbarItems = getNavbarItems();
 @endphp
 
-<nav class="navbar">
-    <div class="container-xxl">
-        <ul>
+<nav class="navbar site-nav" aria-label="{{ __('Primary navigation') }}">
+    <div class="container-xxl site-nav__inner">
+        <ul class="site-nav__list">
             {{-- Home --}}
             <li>
                 <a href="{{ route('welcome.default') }}" 
@@ -21,29 +21,30 @@
             @foreach ($navbarItems as $item)
                 @php
                     $itemTitle = $locale === 'hi' ? ($item['title_hi'] ?? $item['title']) : $item['title'];
-                    $itemUrl = $item['link'] ?? '#'; // ✅ use accessor from model
                     $hasChildren = !empty($item['children']);
                     $isDropdown = $item['is_dropdown'] ?? false;
+                    $opensDropdown = $isDropdown && $hasChildren;
+                    $itemUrl = $opensDropdown ? '#' : ($item->public_link ?? '#');
                 @endphp
 
-                <li @class(['dropdown' => $isDropdown && $hasChildren])>
-                    <a href="{{ $itemUrl }}" target="{{ $item['target'] ?? '_self' }}">
+                <li @class(['dropdown' => $opensDropdown])>
+                    <a href="{{ $itemUrl }}"
+                       target="{{ $item['target'] ?? '_self' }}"
+                       @if($opensDropdown) aria-haspopup="true" aria-expanded="false" @endif>
                         {{ $itemTitle }}
-                        {{-- Show chevron only if dropdown + children --}}
-                        @if($isDropdown && $hasChildren)
-                            <i class="bi bi-chevron-down"></i>
+                        @if($opensDropdown)
+                            <i class="bi bi-chevron-down" aria-hidden="true"></i>
                         @endif
                     </a>
 
-                    {{-- Render submenu only if dropdown + children --}}
-                    @if ($isDropdown && $hasChildren)
-                        <ul>
+                    @if ($opensDropdown)
+                        <ul aria-label="{{ $itemTitle }}">
                             @foreach ($item['children'] as $child)
                                 @php
                                     $childTitle = $locale === 'hi' 
                                         ? ($child['translated_title'] ?? $child['title']) 
                                         : $child['title'];
-                                    $childUrl = $child['link'] ?? '#';
+                                    $childUrl = $child->public_link ?? '#';
                                 @endphp
                                 <li>
                                     <a href="{{ $childUrl }}" target="{{ $child['target'] ?? '_self' }}">
@@ -66,5 +67,5 @@
             </li>
         </ul>
     </div>
-    <i class="bi bi-list mobile-nav-toggle"></i>
+    <button class="bi bi-list mobile-nav-toggle" type="button" aria-label="{{ __('Open menu') }}" aria-expanded="false"></button>
 </nav>

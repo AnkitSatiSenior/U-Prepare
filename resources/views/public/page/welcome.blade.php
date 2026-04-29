@@ -198,9 +198,14 @@
                 @forelse($components as $comp)
                     <div>
                         <div class="comps-item">
-                            <div class="ci-img">
-                                <img src="{{$comp->image}}" />
-                            </div>
+                            @if(!empty($comp->image))
+                                <div class="ci-img">
+                                    <img src="{{ $comp->image }}"
+                                         alt="{{ request()->cookie('lang') === 'hi' ? $comp->page_hin_title : $comp->page_eng_title }}"
+                                         loading="lazy"
+                                         onerror="this.closest('.ci-img')?.remove();">
+                                </div>
+                            @endif
                             <div class="ci-content p-2">
                                 <h4>{!! request()->cookie('lang') === 'hi' ? substr($comp->page_hin_title,0, 50) : substr($comp->page_eng_title,0, 50)!!}</h4>
                                 <p class="mb-0">{!! request()->cookie('lang') === 'hi' 

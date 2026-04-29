@@ -1,49 +1,105 @@
 <?php
 
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Route;
 use App\Models\{NavbarItem, Page, Slide, Leader, PackageComponent, Video, News};
 use App\Helpers\TranslationHelper;
+
+if (!function_exists('currentPublicLocale')) {
+    function currentPublicLocale(?string $locale = null): string
+    {
+        $locale = $locale ?: request()->segment(1) ?: App::getLocale();
+
+        return $locale === 'hi' ? 'hi' : 'en';
+    }
+}
+
+if (!function_exists('localizedPageUrl')) {
+    function localizedPageUrl(?string $slug, ?string $locale = null): string
+    {
+        if (empty($slug)) {
+            return '#';
+        }
+
+        $locale = currentPublicLocale($locale);
+        $exists = Page::where('slug', $slug)->where('status', 1)->exists();
+
+        return $exists ? url($locale . '/' . $slug) : '#';
+    }
+}
 
 if (!function_exists('getNavbarItems')) {
     function getNavbarItems()
     {
-        $locale = App::getLocale();
+        $locale = currentPublicLocale();
 
-        // 1. Fetch main items
         $items = NavbarItem::with('children')
             ->whereNull('parent_id')
             ->where('is_active', true)
             ->orderBy('order')
             ->get();
 
-        // 2. Gather all routes to prevent N+1 Queries
-        $allRoutes = $items->pluck('route')
-            ->merge($items->pluck('children.*.route')->flatten())
-            ->filter()
-            ->unique();
+        $pageSlugs = collectNavbarPageSlugs($items);
 
-        // 3. Fetch all related pages in a SINGLE query
-        $pages = Page::whereIn('slug', $allRoutes)->get()->keyBy('slug');
+        $pages = Page::whereIn('slug', $pageSlugs)
+            ->where('status', 1)
+            ->get()
+            ->keyBy('slug');
 
-        // 4. Process items in-memory without hitting the database repeatedly
         $items->each(fn($item) => processNavbarItem($item, $locale, $pages));
 
         return $items;
     }
 }
 
+if (!function_exists('collectNavbarPageSlugs')) {
+    function collectNavbarPageSlugs($items)
+    {
+        return $items
+            ->flatMap(function ($item) {
+                return collect([$item->route, $item->slug])
+                    ->merge($item->children ? collectNavbarPageSlugs($item->children) : collect());
+            })
+            ->filter()
+            ->unique();
+    }
+}
+
 if (!function_exists('processNavbarItem')) {
     function processNavbarItem($item, string $locale, $pages): void
     {
-        // Resolve page from the pre-loaded collection
-        $item->page = $pages->get($item->route);
+        $item->page = $pages->get($item->route) ?: $pages->get($item->slug);
+        $item->public_link = resolveNavbarItemUrl($item, $locale, $pages);
         
-        // Caution: If TranslationHelper uses an external API, this will bottleneck.
         $item->translated_title = $locale === 'hi' && !empty($item->title_hi)
             ? $item->title_hi
             : TranslationHelper::translate($item->title, $locale);
 
         $item->children->each(fn($child) => processNavbarItem($child, $locale, $pages));
+    }
+}
+
+if (!function_exists('resolveNavbarItemUrl')) {
+    function resolveNavbarItemUrl($item, string $locale, $pages): string
+    {
+        if (!empty($item->route) && Route::has($item->route)) {
+            try {
+                return route($item->route);
+            } catch (\Throwable $e) {
+                return '#';
+            }
+        }
+
+        $page = $pages->get($item->route) ?: $pages->get($item->slug);
+        if ($page) {
+            return url($locale . '/' . $page->slug);
+        }
+
+        if (!empty($item->url)) {
+            return $item->url;
+        }
+
+        return '#';
     }
 }
 

@@ -169,22 +169,21 @@
             @forelse(getPackageComponents() as $comp)
                 <div>
                     <div class="comps-item">
-
-                        {{-- Clean Architecture: Using the Domain Accessor for S3 URL --}}
-                        <div class="ci-img">
-                            <img src="{{ $comp->image_url }}" 
-                                 alt="{{ $comp->localized_title }} Cover Image" 
-                                 loading="lazy">
-                        </div>
+                        @if(!empty($comp->image))
+                            <div class="ci-img">
+                                <img src="{{ $comp->image_url }}"
+                                     alt="{{ $comp->localized_title }} Cover Image"
+                                     loading="lazy"
+                                     onerror="this.closest('.ci-img')?.remove();">
+                            </div>
+                        @endif
 
                         <div class="ci-content p-2">
-                            {{-- Localization logic is completely hidden inside the Model --}}
                             <h4>
                                 {{ Str::limit($comp->localized_title, 50) }}
                             </h4>
 
                             <p class="mb-0">
-                                {{-- Assuming content contains safe HTML tags --}}
                                 {!! Str::limit($comp->localized_content, 500) !!}
                             </p>
                         </div>

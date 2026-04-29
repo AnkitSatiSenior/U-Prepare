@@ -34,83 +34,67 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tiny-slider/2.9.4/tiny-slider.css">
 
-    {{-- 4. Main Application Styles --}}
+    {{-- Application Styles --}}
     <link rel="stylesheet" href="/assets/public/css/styles.css?ver=1.1.4" title="main">
     <link rel="stylesheet" href="/assets/public/css/home.css?ver=1.1.5">
-
-    <style>
-        main {
-            min-height: calc(100vh - 335px);
-        }
-
-        .back-to-top {
-            visibility: hidden;
-            opacity: 0;
-            transition: all 0.4s;
-            z-index: 999;
-        }
-
-        .back-to-top.active {
-            visibility: visible;
-            opacity: 1;
-        }
-
-        /* Professional fix for zoom logic */
-        body {
-            transition: zoom 0.2s ease-in-out;
-        }
-    </style>
+    <link rel="stylesheet" href="/assets/public/css/guest-layout.css?ver=1.0.0">
+    @yield('header_stylesheets')
+    @stack('styles')
+    @yield('header_styles')
 </head>
 
-<body class="antialiased">
+<body class="guest-body antialiased">
+    <a class="skip-link" href="#main">{{ __('Skip to main content') }}</a>
+
     @include('public.layout.inc.header')
 
-    <main id="main" class="d-flex flex-column">
+    <main id="main" class="site-main d-flex flex-column" tabindex="-1">
         {{ $slot }}
     </main>
 
     @include('public.layout.inc.footer')
 
-    {{-- Back to Top Button --}}
     <button id="backToTop"
-        class="back-to-top btn btn-primary position-fixed bottom-0 end-0 m-4 d-flex align-items-center justify-content-center"
-        style="width: 44px; height: 44px; border-radius: 50%;" aria-label="Scroll to top">
-        <i class="bi bi-arrow-up-short" style="font-size: 1.5rem;"></i>
+        class="back-to-top btn btn-primary d-flex align-items-center justify-content-center"
+        aria-label="{{ __('Scroll to top') }}">
+        <i class="bi bi-arrow-up-short" aria-hidden="true"></i>
     </button>
 
-    {{-- 5. Optimized Scripts (Deferred) --}}
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tiny-slider/2.9.2/min/tiny-slider.js" defer></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tiny-slider/2.9.2/min/tiny-slider.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // 1. Back to Top Logic
             const backtotop = document.getElementById('backToTop');
             if (backtotop) {
                 const toggleBacktotop = () => {
-                    window.scrollY > 100 ? backtotop.classList.add('active') : backtotop.classList.remove('active');
+                    backtotop.classList.toggle('active', window.scrollY > 100);
                 };
+                toggleBacktotop();
                 window.addEventListener('scroll', toggleBacktotop);
                 backtotop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
             }
 
-            // 2. Navigation & UI Logic (Delegated for performance)
             document.addEventListener('click', function(e) {
-                // Mobile Nav Toggle
                 if (e.target.closest('.mobile-nav-toggle')) {
                     const btn = e.target.closest('.mobile-nav-toggle');
-                    btn.classList.toggle('bi-x');
-                    btn.parentElement.classList.toggle('navbar-mobile');
+                    const isOpen = btn.parentElement.classList.toggle('navbar-mobile');
+                    btn.classList.toggle('bi-x', isOpen);
+                    btn.setAttribute('aria-expanded', String(isOpen));
                 }
 
-                // Dropdowns
-                if (e.target.closest('nav.navbar ul li.dropdown')) {
-                    const dropdown = e.target.closest('nav.navbar ul li.dropdown');
-                    dropdown.querySelector('ul').classList.toggle('dropdown-active');
+                if (e.target.closest('nav.navbar.navbar-mobile ul li.dropdown > a')) {
+                    e.preventDefault();
+                    const trigger = e.target.closest('nav.navbar.navbar-mobile ul li.dropdown > a');
+                    const dropdown = trigger.closest('li.dropdown');
+                    const menu = dropdown.querySelector('ul');
+                    if (menu) {
+                        const isOpen = menu.classList.toggle('dropdown-active');
+                        trigger.setAttribute('aria-expanded', String(isOpen));
+                    }
                 }
 
-                // Search Box Toggle
                 if (e.target.closest('.search')) {
                     e.stopPropagation();
                     const searchBox = document.querySelector('.sinp-box');
@@ -121,7 +105,6 @@
                 }
             });
 
-            // 3. Accessibility Zoom Logic (Refactored for efficiency)
             let currentZoom = 1;
             const updateZoom = (delta) => {
                 currentZoom = Math.min(Math.max(currentZoom + delta, 0.5), 2);
@@ -129,11 +112,16 @@
             };
 
             document.addEventListener('click', function(e) {
-                if (e.target.closest('.zoom > .inc')) updateZoom(0.1);
-                if (e.target.closest('.zoom > .dec')) updateZoom(-0.1);
+                if (e.target.closest('.zoom > .inc')) {
+                    e.preventDefault();
+                    updateZoom(0.1);
+                }
+                if (e.target.closest('.zoom > .dec')) {
+                    e.preventDefault();
+                    updateZoom(-0.1);
+                }
             });
 
-            // 4. Slider Initializations (Wrapped in try-catch to prevent page crashes)
             try {
                 if (document.querySelector('.hero-slider')) {
                     tns({
@@ -160,6 +148,7 @@
                         ...commonSliderConfig,
                         container: '.components-slider',
                         items: 4,
+                        gutter: 16,
                         responsive: { 0: { items: 1 }, 767: { items: 2 }, 1100: { items: 4 } }
                     });
                 }
@@ -175,8 +164,12 @@
             } catch (error) {
                 console.warn("Slider initialization failed:", error);
             }
+
+            @yield('inpage_scripts')
         });
     </script>
+    @yield('footer_scripts')
+    @stack('scripts')
 </body>
 
 </html>

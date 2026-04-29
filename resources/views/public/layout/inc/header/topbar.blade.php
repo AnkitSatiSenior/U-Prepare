@@ -18,17 +18,17 @@
     <div class="left">
         <ul class="social-icons d-flex align-items-center list-unstyled m-0">
             <li>
-                <a href="https://www.facebook.com/uprepare" target="_blank" rel="noopener">
+                <a href="https://www.facebook.com/uprepare" target="_blank" rel="noopener" aria-label="U-PREPARE Facebook">
                     <i class="bi bi-facebook"></i>
                 </a>
             </li>
             <li>
-                <a href="https://www.instagram.com/uprepare/" target="_blank" rel="noopener">
+                <a href="https://www.instagram.com/uprepare/" target="_blank" rel="noopener" aria-label="U-PREPARE Instagram">
                     <i class="bi bi-instagram"></i>
                 </a>
             </li>
             <li>
-                <a href="https://x.com/prepare2344" target="_blank" rel="noopener">
+                <a href="https://x.com/prepare2344" target="_blank" rel="noopener" aria-label="U-PREPARE X">
                     <i class="bi bi-twitter-x"></i>
                 </a>
             </li>
@@ -54,8 +54,8 @@
 
             {{-- Zoom Controls --}}
             <span class="zoom d-flex align-items-center">
-                <a href="#" class="dec me-2">A-</a>
-                <a href="#" class="inc">A+</a>
+                <a href="#" class="dec me-2" aria-label="{{ __('Decrease text size') }}">A-</a>
+                <a href="#" class="inc" aria-label="{{ __('Increase text size') }}">A+</a>
             </span>
         </div>
     </div>

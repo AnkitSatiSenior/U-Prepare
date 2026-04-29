@@ -397,9 +397,14 @@
                     @foreach ($comps as $comp)
                         <div>
                             <div class="comps-item">
-                                <div class="ci-img">
-                                    <img src="{{ asset($comp->img) }}" />
-                                </div>
+                                @if(!empty($comp->img))
+                                    <div class="ci-img">
+                                        <img src="{{ asset($comp->img) }}"
+                                             alt="{{ $comp->head }}"
+                                             loading="lazy"
+                                             onerror="this.closest('.ci-img')?.remove();">
+                                    </div>
+                                @endif
                                 <div class="ci-content p-2">
                                     <h4>{{ $comp->head }}</h4>
                                     <p class="mb-0">{{ $comp->desc }}</p>
