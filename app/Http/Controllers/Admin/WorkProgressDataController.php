@@ -213,7 +213,7 @@ class WorkProgressDataController extends Controller
                     continue;
                 }
 
-                // ✅ S3 FIX: Store directly to the 's3' disk instead of 'public'
+                // ✅ S3 FIX: Store directly to the 's3' disk instead of 's3'
                 $path = $file->store('uploads/media_files', 's3');
 
                 // ✅ Create new MediaFile entry

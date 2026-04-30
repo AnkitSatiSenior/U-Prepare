@@ -363,7 +363,7 @@ class PhysicalEpcProgressController extends Controller
 
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $file) {
-                $path = $file->store('progress_images', 'public');
+                $path = $file->store('progress_images', 's3');
 
                 $metaData = array_merge($additionalMeta, [
                     'original_name' => $file->getClientOriginalName(),

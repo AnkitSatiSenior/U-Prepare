@@ -213,7 +213,7 @@ class PhysicalBoqProgressApiController extends Controller
             foreach ($request->file('media') as $file) {
                 if (!$file->isValid()) continue;
 
-                // ✅ S3 FIX: Store directly to the 's3' disk instead of 'public'
+                // ✅ S3 FIX: Store directly to the 's3' disk instead of 's3'
                 $path = $file->store('uploads/boq_progress_images', 's3');
 
                 $mediaFile = MediaFile::create([

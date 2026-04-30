@@ -113,12 +113,12 @@ class ProcurementWorkProgramController extends Controller
 
         $procurementBidDocPath = null;
         if (!empty($data['procurement_bid_document']) && $request->hasFile('procurement_bid_document.0')) {
-            $procurementBidDocPath = $request->file('procurement_bid_document.0')->store('procurement_docs', 'public');
+            $procurementBidDocPath = $request->file('procurement_bid_document.0')->store('procurement_docs', 's3');
         }
 
         $preBidMinutesDocPath = null;
         if (!empty($data['pre_bid_minutes_document']) && $request->hasFile('pre_bid_minutes_document.0')) {
-            $preBidMinutesDocPath = $request->file('pre_bid_minutes_document.0')->store('procurement_docs', 'public');
+            $preBidMinutesDocPath = $request->file('pre_bid_minutes_document.0')->store('procurement_docs', 's3');
         }
 
         foreach ($data['name_work_program'] as $i => $name) {
@@ -153,11 +153,11 @@ class ProcurementWorkProgramController extends Controller
         ]);
 
         if ($request->hasFile('procurement_bid_document')) {
-            $validated['procurement_bid_document'] = $request->file('procurement_bid_document')->store('procurement_docs', 'public');
+            $validated['procurement_bid_document'] = $request->file('procurement_bid_document')->store('procurement_docs', 's3');
         }
 
         if ($request->hasFile('pre_bid_minutes_document')) {
-            $validated['pre_bid_minutes_document'] = $request->file('pre_bid_minutes_document')->store('procurement_docs', 'public');
+            $validated['pre_bid_minutes_document'] = $request->file('pre_bid_minutes_document')->store('procurement_docs', 's3');
         }
 
         $totalWeightage = ProcurementWorkProgram::where('package_project_id', $validated['package_project_id'])->where('procurement_details_id', $validated['procurement_details_id'])->sum('weightage') + $validated['weightage'];
@@ -196,12 +196,12 @@ class ProcurementWorkProgramController extends Controller
         $updateData = [];
 
         if ($request->hasFile('procurement_bid_document')) {
-            $path = $request->file('procurement_bid_document')->store('procurement_docs', 'public');
+            $path = $request->file('procurement_bid_document')->store('procurement_docs', 's3');
             $updateData['procurement_bid_document'] = $path;
         }
 
         if ($request->hasFile('pre_bid_minutes_document')) {
-            $path = $request->file('pre_bid_minutes_document')->store('procurement_docs', 'public');
+            $path = $request->file('pre_bid_minutes_document')->store('procurement_docs', 's3');
             $updateData['pre_bid_minutes_document'] = $path;
         }
 
@@ -289,14 +289,14 @@ class ProcurementWorkProgramController extends Controller
             if ($procurementWorkProgram->procurement_bid_document && Storage::disk('s3')->exists($procurementWorkProgram->procurement_bid_document)) {
                 Storage::disk('s3')->delete($procurementWorkProgram->procurement_bid_document);
             }
-            $validated['procurement_bid_document'] = $request->file('procurement_bid_document')->store('procurement_docs', 'public');
+            $validated['procurement_bid_document'] = $request->file('procurement_bid_document')->store('procurement_docs', 's3');
         }
 
         if ($request->hasFile('pre_bid_minutes_document')) {
             if ($procurementWorkProgram->pre_bid_minutes_document && Storage::disk('s3')->exists($procurementWorkProgram->pre_bid_minutes_document)) {
                 Storage::disk('s3')->delete($procurementWorkProgram->pre_bid_minutes_document);
             }
-            $validated['pre_bid_minutes_document'] = $request->file('pre_bid_minutes_document')->store('procurement_docs', 'public');
+            $validated['pre_bid_minutes_document'] = $request->file('pre_bid_minutes_document')->store('procurement_docs', 's3');
         }
 
         $procurementWorkProgram->update($validated);

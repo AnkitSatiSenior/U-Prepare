@@ -34,7 +34,7 @@ class SlideController extends Controller
 
         // Store image
         if ($request->hasFile('img')) {
-            $data['img'] = $request->file('img')->store('slides', 'public');
+            $data['img'] = $request->file('img')->store('slides', 's3');
         }
 
         Slide::create($data);
@@ -65,7 +65,7 @@ class SlideController extends Controller
             if ($slide->img && Storage::disk('s3')->exists($slide->img)) {
                 Storage::disk('s3')->delete($slide->img);
             }
-            $data['img'] = $request->file('img')->store('slides', 'public');
+            $data['img'] = $request->file('img')->store('slides', 's3');
         }
 
         $slide->update($data);

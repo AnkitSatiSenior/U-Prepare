@@ -75,7 +75,7 @@ class ContractSecurityController extends Controller
         $validated['contract_id'] = $contract->id;
 
         if ($request->hasFile('file_path')) {
-            $validated['file_path'] = $request->file('file_path')->store('securities', 'public');
+            $validated['file_path'] = $request->file('file_path')->store('securities', 's3');
         }
 
         ContractSecurity::create($validated);
@@ -122,7 +122,7 @@ class ContractSecurityController extends Controller
         );
 
         if ($request->hasFile('file_path')) {
-            $validated['file_path'] = $request->file('file_path')->store('securities', 'public');
+            $validated['file_path'] = $request->file('file_path')->store('securities', 's3');
         }
 
         $security->update($validated);

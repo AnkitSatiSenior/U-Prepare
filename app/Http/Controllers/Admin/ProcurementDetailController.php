@@ -216,7 +216,7 @@ class ProcurementDetailController extends Controller
                     Storage::disk('s3')->delete($existingDetail->$dbColumn);
                 }
                 
-                $validated[$dbColumn] = $request->file($inputField)->store('procurement_docs', 'public');
+                $validated[$dbColumn] = $request->file($inputField)->store('procurement_docs', 's3');
             }
         }
     }

@@ -44,7 +44,7 @@ class PackageComponentController extends Controller
 
         // handle image upload
         if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('components', 'public');
+            $data['image'] = $request->file('image')->store('components', 's3');
         }
 
         PackageComponent::create($data);
@@ -88,7 +88,7 @@ class PackageComponentController extends Controller
 
         // handle image upload (replace old one)
         if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('components', 'public');
+            $data['image'] = $request->file('image')->store('components', 's3');
         }
 
         $packageComponent->update($data);

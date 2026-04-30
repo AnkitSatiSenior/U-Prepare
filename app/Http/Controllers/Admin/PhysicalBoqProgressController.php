@@ -304,7 +304,7 @@ public function physicalProgress(Request $request)
         $mediaIds = [];
         if ($request->hasFile('media')) {
             foreach ($request->file('media') as $file) {
-                $path = $file->store('boq_progress_images', 'public');
+                $path = $file->store('boq_progress_images', 's3');
                 $mediaFile = MediaFile::create([
                     'path' => $path,
                     'type' => $file->getClientMimeType(),

@@ -167,7 +167,7 @@ class GrievancePublicController extends Controller
 
     try {
         $documentPath = $request->hasFile('file') 
-            ? $request->file('file')->store('grievance_docs', 'public') 
+            ? $request->file('file')->store('grievance_docs', 's3') 
             : null;
 
         $grievanceNo = 'GRV-' . strtoupper(Str::random(8));

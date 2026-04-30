@@ -398,7 +398,7 @@ class ContractController extends Controller
                 if ($request->hasFile('update_document_file')) {
                     $file = $request->file('update_document_file');
                     $fileName = 'update_' . time() . '_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
-                    $documentPath = $file->storeAs('contract_updates', $fileName, 'public');
+                    $documentPath = $file->storeAs('contract_updates', $fileName, 's3');
                 }
 
                 $contract->updates()->create([
@@ -498,7 +498,7 @@ class ContractController extends Controller
     private function storeContractFile($file)
     {
         $fileName = 'contract_' . time() . '_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
-        return $file->storeAs('contracts', $fileName, 'public');
+        return $file->storeAs('contracts', $fileName, 's3');
     }
 
     private function deleteContractFile($path)

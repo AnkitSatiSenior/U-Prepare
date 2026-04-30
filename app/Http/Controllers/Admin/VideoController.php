@@ -31,7 +31,7 @@ class VideoController extends Controller
         ]);
 
         if ($request->hasFile('img')) {
-            $validated['img'] = $request->file('img')->store('videos', 'public');
+            $validated['img'] = $request->file('img')->store('videos', 's3');
         }
 
         Video::create($validated);
@@ -58,7 +58,7 @@ class VideoController extends Controller
             if ($video->img) {
                 Storage::disk('s3')->delete($video->img);
             }
-            $validated['img'] = $request->file('img')->store('videos', 'public');
+            $validated['img'] = $request->file('img')->store('videos', 's3');
         }
 
         $video->update($validated);
