@@ -69,8 +69,8 @@
                     <div class="row g-3">
                         <!-- Category -->
                         <div class="col-md-3">
-                            <label class="form-label h6">Package Category</label>
-                            <select name="package_category_id" id="package_category_id" class="form-control">
+                            <label class="form-label h6">Package Category <span class="text-danger">*</span></label>
+                            <select name="package_category_id" id="package_category_id" class="form-control" required>
                                 <option value="">Select Category</option>
                                 @foreach ($categories as $category)
                                     <option value="{{ $category->id }}" @selected(old('package_category_id') == $category->id)>
@@ -78,6 +78,7 @@
                                     </option>
                                 @endforeach
                             </select>
+                            <div class="invalid-feedback">Please select a category.</div>
                         </div>
 
                         <!-- Sub Category -->
@@ -265,10 +266,9 @@
             </div>
         </form>
 
-
-        <!-- Bootstrap Validation Script -->
-
     </div>
+
+    <!-- Scripts -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const categorySelect = document.getElementById('package_category_id');
@@ -277,23 +277,39 @@
             const subDeptSelect = document.getElementById('sub_department_id');
 
             function filterOptions(parentSelect, childSelect, dataAttr) {
+                if (!parentSelect || !childSelect) return;
+                
                 const selected = parentSelect.value;
+                
                 Array.from(childSelect.options).forEach(opt => {
-                    if (!opt.value) return;
-                    opt.style.display = (opt.dataset[dataAttr] === selected) ? 'block' : 'none';
+                    if (!opt.value) return; // keep the default "Select..." placeholder visible
+                    
+                    const isMatch = (opt.dataset[dataAttr] === selected);
+                    
+                    // Robust way to hide options cross-browser
+                    opt.hidden = !isMatch;
+                    opt.disabled = !isMatch;
+                    opt.style.display = isMatch ? '' : 'none';
                 });
-                if (childSelect.selectedOptions[0]?.style.display === 'none') {
+
+                // Reset child select value if the current selection is now hidden
+                if (childSelect.value && childSelect.selectedOptions[0].disabled) {
                     childSelect.value = '';
                 }
             }
 
-            categorySelect.addEventListener('change', () => filterOptions(categorySelect, subCategorySelect,
-                'category'));
-            deptSelect.addEventListener('change', () => filterOptions(deptSelect, subDeptSelect, 'department'));
+            // Bind Event Listeners
+            if (categorySelect && subCategorySelect) {
+                categorySelect.addEventListener('change', () => filterOptions(categorySelect, subCategorySelect, 'category'));
+                // Run on load
+                filterOptions(categorySelect, subCategorySelect, 'category');
+            }
 
-            // Run on load
-            filterOptions(categorySelect, subCategorySelect, 'category');
-            filterOptions(deptSelect, subDeptSelect, 'department');
+            if (deptSelect && subDeptSelect) {
+                deptSelect.addEventListener('change', () => filterOptions(deptSelect, subDeptSelect, 'department'));
+                // Run on load
+                filterOptions(deptSelect, subDeptSelect, 'department');
+            }
         });
 
         // Bootstrap validation
