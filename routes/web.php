@@ -15,6 +15,7 @@ use App\Http\Controllers\EpcEntryDataController;
 use App\Http\Controllers\Admin\UserSafeguardSubpackageController;
 use App\Http\Controllers\SafeguardEntryController;
 use App\Http\Controllers\Admin\PackageProjectController;
+use App\Http\Controllers\Admin\Profile\UserProfileController;
 use App\Http\Controllers\Admin\DesignationController;
 use App\Http\Controllers\Admin\ContractionPhaseController;
 use App\Http\Controllers\AlreadyDefineEpcController;
@@ -64,6 +65,7 @@ use App\Http\Controllers\Admin\ProjectSubprojectLinkController;
 use App\Http\Controllers\Admin\EscalationLogController;
 use App\Http\Controllers\SystemController;
 use App\Http\Middleware\SetLocale;
+use App\Models\User;
 
 // Inside your Admin middleware group:
 
@@ -82,6 +84,28 @@ Route::prefix('grievance')
         Route::post('/', [GrievancePublicController::class, 'store'])->name('store');
         Route::post('/status', [GrievancePublicController::class, 'statusSearch'])->name('status.check');
     });
+
+Route::get('/team/{username}', function (string $username) {
+    $user = User::query()
+        ->select([
+            'id',
+            'name',
+            'username',
+            'designation_id',
+            'date_of_joining',
+            'qualification',
+            'total_work_experience',
+            'area_of_expertise',
+            'research_publication_citation',
+            'previous_experience',
+            'profile_photo_path',
+        ])
+        ->with(['designation:id,title'])
+        ->where('username', $username)
+        ->firstOrFail();
+
+    return view('public.user-profile.show', compact('user'));
+})->name('public.users.show');
 Route::view('/en/contact-us', 'contact-us')->name('contact.en');
 Route::view('/hi/contact-us', 'contact-us')->name('contact.hi');
 Route::prefix('grievance')
@@ -137,6 +161,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::prefix('admin')
         ->name('admin.')
         ->group(function () {
+            
             Route::post('/clear-cache', [PageController::class, 'clearCache'])->name('clear.cache');
             Route::post('/storage-link', [PageController::class, 'storageLink'])->name('storage.link');
 
@@ -162,7 +187,10 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
             Route::get('/permission-groups/{id}/routes', [PermissionGroupController::class, 'manageRoutes'])->name('permission.groups.routes');
 
             Route::post('/permission-groups/{id}/routes/save', [PermissionGroupController::class, 'saveRoutes'])->name('permission.groups.routes.save');
-
+Route::group(['prefix' => 'users/{user}/profile', 'as' => 'profile.'], function () {
+        Route::get('/edit', [UserProfileController::class, 'edit'])->name('edit');
+        Route::put('/update', [UserProfileController::class, 'update'])->name('update');
+    });
             Route::prefix('already-define-safeguards')
                 ->name('already-define-safeguards.')
                 ->group(function () {

@@ -105,7 +105,7 @@ class UserController extends Controller
         ]);
     }
 
-  private UserService $userService;
+    private UserService $userService;
 
     public function __construct(UserService $userService)
     {
@@ -115,8 +115,8 @@ class UserController extends Controller
     public function update(UpdateUserRequest $request, User $user)
     {
         $this->userService->updateUser(
-            $user, 
-            $request->validated(), 
+            $user,
+            $request->validated(),
             $request->file('profile_photo')
         );
 
@@ -130,4 +130,5 @@ class UserController extends Controller
         $user->delete();
         return redirect()->route('admin.users.index')->with('success', 'User deleted successfully.');
     }
+    
 }

@@ -108,6 +108,9 @@
                             <!-- Actions -->
                             <td>
                                 <div class="d-flex justify-content-end gap-2">
+                                    <a href="{{ route('admin.profile.edit', $user->id) }}" class="btn btn-sm btn-info">
+    Edit Profile Data
+</a>
                                     <a href="{{ route('admin.users.edit', $user) }}" 
                                        class="btn btn-sm btn-outline-primary">
                                         <i class="fas fa-edit me-1"></i> Edit

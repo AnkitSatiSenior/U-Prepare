@@ -62,6 +62,15 @@
 
             <!-- User Name -->
             <h5 class="mt-2">{{ ucfirst($user->name) }}</h5>
+            @if($user->designation?->title)
+                <div class="text-muted small">{{ $user->designation->title }}</div>
+            @endif
+            @if($user->date_of_joining)
+                <div class="text-muted small">{{ $user->date_of_joining->format('d M Y') }}</div>
+            @endif
+            @if(!empty($user->username))
+                <a class="btn btn-outline-light btn-sm mt-2" href="{{ route('public.users.show', $user->username) }}" target="_blank" rel="noopener">View Public Profile</a>
+            @endif
         </div>
 
         <!-- =======================
