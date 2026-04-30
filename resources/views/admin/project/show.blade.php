@@ -4,7 +4,7 @@
          <x-admin.breadcrumb-header icon="fas fa-info-circle text-info" title="Projects" :breadcrumbs="[
             ['route' => 'dashboard', 'label' => '<i class=\'fas fa-home\'></i>'],
             ['route' => 'admin.project.index', 'label' => ' <i class=\'fas fa-project-diagram \'></i> Projects'],
-            ['class' => 'active', 'label' => 'Create '],
+            ['class' => 'active', 'label' => 'View'],
         ]" />
         
 
@@ -34,8 +34,17 @@
                     
                     <div class="col-md-4">
                         <div class="mb-3"> 
-                            <p class="text-muted h2">Project Budget Allocated </p>
-                            <p class="h3">{{ $project->budget ? '₹' . number_format($project->budget, 2) : 'Not specified' }}</p>
+                            <p class="text-muted h2">Outlay (INR)</p>
+                            <p class="h3">
+                                {{ $project->outlay_inr !== null ? '₹' . number_format($project->outlay_inr, 2) : 'Not specified' }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <p class="text-muted h2">Funding Agency</p>
+                            <p class="h3">{{ $project->fundingAgency?->name ?? 'Not specified' }}</p>
                         </div>
                     </div>
                 </div>

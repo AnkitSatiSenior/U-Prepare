@@ -5,12 +5,28 @@ namespace App\Http\Controllers;
 use App\Models\Project;
 use App\Models\FundingAgency;
 use App\Http\Requests\StoreProjectRequest;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Requests\UpdateProjectRequest;
+use Illuminate\Support\Facades\Log;
 
 class ProjectController extends Controller
 {
+    private const UTTARAKHAND_DISTRICTS = [
+        'Dehradun',
+        'Haridwar',
+        'Nainital',
+        'Almora',
+        'Pauri',
+        'Tehri',
+        'Chamoli',
+        'Rudraprayag',
+        'Uttarkashi',
+        'Bageshwar',
+        'Champawat',
+        'Pithoragarh',
+        'Udham Singh Nagar',
+    ];
+
     public function index()
     {
         $projects = Project::with('fundingAgency')->latest()->paginate(15);
@@ -19,12 +35,15 @@ class ProjectController extends Controller
 
     public function create()
     {
-        $agencies = FundingAgency::where('is_active', true)->orderBy('name')->get();
-        
-        // Example districts for Uttarakhand dropdown
-        $districts = ['Dehradun', 'Haridwar', 'Nainital', 'Almora', 'Pauri', 'Tehri', 'Chamoli', 'Rudraprayag', 'Uttarkashi', 'Bageshwar', 'Champawat', 'Pithoragarh', 'Udham Singh Nagar'];
-        
-        return view('admin.project.create', compact('agencies', 'districts'));
+        $agencies = FundingAgency::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        $districts = self::UTTARAKHAND_DISTRICTS;
+        $project = new Project();
+
+        return view('admin.project.create', compact('agencies', 'districts', 'project'));
     }
 
     public function store(StoreProjectRequest $request)
@@ -37,6 +56,7 @@ class ProjectController extends Controller
             return redirect()->route('admin.project.index')
                 ->with('success', 'EAP Project "' . $request->name . '" has been created successfully.');
         } catch (\Exception $e) {
+            Log::error('EAP Project Create Failed: ' . $e->getMessage(), ['exception' => $e]);
             return back()->withInput()->with('error', 'Failed to create project: ' . $e->getMessage());
         }
     }
@@ -49,33 +69,39 @@ class ProjectController extends Controller
 
     public function edit(Project $project)
     {
-        $agencies = FundingAgency::where('is_active', true)->get();
-        $districts = ['Dehradun', 'Haridwar', 'Nainital', 'Almora', 'Pauri', 'Tehri', 'Chamoli', 'Rudraprayag', 'Uttarkashi', 'Bageshwar', 'Champawat', 'Pithoragarh', 'Udham Singh Nagar'];
+        $agencies = FundingAgency::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        $districts = self::UTTARAKHAND_DISTRICTS;
         
         return view('admin.project.edit', compact('project', 'agencies', 'districts'));
     }
 
-public function update(UpdateProjectRequest $request, Project $project)
-{
-    try {
-        DB::transaction(function () use ($request, $project) {
-            // We use validated() to ensure only allowed fields are updated
-            $project->update($request->validated());
-        });
+    public function update(UpdateProjectRequest $request, Project $project)
+    {
+        try {
+            DB::transaction(function () use ($request, $project) {
+                $project->update($request->validated());
+            });
 
-        return redirect()->route('admin.project.index')
-            ->with('success', 'Project "' . $project->name . '" updated successfully.');
-            
-    } catch (\Exception $e) {
-        \Log::error("EAP Project Update Failed: " . $e->getMessage());
-        
-        return back()->withInput()->with('error', 'Update failed. Please check the logs for details.');
+            return redirect()->route('admin.project.index')
+                ->with('success', 'Project "' . $project->name . '" updated successfully.');
+        } catch (\Exception $e) {
+            Log::error('EAP Project Update Failed: ' . $e->getMessage(), ['exception' => $e, 'project_id' => $project->id]);
+            return back()->withInput()->with('error', 'Update failed. Please try again.');
+        }
     }
-}
 
     public function destroy(Project $project)
     {
-        $project->delete();
-        return redirect()->route('admin.project.index')->with('success', 'Project moved to trash.');
+        try {
+            $project->delete();
+            return redirect()->route('admin.project.index')->with('success', 'Project moved to trash.');
+        } catch (\Exception $e) {
+            Log::error('EAP Project Delete Failed: ' . $e->getMessage(), ['exception' => $e, 'project_id' => $project->id]);
+            return back()->with('error', 'Delete failed. Please try again.');
+        }
     }
 }

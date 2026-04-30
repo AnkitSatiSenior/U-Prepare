@@ -31,7 +31,7 @@
                                 <small class="text-muted">{{ $project->project_short_name }}</small>
                             </td>
                             <td>{{ $project->fundingAgency->name ?? 'N/A' }}</td>
-                            <td>₹{{ number_format($project->outlay_inr / 10000000, 2) }}</td>
+                            <td>₹{{ number_format($project->budget / 10000000, 2) }}</td>
                             <td>
                                 <span class="badge {{ $project->is_dli_based ? 'bg-info' : 'bg-secondary' }}">
                                     {{ $project->is_dli_based ? 'DLI' : 'Non-DLI' }}

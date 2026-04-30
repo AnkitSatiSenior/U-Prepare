@@ -34,20 +34,20 @@ class UpdateProjectRequest extends FormRequest
             'outlay_inr'                => 'required|numeric|min:0',
             'outlay_donor_currency'     => 'required|numeric|min:0',
             'donor_share_inr'           => 'required|numeric|min:0',
-            'donor_share_donor_cur'     => 'required|numeric|min:0',
+            'donor_share_donor_currency'=> 'required|numeric|min:0',
             'state_share_inr'           => 'required|numeric|min:0',
-            'state_share_donor_cur'     => 'required|numeric|min:0',
+            'state_share_donor_currency'=> 'required|numeric|min:0',
             'other_share_inr'           => 'required|numeric|min:0',
 
             // 3. Revision Logic (Conditional)
             'is_revised'                => 'required|boolean',
             'revised_closure_date'      => 'required_if:is_revised,1|nullable|date|after:scheduled_closure_date',
             'revised_outlay_inr'        => 'required_if:is_revised,1|nullable|numeric|min:0',
-            'revised_outlay_donor_cur'  => 'required_if:is_revised,1|nullable|numeric|min:0',
+            'revised_outlay_donor_currency'  => 'required_if:is_revised,1|nullable|numeric|min:0',
             'revised_donor_share_inr'   => 'required_if:is_revised,1|nullable|numeric|min:0',
-            'revised_donor_share_donor_cur' => 'required_if:is_revised,1|nullable|numeric|min:0',
+            'revised_donor_share_donor_currency' => 'required_if:is_revised,1|nullable|numeric|min:0',
             'revised_state_share_inr'   => 'required_if:is_revised,1|nullable|numeric|min:0',
-            'revised_state_share_donor_cur' => 'required_if:is_revised,1|nullable|numeric|min:0',
+            'revised_state_share_donor_currency' => 'required_if:is_revised,1|nullable|numeric|min:0',
             'revised_other_share_inr'   => 'required_if:is_revised,1|nullable|numeric|min:0',
 
             // 4. DLI vs Non-DLI Implementation
@@ -84,6 +84,10 @@ class UpdateProjectRequest extends FormRequest
             'revised_closure_date.required_if' => 'The Revised Closure Date is required when the project is marked as Revised.',
             'dli_target_count.required_if'    => 'DLI Target Count is mandatory for DLI-based projects.',
             'implementation_locations.required' => 'Please select at least one district for implementation.',
+            'target_expenditure_donor.required_if' => 'Target Expenditure (Donor) is required when the project is Non-DLI.',
+            'target_expenditure_inr.required_if' => 'Target Expenditure (INR) is required when the project is Non-DLI.',
+            'reimbursement_target_donor.required_if' => 'Reimbursement Target (Donor) is required when the project is Non-DLI.',
+            'reimbursement_target_inr.required_if' => 'Reimbursement Target (INR) is required when the project is Non-DLI.',
         ];
     }
 }
