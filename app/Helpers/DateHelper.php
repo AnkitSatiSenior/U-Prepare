@@ -90,8 +90,25 @@ if (!function_exists('canRoute')) {
             return false;
         }
 
-        $allowedRoutes = cache()->remember("role_routes_{$user->role_id}", now()->addMinutes(10), fn() => \App\Models\RoleRoute::where('role_id', $user->role_id)->pluck('route_name')->toArray());
+        static $memo = [];
+        $cacheKey = "role_routes_{$user->role_id}";
 
-        return in_array($routeName, $allowedRoutes);
+        if (array_key_exists($cacheKey, $memo)) {
+            return in_array($routeName, $memo[$cacheKey], true);
+        }
+
+        $shared = view()->shared('allowedRoutes');
+        if (is_array($shared) && $shared !== []) {
+            $memo[$cacheKey] = $shared;
+            return in_array($routeName, $memo[$cacheKey], true);
+        }
+
+        $memo[$cacheKey] = cache()->remember(
+            $cacheKey,
+            now()->addMinutes(10),
+            fn () => \App\Models\RoleRoute::where('role_id', $user->role_id)->pluck('route_name')->all()
+        );
+
+        return in_array($routeName, $memo[$cacheKey], true);
     }
 }

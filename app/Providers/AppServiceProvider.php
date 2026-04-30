@@ -3,10 +3,13 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\View;
 use Illuminate\Database\Eloquent\Model;
 use App\Observers\ActivityLogObserver;
 use App\Helpers\StaticDataHelper;
+use App\Models\RoleRoute;
 use Livewire\Livewire;
 use App\Http\Livewire\ChatComponent;
 
@@ -46,6 +49,22 @@ class AppServiceProvider extends ServiceProvider
         // ✅ Share static data with all views
         view()->share('cc_items', StaticDataHelper::citizenCornerData());
         view()->share('pps_items', StaticDataHelper::pastProjectsData());
+
+        View::composer('*', function ($view) {
+            $user = auth()->user();
+            $allowedRoutes = [];
+
+            if ($user) {
+                $allowedRoutes = Cache::remember(
+                    "role_routes_{$user->role_id}",
+                    now()->addMinutes(10),
+                    fn () => RoleRoute::where('role_id', $user->role_id)->pluck('route_name')->all()
+                );
+            }
+
+            $view->with('allowedRoutes', $allowedRoutes);
+            $view->with('sidebarUser', $user);
+        });
 
         // ✅ Register Livewire components
         Livewire::component('chat-component', ChatComponent::class);

@@ -75,12 +75,20 @@
 <body class="nav-md">
 
     <x-loader></x-loader>
-    <div id="__gl" aria-hidden="true"></div>
-    <style>
-        #__gl{position:fixed;inset:0;background:rgba(255,255,255,.45);backdrop-filter:blur(1px);display:none;z-index:2147483646}
-        #__gl:before{content:"";position:absolute;top:50%;left:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border:3px solid rgba(0,0,0,.18);border-top-color:rgba(0,0,0,.6);border-radius:50%;animation:__gls .6s linear infinite}
-        @keyframes __gls{to{transform:rotate(360deg)}}
-    </style>
+	    <div id="__gl" aria-hidden="true"></div>
+	    <style>
+	        #__gl{position:fixed;inset:0;background:rgba(255,255,255,.45);backdrop-filter:blur(1px);display:none;z-index:2147483646}
+	        #__gl:before{content:"";position:absolute;top:50%;left:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border:3px solid rgba(0,0,0,.18);border-top-color:rgba(0,0,0,.6);border-radius:50%;animation:__gls .6s linear infinite}
+	        @keyframes __gls{to{transform:rotate(360deg)}}
+	        #__sb_bd{position:fixed;inset:0;background:rgba(0,0,0,.25);display:none;z-index:2147483644}
+	        @media (max-width: 991.98px){
+	            .left_col{position:fixed;top:0;bottom:0;left:0;transform:translateX(-100%);transition:transform .18s ease;z-index:2147483645}
+	            body.sidebar-open .left_col{transform:translateX(0)}
+	            body.sidebar-open #__sb_bd{display:block}
+	            .right_col{margin-left:0 !important}
+	        }
+	    </style>
+	    <div id="__sb_bd" aria-hidden="true"></div>
 
     <div class=" container body">
         <div class="main_container" style="min-height: 100vh;">
@@ -176,10 +184,10 @@
 
     @stack('modals')
     @yield('script')
-    <script>
-        (function () {
-            var el = document.getElementById('__gl');
-            if (!el) return;
+	    <script>
+	        (function () {
+	            var el = document.getElementById('__gl');
+	            if (!el) return;
             var n = 0, t = 0;
             function show(){n++; if(n===1){el.style.display='block';}}
             function hide(){n=Math.max(0,n-1); if(n===0){el.style.display='none';}}
@@ -218,8 +226,36 @@
                 this.addEventListener('loadend', hide, { once: true });
                 return _send.apply(this, arguments);
             };
-        })();
-    </script>
+	        })();
+	    </script>
+	    <script>
+	        (function () {
+	            var toggle = document.getElementById('menu_toggle');
+	            var bd = document.getElementById('__sb_bd');
+	            function close(){document.body.classList.remove('sidebar-open');}
+	            if (toggle) toggle.addEventListener('click', function (e) { e.preventDefault(); document.body.classList.toggle('sidebar-open'); });
+	            if (bd) bd.addEventListener('click', close);
+	            document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+
+	            document.addEventListener('click', function (e) {
+	                var t = e.target && e.target.closest ? e.target.closest('a.js-menu-toggle') : null;
+	                if (!t) return;
+	                e.preventDefault();
+	                var li = t.closest('li');
+	                if (li) li.classList.toggle('open');
+	            }, true);
+
+	            document.addEventListener('click', function (e) {
+	                if (!document.body.classList.contains('sidebar-open')) return;
+	                var a = e.target && e.target.closest ? e.target.closest('a') : null;
+	                if (!a) return;
+	                if (a.classList.contains('js-menu-toggle')) return;
+	                var href = a.getAttribute('href');
+	                if (!href || href[0] === '#') return;
+	                close();
+	            }, true);
+	        })();
+	    </script>
 </body>
 
 </html>
