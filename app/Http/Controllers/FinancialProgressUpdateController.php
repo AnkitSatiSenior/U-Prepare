@@ -8,44 +8,50 @@ use App\Models\EpcEntryData;
 use App\Models\AlreadyDefinedWorkProgress;
 use App\Models\MediaFile;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\DB;
 
 class FinancialProgressUpdateController extends Controller
 {
-    private const S3_DISK = 's3';
-
-    /**
-     * Display a listing of components and EPC entries.
-     */
     public function index2(Request $request)
-    {
-        $subProjects = SubPackageProject::with('packageProject')->get();
+{
+    // 1. Fetch all sub projects and eager load the parent packageProject to prevent N+1 queries
+    $subProjects = SubPackageProject::with('packageProject')->get();
 
-        $departmentIds = $subProjects->pluck('packageProject.department_id')->unique()->filter();
+    // 2. Extract unique department IDs from the fetched sub-projects
+    $departmentIds = $subProjects->pluck('packageProject.department_id')->unique()->filter();
 
-        $components = AlreadyDefinedWorkProgress::with('workService')
-            ->whereHas('workService', function ($query) use ($departmentIds) {
-                $query->whereIn('department_id', $departmentIds);
-            })->get();
+    // 3. Fetch components scoped ONLY to the relevant departments
+    $components = AlreadyDefinedWorkProgress::with('workService')
+        ->whereHas('workService', function ($query) use ($departmentIds) {
+            $query->whereIn('department_id', $departmentIds);
+        })->get();
 
-        $selectedSubProjectId = $request->input('sub_package_project_id') ?: $subProjects->first()?->id;
+    // default empty collection
+    $epcEntries = collect();
+    $selectedSubProjectId = null;
 
-        $epcEntries = $selectedSubProjectId 
-            ? EpcEntryData::where('sub_package_project_id', $selectedSubProjectId)->orderBy('sl_no')->get()
-            : collect();
-
-        return view('admin.financial_progress_update.index-2', [
-            'subProjects'          => $subProjects,
-            'epcEntries'           => $epcEntries,
-            'components'           => $components, 
-            'selectedSubProjectId' => $selectedSubProjectId,
-        ]);
+    // choose requested id or first project id
+    if ($request->filled('sub_package_project_id')) {
+        $selectedSubProjectId = $request->sub_package_project_id;
+    } elseif ($subProjects->isNotEmpty()) {
+        $selectedSubProjectId = $subProjects->first()->id;
     }
 
-    /**
-     * Display financial progress updates with S3 Media paths.
-     */
+    // only fetch when we have a valid id
+    if ($selectedSubProjectId) {
+        $epcEntries = EpcEntryData::where('sub_package_project_id', $selectedSubProjectId)
+            ->orderBy('sl_no')
+            ->get();
+    }
+
+    return view('admin.financial_progress_update.index-2', [
+        'subProjects'          => $subProjects,
+        'epcEntries'           => $epcEntries,
+        'components'           => $components, 
+        'selectedSubProjectId' => $selectedSubProjectId,
+    ]);
+}
+
+
     public function index(Request $request)
     {
         $subProjects = SubPackageProject::select('id', 'name')->get();
@@ -53,48 +59,61 @@ class FinancialProgressUpdateController extends Controller
 
         $subProject = $selectedProjectId ? SubPackageProject::find($selectedProjectId) : null;
 
-        $financialProgress = collect();
+        $financialProgress = $subProject
+            ? FinancialProgressUpdate::where('project_id', $selectedProjectId)
+            ->orderBy('created_at', 'desc') // optional: latest first
+            ->get()
+            ->map(function ($progress) {
+                // Decode media IDs
+                $mediaIds = is_array($progress->media) ? $progress->media : json_decode($progress->media, true) ?? [];
 
-        if ($subProject) {
-            $financialProgress = FinancialProgressUpdate::where('project_id', $selectedProjectId)
-                ->orderBy('created_at', 'desc')
-                ->get()
-                ->map(function ($progress) {
-                    $mediaIds = is_array($progress->media) ? $progress->media : json_decode($progress->media, true) ?? [];
-                    
-                    // Fetch paths and convert to S3 URLs
-                    $progress->media_paths = MediaFile::whereIn('id', $mediaIds)
-                        ->pluck('path')
-                        ->map(fn($path) => Storage::disk(self::S3_DISK)->url($path))
-                        ->toArray();
+                // Get file paths
+                $paths = MediaFile::whereIn('id', $mediaIds)->pluck('path')->toArray();
+                $progress->media_paths = $paths;
 
-                    return $progress;
-                });
-        }
+                return $progress;
+            })
+            : collect();
 
         return view('admin.financial_progress_update.index', compact('subProjects', 'subProject', 'financialProgress', 'selectedProjectId'));
     }
 
     public function create(Request $request)
     {
-        $subProjectId = $request->required('sub_package_project_id');
+        $subProjectId = $request->input('sub_package_project_id');
         $subProject = SubPackageProject::findOrFail($subProjectId);
 
         return view('admin.financial_progress_update.create', compact('subProject'));
     }
 
+    public function edit($id)
+    {
+        $update = FinancialProgressUpdate::findOrFail($id);
+        $subProject = SubPackageProject::findOrFail($update->project_id);
+
+        // Fetch media files for display
+        $mediaFiles = MediaFile::whereIn('id', $update->media ?? [])->get();
+
+        return view('admin.financial_progress_update.edit', compact('update', 'subProject', 'mediaFiles'));
+    }
+
     public function store(Request $request)
     {
         $validated = $this->validateRequest($request);
+
         $subProject = SubPackageProject::findOrFail($validated['project_id']);
 
-        // Business Logic: Prevent over-spending contract value
+        // Calculate already stored progress
         $totalFinance = FinancialProgressUpdate::where('project_id', $subProject->id)->sum('finance_amount');
-        if (($totalFinance + $validated['finance_amount']) > $subProject->contract_value) {
-            return back()->withInput()->with([
-                'status' => 'error',
-                'message' => 'Finance amount exceeds the contract value (₹' . number_format($subProject->contract_value, 2) . ').'
-            ]);
+
+        // New total after adding current update
+        $newTotal = $totalFinance + $validated['finance_amount'];
+
+        if ($newTotal > $subProject->contract_value) {
+            return back()
+                ->withInput()
+                ->with('status', 'error')
+                ->with('message', 'Finance amount exceeds the contract value (₹' . number_format($subProject->contract_value, 2) . ').');
         }
 
         $validated['media'] = $this->handleMediaUploads($request);
@@ -102,15 +121,81 @@ class FinancialProgressUpdateController extends Controller
         FinancialProgressUpdate::create($validated);
 
         return redirect()
-            ->route('admin.financial-progress-updates.index', ['sub_package_project_id' => $validated['project_id']])
+            ->route('admin.financial-progress-updates.index', [
+                'sub_package_project_id' => $validated['project_id'],
+            ])
             ->with('status', 'success')
-            ->with('message', 'Update created successfully.');
+            ->with('message', 'Financial progress update created successfully.');
     }
 
-    /**
-     * Handle S3 Media Upload Logic
-     */
-    private function handleMediaUploads(Request $request, array $existingMediaIds = []): array
+    public function update(Request $request, $id)
+    {
+        $update = FinancialProgressUpdate::findOrFail($id);
+        $validated = $this->validateRequest($request);
+
+        $subProject = SubPackageProject::findOrFail($validated['project_id']);
+
+        // Exclude current record then add new amount
+        $totalFinance = FinancialProgressUpdate::where('project_id', $subProject->id)->where('id', '!=', $update->id)->sum('finance_amount');
+
+        $newTotal = $totalFinance + $validated['finance_amount'];
+
+        if ($newTotal > $subProject->contract_value) {
+            return back()
+                ->withInput()
+                ->with('status', 'error')
+                ->with('message', 'Finance amount exceeds the contract value (₹' . number_format($subProject->contract_value, 2) . ').');
+        }
+
+        $validated['media'] = $this->handleMediaUploads($request, $update->media ?? []);
+
+        $update->update($validated);
+
+        return redirect()
+            ->route('admin.financial-progress-updates.index', [
+                'sub_package_project_id' => $validated['project_id'],
+            ])
+            ->with('status', 'success')
+            ->with('message', 'Financial progress update updated successfully.');
+    }
+
+    public function destroy($id)
+    {
+        $update = FinancialProgressUpdate::findOrFail($id);
+        $update->delete();
+
+        return back()->with('status', 'success')->with('message', 'Financial progress update deleted successfully.');
+    }
+
+    public function uploadMedia(Request $request)
+    {
+        $request->validate([
+            'media.*' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
+        ]);
+
+        $mediaIds = $this->handleMediaUploads($request);
+
+        return response()->json([
+            'status' => 'success',
+            'media_ids' => $mediaIds,
+            'files' => MediaFile::whereIn('id', $mediaIds)->get(),
+        ]);
+    }
+
+    private function validateRequest(Request $request): array
+    {
+        return $request->validate([
+            'project_id' => 'required|integer|exists:sub_package_projects,id',
+            'finance_amount' => 'required|numeric|min:0',
+            'no_of_bills' => 'required|integer|min:1',
+            'bill_serial_no' => 'nullable|string',
+            'submit_date' => 'required|date',
+            'media.*' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+        ]);
+    }
+
+     private const S3_DISK = 's3';
+ private function handleMediaUploads(Request $request, array $existingMediaIds = []): array
     {
         $uploadedMediaIds = $existingMediaIds;
 
@@ -135,17 +220,5 @@ class FinancialProgressUpdateController extends Controller
         }
 
         return array_values(array_unique($uploadedMediaIds));
-    }
-
-    private function validateRequest(Request $request): array
-    {
-        return $request->validate([
-            'project_id'     => 'required|integer|exists:sub_package_projects,id',
-            'finance_amount' => 'required|numeric|min:0',
-            'no_of_bills'    => 'required|integer|min:1',
-            'bill_serial_no' => 'nullable|string',
-            'submit_date'    => 'required|date',
-            'media.*'        => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120', // Increased to 5MB for S3
-        ]);
     }
 }
