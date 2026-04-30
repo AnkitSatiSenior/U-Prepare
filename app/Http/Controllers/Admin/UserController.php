@@ -52,6 +52,14 @@ class UserController extends Controller
             'district' => 'nullable|string|max:100',
             'status' => 'required|in:active,inactive',
             'profile_photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'dob' => 'nullable|date',
+            'date_of_joining' => 'nullable|date',
+            'qualification' => 'nullable|string',
+            'total_work_experience' => 'nullable|string|max:50',
+            'area_of_expertise' => 'nullable|string',
+            'procurement_support' => 'nullable|string',
+            'research_publication_citation' => 'nullable|string|max:100',
+            'previous_experience' => 'nullable|string',
         ]);
 
         $profilePhotoPath = null;
@@ -73,6 +81,14 @@ class UserController extends Controller
             'district' => $validated['district'] ?? null,
             'status' => $validated['status'],
             'profile_photo_path' => $profilePhotoPath,
+            'dob' => $validated['dob'] ?? null,
+            'date_of_joining' => $validated['date_of_joining'] ?? null,
+            'qualification' => $validated['qualification'] ?? null,
+            'total_work_experience' => $validated['total_work_experience'] ?? null,
+            'area_of_expertise' => $validated['area_of_expertise'] ?? null,
+            'procurement_support' => $validated['procurement_support'] ?? null,
+            'research_publication_citation' => $validated['research_publication_citation'] ?? null,
+            'previous_experience' => $validated['previous_experience'] ?? null,
         ]);
 
         return redirect()->route('admin.users.index')->with('success', 'User created successfully.');

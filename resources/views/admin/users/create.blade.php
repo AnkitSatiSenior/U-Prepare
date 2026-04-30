@@ -65,16 +65,16 @@
                             <x-input-error for="phone_no" />
                         </div>
 
-                        {{-- Username --}}
-                        <div class="col-md-4">
-                            <x-label for="username" value="Username" />
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-user-tag"></i></span>
-                                <x-input id="username" name="username" 
-                                    value="{{ old('username', $user->username ?? '') }}" />
-                            </div>
-                            <x-input-error for="username" />
-                        </div>
+	                        {{-- Username --}}
+	                        <div class="col-md-4">
+	                            <x-label for="username" value="Username" required />
+	                            <div class="input-group">
+	                                <span class="input-group-text"><i class="fas fa-user-tag"></i></span>
+	                                <x-input id="username" name="username" maxlength="50" required
+	                                    value="{{ old('username', $user->username ?? '') }}" />
+	                            </div>
+	                            <x-input-error for="username" />
+	                        </div>
 
                         {{-- Role --}}
                         <div class="col-md-4">
@@ -125,21 +125,100 @@
                             <x-input-error for="gender" />
                         </div>
 
-                        {{-- District --}}
-                        <div class="col-md-4">
-                            <x-label for="district" value="District" />
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
-                                <x-input id="district" name="district" 
-                                    value="{{ old('district', $user->district ?? '') }}" />
-                            </div>
-                            <x-input-error for="district" />
-                        </div>
+	                        {{-- District --}}
+	                        <div class="col-md-4">
+	                            <x-label for="district" value="District" />
+	                            <div class="input-group">
+	                                <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
+	                                <x-input id="district" name="district" 
+	                                    value="{{ old('district', $user->district ?? '') }}" />
+	                            </div>
+	                            <x-input-error for="district" />
+	                        </div>
 
-                        {{-- Status --}}
-                        <div class="col-md-4">
-                            <x-bootstrap.dropdown id="status" name="status" label="Status" required
-                                :items="[['value'=>'active','label'=>'Active'],['value'=>'inactive','label'=>'Inactive']]"
+                            <div class="col-12">
+                                <hr class="my-2">
+                                <h6 class="text-muted fw-semibold mb-0">Professional Profile</h6>
+                            </div>
+
+                            {{-- DOB --}}
+                            <div class="col-md-4">
+                                <x-label for="dob" value="DOB" />
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                                    <x-input type="date" id="dob" name="dob"
+                                        value="{{ old('dob', isset($user) && $user->dob ? $user->dob->format('Y-m-d') : '') }}" />
+                                </div>
+                                <x-input-error for="dob" />
+                            </div>
+
+                            {{-- Date of Joining --}}
+                            <div class="col-md-4">
+                                <x-label for="date_of_joining" value="Date of Joining" />
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-calendar-check"></i></span>
+                                    <x-input type="date" id="date_of_joining" name="date_of_joining"
+                                        value="{{ old('date_of_joining', isset($user) && $user->date_of_joining ? $user->date_of_joining->format('Y-m-d') : '') }}" />
+                                </div>
+                                <x-input-error for="date_of_joining" />
+                            </div>
+
+                            {{-- Total Work Experience --}}
+                            <div class="col-md-4">
+                                <x-label for="total_work_experience" value="Total Work Experience" />
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-briefcase"></i></span>
+                                    <x-input id="total_work_experience" name="total_work_experience"
+                                        value="{{ old('total_work_experience', $user->total_work_experience ?? '') }}"
+                                        placeholder="e.g. 10+ years" />
+                                </div>
+                                <x-input-error for="total_work_experience" />
+                            </div>
+
+                            {{-- Research/Publication/Citation --}}
+                            <div class="col-md-4">
+                                <x-label for="research_publication_citation" value="Research/Publication/Citation" />
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-book"></i></span>
+                                    <x-input id="research_publication_citation" name="research_publication_citation"
+                                        value="{{ old('research_publication_citation', $user->research_publication_citation ?? '') }}"
+                                        placeholder="e.g. No / 2" />
+                                </div>
+                                <x-input-error for="research_publication_citation" />
+                            </div>
+
+                            {{-- Qualification --}}
+                            <div class="col-md-12">
+                                <x-label for="qualification" value="Qualification" />
+                                <textarea id="qualification" name="qualification" class="form-control" rows="2">{{ old('qualification', $user->qualification ?? '') }}</textarea>
+                                <x-input-error for="qualification" />
+                            </div>
+
+                            {{-- Area of Expertise --}}
+                            <div class="col-md-12">
+                                <x-label for="area_of_expertise" value="Area of Expertise" />
+                                <textarea id="area_of_expertise" name="area_of_expertise" class="form-control" rows="3">{{ old('area_of_expertise', $user->area_of_expertise ?? '') }}</textarea>
+                                <x-input-error for="area_of_expertise" />
+                            </div>
+
+                            {{-- Support for Procurement --}}
+                            <div class="col-md-12">
+                                <x-label for="procurement_support" value="Support for Procurement of IT Equipment" />
+                                <textarea id="procurement_support" name="procurement_support" class="form-control" rows="2">{{ old('procurement_support', $user->procurement_support ?? '') }}</textarea>
+                                <x-input-error for="procurement_support" />
+                            </div>
+
+                            {{-- Previous Experience --}}
+                            <div class="col-md-12">
+                                <x-label for="previous_experience" value="Previous Experience" />
+                                <textarea id="previous_experience" name="previous_experience" class="form-control" rows="4">{{ old('previous_experience', $user->previous_experience ?? '') }}</textarea>
+                                <x-input-error for="previous_experience" />
+                            </div>
+
+	                        {{-- Status --}}
+	                        <div class="col-md-4">
+	                            <x-bootstrap.dropdown id="status" name="status" label="Status" required
+	                                :items="[['value'=>'active','label'=>'Active'],['value'=>'inactive','label'=>'Inactive']]"
                                 :selected="old('status', $user->status ?? '')" />
                             <x-input-error for="status" />
                         </div>

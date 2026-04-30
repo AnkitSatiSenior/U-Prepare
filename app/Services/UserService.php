@@ -23,6 +23,7 @@ class UserService
             $updateData = [
                 'name' => $data['name'],
                 'email' => $data['email'],
+                'username' => $data['username'] ?? $user->username,
                 'role_id' => $data['role_id'],
                 'department_id' => $data['department_id'] ?? null,
                 'sub_department_id' => $data['sub_department_id'] ?? null,
@@ -31,6 +32,14 @@ class UserService
                 'phone_no' => $data['phone_no'] ?? null,
                 'district' => $data['district'] ?? null,
                 'status' => $data['status'],
+                'dob' => $data['dob'] ?? null,
+                'date_of_joining' => $data['date_of_joining'] ?? null,
+                'qualification' => $data['qualification'] ?? null,
+                'total_work_experience' => $data['total_work_experience'] ?? null,
+                'area_of_expertise' => $data['area_of_expertise'] ?? null,
+                'procurement_support' => $data['procurement_support'] ?? null,
+                'research_publication_citation' => $data['research_publication_citation'] ?? null,
+                'previous_experience' => $data['previous_experience'] ?? null,
             ];
 
             // Conditionally hash password

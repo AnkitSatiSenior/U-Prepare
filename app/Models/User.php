@@ -20,7 +20,10 @@ class User extends Authenticatable
     protected $fillable = [
         'name', 'email', 'password', 'username', 'role_id', 'department_id', 
         'sub_department_id', 'designation_id', 'gender', 'phone_no', 'status', 
-        'district', 'profile_photo_path'
+        'district', 'profile_photo_path',
+        'dob', 'date_of_joining', 'qualification', 'total_work_experience',
+        'area_of_expertise', 'procurement_support', 'research_publication_citation',
+        'previous_experience',
     ];
 
     protected $hidden = [
@@ -35,6 +38,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'dob' => 'date',
+            'date_of_joining' => 'date',
         ];
     }
 
