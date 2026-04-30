@@ -82,8 +82,8 @@ Route::prefix('grievance')
         Route::post('/', [GrievancePublicController::class, 'store'])->name('store');
         Route::post('/status', [GrievancePublicController::class, 'statusSearch'])->name('status.check');
     });
-Route::view('/en/contact-us', 'contact-us')->name('contact');
-Route::view('/hi/contact-us', 'contact-us')->name('contact');
+Route::view('/en/contact-us', 'contact-us')->name('contact.en');
+Route::view('/hi/contact-us', 'contact-us')->name('contact.hi');
 Route::prefix('grievance')
     ->name('grievance.')
     ->group(function () {

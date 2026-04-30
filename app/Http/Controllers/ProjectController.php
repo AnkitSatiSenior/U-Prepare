@@ -7,6 +7,7 @@ use App\Models\FundingAgency;
 use App\Http\Requests\StoreProjectRequest;
 use Illuminate\Support\Facades\DB;
 use App\Http\Requests\UpdateProjectRequest;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class ProjectController extends Controller
@@ -29,16 +30,31 @@ class ProjectController extends Controller
 
     public function index()
     {
-        $projects = Project::with('fundingAgency')->latest()->paginate(15);
+        $projects = Project::query()
+            ->select([
+                'id',
+                'name',
+                'project_short_name',
+                'funding_agency_id',
+                'outlay_inr',
+                'is_dli_based',
+                'created_at',
+            ])
+            ->with(['fundingAgency:id,name'])
+            ->latest()
+            ->paginate(15);
         return view('admin.project.index', compact('projects'));
     }
 
     public function create()
     {
-        $agencies = FundingAgency::query()
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get();
+        $agencies = Cache::remember('funding_agencies.active.v1', 3600, function () {
+            return FundingAgency::query()
+                ->select(['id', 'name'])
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get();
+        });
 
         $districts = self::UTTARAKHAND_DISTRICTS;
         $project = new Project();
@@ -63,16 +79,19 @@ class ProjectController extends Controller
 
     public function show(Project $project)
     {
-        $project->load('fundingAgency');
+        $project->loadMissing('fundingAgency');
         return view('admin.project.show', compact('project'));
     }
 
     public function edit(Project $project)
     {
-        $agencies = FundingAgency::query()
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get();
+        $agencies = Cache::remember('funding_agencies.active.v1', 3600, function () {
+            return FundingAgency::query()
+                ->select(['id', 'name'])
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get();
+        });
 
         $districts = self::UTTARAKHAND_DISTRICTS;
         

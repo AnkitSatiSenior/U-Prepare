@@ -75,6 +75,12 @@
 <body class="nav-md">
 
     <x-loader></x-loader>
+    <div id="__gl" aria-hidden="true"></div>
+    <style>
+        #__gl{position:fixed;inset:0;background:rgba(255,255,255,.45);backdrop-filter:blur(1px);display:none;z-index:2147483646}
+        #__gl:before{content:"";position:absolute;top:50%;left:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border:3px solid rgba(0,0,0,.18);border-top-color:rgba(0,0,0,.6);border-radius:50%;animation:__gls .6s linear infinite}
+        @keyframes __gls{to{transform:rotate(360deg)}}
+    </style>
 
     <div class=" container body">
         <div class="main_container" style="min-height: 100vh;">
@@ -170,6 +176,50 @@
 
     @stack('modals')
     @yield('script')
+    <script>
+        (function () {
+            var el = document.getElementById('__gl');
+            if (!el) return;
+            var n = 0, t = 0;
+            function show(){n++; if(n===1){el.style.display='block';}}
+            function hide(){n=Math.max(0,n-1); if(n===0){el.style.display='none';}}
+            function bump(){clearTimeout(t); t=setTimeout(function(){n=0; el.style.display='none';}, 15000);}
+
+            window.addEventListener('pageshow', function(){n=0; el.style.display='none';});
+
+            document.addEventListener('click', function (e) {
+                var a = e.target && e.target.closest ? e.target.closest('a') : null;
+                if (!a) return;
+                if (a.target && a.target !== '_self') return;
+                if (a.hasAttribute('download')) return;
+                var href = a.getAttribute('href');
+                if (!href || href[0] === '#' || href.indexOf('javascript:') === 0) return;
+                try {
+                    var u = new URL(href, window.location.href);
+                    if (u.origin !== window.location.origin) return;
+                    if (u.pathname === window.location.pathname && u.search === window.location.search) return;
+                    show(); bump();
+                } catch (_) {}
+            }, true);
+
+            var _fetch = window.fetch;
+            if (_fetch) {
+                window.fetch = function () {
+                    show(); bump();
+                    return _fetch.apply(this, arguments).finally(hide);
+                };
+            }
+
+            var _open = XMLHttpRequest.prototype.open;
+            var _send = XMLHttpRequest.prototype.send;
+            XMLHttpRequest.prototype.open = function () { this.__gl = true; return _open.apply(this, arguments); };
+            XMLHttpRequest.prototype.send = function () {
+                if (this.__gl) { show(); bump(); }
+                this.addEventListener('loadend', hide, { once: true });
+                return _send.apply(this, arguments);
+            };
+        })();
+    </script>
 </body>
 
 </html>

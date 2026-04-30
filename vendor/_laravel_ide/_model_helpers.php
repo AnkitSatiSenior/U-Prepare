@@ -7776,12 +7776,14 @@ namespace App\Models {
      * @property string $message
      * @property string|null $subject
      * @property mixed $type
+     * @property string|null $phone_number
      * @property string $email
      * @property string $name
      * @property int $id
      * @method static \Illuminate\Database\Eloquent\Builder<Feedback>|Feedback whereId($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Feedback>|Feedback whereName($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Feedback>|Feedback whereEmail($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<Feedback>|Feedback wherePhoneNumber($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Feedback>|Feedback whereType($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Feedback>|Feedback whereSubject($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Feedback>|Feedback whereMessage($value)
