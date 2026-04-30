@@ -53,8 +53,16 @@
                     <div class="row g-3">
                         <!-- Category -->
                         <div class="col-md-3">
-                            <x-bootstrap.dropdown name="package_category_id" label="Package Category" :items="$categories->map(fn($c) => ['value' => $c->id, 'label' => $c->name])->toArray()"
-                                :selected="old('package_category_id', $packageProject->package_category_id)" placeholder="Select Category" />
+                            <label for="package_category_id" class="form-label">Package Category</label>
+                            <select name="package_category_id" id="package_category_id" class="form-control" required>
+                                <option value="">Select Category</option>
+                                @foreach ($categories as $category)
+                                    <option value="{{ $category->id }}" @selected(old('package_category_id', $packageProject->package_category_id) == $category->id)>
+                                        {{ $category->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <div class="invalid-feedback">Please select a category.</div>
                         </div>
 
                         <!-- Sub Category -->
@@ -63,6 +71,7 @@
                             <select name="package_sub_category_id" id="package_sub_category_id" class="form-control">
                                 <option value="">Select Sub Category</option>
                                 @foreach ($subCategories as $subCategory)
+                                    <!-- Note: using the specific data attribute to match the parent value -->
                                     <option value="{{ $subCategory->id }}"
                                         data-category="{{ $subCategory->category_id }}" @selected(old('package_sub_category_id', $packageProject->package_sub_category_id) == $subCategory->id)>
                                         {{ $subCategory->name }}
@@ -101,10 +110,15 @@
 
                         <!-- Component -->
                         <div class="col-md-3">
-                            <x-bootstrap.dropdown name="package_component_id" label="Package Component"
-                                :items="$components
-                                    ->map(fn($c) => ['value' => $c->id, 'label' => $c->name])
-                                    ->toArray()" :selected="old('package_component_id', $packageProject->package_component_id)" placeholder="Select Component" />
+                            <label for="package_component_id" class="form-label">Package Component</label>
+                            <select name="package_component_id" id="package_component_id" class="form-control">
+                                <option value="">Select Component</option>
+                                @foreach ($components as $component)
+                                    <option value="{{ $component->id }}" @selected(old('package_component_id', $packageProject->package_component_id) == $component->id)>
+                                        {{ $component->name }}
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
 
@@ -132,26 +146,20 @@
                                 required>
                             <div class="invalid-feedback">Valid budget is required.</div>
                         </div>
+                        
                         <!-- Safeguard Exists Checkbox -->
-
                         <div class="col-md-4">
                             <div class="form-check form-switch mt-2">
                                 <p class="form-label h5">Safeguard Exists</p>
-
                                 <!-- Hidden input ensures a value is always sent -->
                                 <input type="hidden" name="safeguard_exists" value="0">
-
                                 <input class="form-check-input" type="checkbox" name="safeguard_exists"
                                     id="safeguard_exists" value="1" @checked(old('safeguard_exists', $packageProject->safeguard_exists))>
                                 <label class="form-check-label" for="safeguard_exists">Yes</label>
                             </div>
                             <small class="text-muted">Check if safeguards exist for this package project.</small>
                         </div>
-
-
-
                     </div>
-
 
                     @include('admin.package-projects.partials.location-fields', [
                         'packageProject' => $packageProject,
@@ -160,10 +168,9 @@
                         'constituencies' => $constituencies,
                         'assembly' => $assembly,
                     ])
+
                     <!-- Location Card -->
                     <div class="row g-3">
-
-
                         <!-- DEC & HPC Cards -->
                         @include('admin.package-projects.partials.approval-fields', [
                             'packageProject' => $packageProject,
@@ -188,57 +195,57 @@
     <!-- Scripts -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const catSelect = document.getElementById('package_category_id');
-            const subCatSelect = document.getElementById('package_sub_category_id');
-            const deptSelect = document.getElementById('department_id');
-            const subDeptSelect = document.getElementById('sub_department_id');
-
-            deptSelect.addEventListener('change', () => filterOptions(deptSelect, subDeptSelect, 'department'));
-            catSelect.addEventListener('change', () => filterOptions(catSelect, subCatSelect, 'category'));
-
-            // ✅ apply filters on load (important for edit form)
-            filterOptions(deptSelect, subDeptSelect, 'department');
-            filterOptions(catSelect, subCatSelect, 'category');
-        });
-
-        document.addEventListener('DOMContentLoaded', function() {
             const deptSelect = document.getElementById('department_id');
             const subDeptSelect = document.getElementById('sub_department_id');
             const catSelect = document.getElementById('package_category_id');
             const subCatSelect = document.getElementById('package_sub_category_id');
 
             function filterOptions(parentSelect, childSelect, dataAttr) {
+                if (!parentSelect || !childSelect) return;
+                
                 const selected = parentSelect.value;
+                
                 Array.from(childSelect.options).forEach(opt => {
-                    if (!opt.value) return; // keep default
-                    opt.style.display = (opt.dataset[dataAttr] === selected) ? 'block' : 'none';
+                    if (!opt.value) return; // keep the default "Select..." placeholder visible
+                    
+                    const isMatch = (opt.dataset[dataAttr] === selected);
+                    
+                    // Robust way to hide options cross-browser
+                    opt.hidden = !isMatch;
+                    opt.disabled = !isMatch;
+                    opt.style.display = isMatch ? '' : 'none';
                 });
-                if (childSelect.value && childSelect.selectedOptions[0].style.display === 'none') {
+
+                // Reset child select value if the current selection is now hidden
+                if (childSelect.value && childSelect.selectedOptions[0].disabled) {
                     childSelect.value = '';
                 }
             }
 
-            deptSelect.addEventListener('change', () => filterOptions(deptSelect, subDeptSelect, 'department'));
-            catSelect.addEventListener('change', () => filterOptions(catSelect, subCatSelect, 'category'));
+            // Bind Event Listeners
+            if (deptSelect && subDeptSelect) {
+                deptSelect.addEventListener('change', () => filterOptions(deptSelect, subDeptSelect, 'department'));
+                // Run on load to set initial state for edit form
+                filterOptions(deptSelect, subDeptSelect, 'department');
+            }
 
-            // Run on load
-            filterOptions(deptSelect, subDeptSelect, 'department');
-            filterOptions(catSelect, subCatSelect, 'category');
+            if (catSelect && subCatSelect) {
+                catSelect.addEventListener('change', () => filterOptions(catSelect, subCatSelect, 'category'));
+                // Run on load to set initial state for edit form
+                filterOptions(catSelect, subCatSelect, 'category');
+            }
 
             // Bootstrap validation
-            (function() {
-                'use strict';
-                var forms = document.querySelectorAll('.needs-validation');
-                Array.prototype.slice.call(forms).forEach(function(form) {
-                    form.addEventListener('submit', function(event) {
-                        if (!form.checkValidity()) {
-                            event.preventDefault();
-                            event.stopPropagation();
-                        }
-                        form.classList.add('was-validated');
-                    }, false);
-                });
-            })();
+            const forms = document.querySelectorAll('.needs-validation');
+            Array.prototype.slice.call(forms).forEach(function(form) {
+                form.addEventListener('submit', function(event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
         });
     </script>
 </x-app-layout>
