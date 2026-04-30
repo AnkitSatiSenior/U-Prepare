@@ -32,6 +32,12 @@
                                     Joined {{ $user->date_of_joining->format('F d, Y') }}
                                 </span>
                             @endif
+                           
+                            @if($user->department?->name)
+                                <span class="badge bg-primary bg-opacity-10 text-white border fw-normal px-3 py-2 rounded-pill">
+                                    {{ $user->department->name }}
+                                </span>
+                            @endif
                         </div>
 
                         <!-- Profile Data Table -->

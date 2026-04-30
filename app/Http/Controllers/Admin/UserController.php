@@ -64,7 +64,7 @@ class UserController extends Controller
 
         $profilePhotoPath = null;
         if ($request->hasFile('profile_photo')) {
-            $profilePhotoPath = $request->file('profile_photo')->store('profile-photos', 'public');
+            $profilePhotoPath = $request->file('profile_photo')->store('profile-photos', 's3');
         }
 
         User::create([

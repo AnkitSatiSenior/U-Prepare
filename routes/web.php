@@ -91,6 +91,7 @@ Route::get('/team/{username}', function (string $username) {
             'id',
             'name',
             'username',
+            'department_id',
             'designation_id',
             'date_of_joining',
             'qualification',
@@ -100,7 +101,7 @@ Route::get('/team/{username}', function (string $username) {
             'previous_experience',
             'profile_photo_path',
         ])
-        ->with(['designation:id,title'])
+        ->with(['designation:id,title', 'department:id,name'])
         ->where('username', $username)
         ->firstOrFail();
 

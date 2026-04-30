@@ -17,9 +17,51 @@
                 <div class="card border-0 shadow-sm rounded-4">
                     <div class="card-body p-sm-5">
                         
-                        <form action="{{ route('admin.profile.update', $user->id) }}" method="POST">
+                        <!-- CRITICAL FIX: Added enctype="multipart/form-data" for file uploads -->
+                        <form action="{{ route('admin.profile.update', $user->id) }}" method="POST" enctype="multipart/form-data">
                             @csrf
                             @method('PUT')
+
+                            <h5 class="fw-bold mb-4 border-bottom pb-2">Basic Information</h5>
+
+                            <div class="row g-4 mb-5">
+                                <div class="col-md-12">
+                                    <label class="form-label text-muted fw-medium small mb-1">Profile Photo</label>
+                                    <div class="d-flex align-items-center gap-3">
+                                        @if($user->profile_photo_path)
+                                            <img src="{{ Storage::disk('s3')->url($user->profile_photo_path) }}" 
+                                                 alt="Current Photo" class="rounded-circle object-fit-cover shadow-sm" width="50" height="50">
+                                        @endif
+                                        <input type="file" name="profile_photo_path" accept="image/*"
+                                               class="form-control shadow-none @error('profile_photo_path') is-invalid @enderror">
+                                    </div>
+                                    @error('profile_photo_path') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label text-muted fw-medium small mb-1">Full Name <span class="text-danger">*</span></label>
+                                    <input type="text" name="name" 
+                                           class="form-control shadow-none @error('name') is-invalid @enderror" 
+                                           value="{{ old('name', $user->name) }}" required>
+                                    @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label text-muted fw-medium small mb-1">Username <span class="text-danger">*</span></label>
+                                    <input type="text" name="username" 
+                                           class="form-control shadow-none @error('username') is-invalid @enderror" 
+                                           value="{{ old('username', $user->username) }}" required>
+                                    @error('username') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label text-muted fw-medium small mb-1">Email Address <span class="text-danger">*</span></label>
+                                    <input type="email" name="email" 
+                                           class="form-control shadow-none @error('email') is-invalid @enderror" 
+                                           value="{{ old('email', $user->email) }}" required>
+                                    @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+                            </div>
 
                             <h5 class="fw-bold mb-4 border-bottom pb-2">Timeline & Experience</h5>
 
