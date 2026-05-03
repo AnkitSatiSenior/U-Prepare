@@ -4,10 +4,9 @@
     'headers' => [],
     'rows' => [],
     'labels' => [],
-    'data' => [], 
-    'datasets' => [], 
-    /* 1. Added 'SCurve' to the default list */
-    'chartTypes' => ['PieChart', 'BarChart', 'ColumnChart', 'LineChart', 'SCurve'], 
+    'data' => [],
+    'datasets' => [],
+    'chartTypes' => ['PieChart', 'BarChart', 'ColumnChart', 'LineChart', 'SCurve'],
     'excel' => true,
     'print' => true,
     'pageLength' => 10,
@@ -20,9 +19,9 @@
 <div class="row">
     <div class="col-12">
         <div class="card shadow mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center bg-success text-white">
-                <h5 class="mb-0 h1">{{ $title }}</h5>
-                <select class="form-control form-control-sm w-auto bg-light text-dark"
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3 bg-white">
+                <h5 class="mb-0 text-primary">{{ $title }}</h5>
+                <select class="form-select form-select-sm w-auto"
                     onchange="drawChart_{{ $id }}(this.value)">
                     @foreach ($chartTypes as $type)
                         <option value="{{ $type }}">{{ $type }}</option>
@@ -71,11 +70,12 @@
     let datasets_{{ $id }} = @json($datasets);
     let singleData_{{ $id }} = @json($data);
     let labels_{{ $id }} = @json($labels);
+    let labelHeader_{{ $id }} = @json($headers[0] ?? 'Label');
 
     function init_{{ $id }}() {
         if (!labels_{{ $id }}.length) return;
 
-        let headers = ['Department']; // X-Axis Label
+        let headers = [labelHeader_{{ $id }}];
         let rows = [];
 
         if (datasets_{{ $id }}.length) {
@@ -94,20 +94,18 @@
         }
 
         data_{{ $id }} = google.visualization.arrayToDataTable([headers, ...rows]);
-        // Default to first chart type
         drawChart_{{ $id }}('{{ $chartTypes[0] ?? 'ColumnChart' }}');
     }
 
     function drawChart_{{ $id }}(chartType) {
         if (!data_{{ $id }}) return;
 
-        // Base Options
         const options = {
             title: '{{ $title }}',
             width: '100%',
             height: 400,
             legend: { position: 'top', maxLines: 3 },
-            isStacked: datasets_{{ $id }}.length > 1, 
+            isStacked: datasets_{{ $id }}.length > 1,
             animation: {
                 startup: true,
                 duration: 1000,
@@ -117,7 +115,6 @@
 
         let chart;
 
-        // --- 2. SWITCH LOGIC UPDATED FOR S-CURVE ---
         switch (chartType) {
             case 'PieChart':
                 chart = new google.visualization.PieChart(document.getElementById('{{ $id }}_chart'));
@@ -131,15 +128,13 @@
                 break;
             case 'LineChart':
                 chart = new google.visualization.LineChart(document.getElementById('{{ $id }}_chart'));
-                // Standard straight lines
-                options.curveType = 'none'; 
+                options.curveType = 'none';
                 break;
             case 'SCurve':
-                // S-Curve is a LineChart with smoothing enabled
                 chart = new google.visualization.LineChart(document.getElementById('{{ $id }}_chart'));
-                options.curveType = 'function'; // This creates the "S" shape
-                options.pointSize = 5;          // Highlights the data points
-                options.lineWidth = 3;          // Thicker line for better visibility
+                options.curveType = 'function';
+                options.pointSize = 5;
+                options.lineWidth = 3;
                 break;
         }
 

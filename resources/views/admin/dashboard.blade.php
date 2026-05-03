@@ -5,7 +5,7 @@
         {{-- ======================
         Dashboard Stats Cards
         ======================= --}}
-        <div class="row g-4 d-none">
+        <div class="row g-4 dashboard-kpi-row">
             {{-- Total Contracts --}}
             <div class="col-12 col-md-3">
                 <div class="card shadow-sm border-start border-4 border-primary h-100">
@@ -100,148 +100,38 @@
                         ->toArray()" type="pie" />
             </div>
 
-
-
             <div class="col-12 col-md-6">
-                @php
-                function toCR($value)
-                {
-                return round(($value ?? 0) / 10000000, 2); // 1 CR = 1 Crore
-                }
-
-                // Get department stats
-                $departmentsStats = getDepartmentsStats($scope ?? 'all');
-
-                if (($scope ?? 'all') === 'all') {
-                // All departments: show total contract value only
-                $rows = $departmentsStats->map(fn($d) => [
-                [
-                'text' => $d->name,
-                'url' => route('admin.package-projects.index', [
-                'department_id' => $d->id,
-                'has_contract' => 1,
-                ]),
-                ],
-                $d->projects_count ?? 0,
-                $d->signed_contracts_count ?? 0,
-                toCR($d->budget ?? 0),
-                $d->budget > 0
-                ? toCR($d->total_contract_value ?? 0) . ' (' . round(($d->total_contract_value / $d->budget) * 100, 2) .
-                '%)'
-                : toCR(0) . ' (0%)',
-                $d->budget > 0
-                ? toCR(max(($d->budget ?? 0) - ($d->total_contract_value ?? 0), 0)) . ' (' .
-                round((max(($d->budget ?? 0) - ($d->total_contract_value ?? 0), 0) / $d->budget) * 100, 2) . '%)'
-                : toCR(0) . ' (0%)',
-                ]);
-
-                $labels = $departmentsStats->pluck('name');
-                $datasets = [
-                [
-                'label' => 'Total Contract Value (CR)',
-                'data' => $departmentsStats->map(fn($d) => toCR($d->total_contract_value ?? 0)),
-                ],
-                ];
-                } else {
-                // Single department: show pie of used vs remaining budget
-                $dept = $departmentsStats->first();
-
-                $used = $dept->total_contract_value ?? 0;
-                $remaining = max(($dept->budget ?? 0) - $used, 0);
-
-                $rows = [
-                [
-                [
-                'text' => $dept->name,
-                'url' => route('admin.package-projects.index', [
-                'department_id' => $dept->id,
-                'has_contract' => 1,
-                ]),
-                ],
-                $dept->projects_count ?? 0,
-                $dept->signed_contracts_count ?? 0,
-                toCR($dept->budget ?? 0),
-                toCR($used) . ' (' . round(($used / ($dept->budget ?: 1)) * 100, 2) . '%)',
-                toCR($remaining) . ' (' . round(($remaining / ($dept->budget ?: 1)) * 100, 2) . '%)',
-                ],
-                ];
-
-                $labels = ['Contract Signed (CR)', 'Remaining Budget (CR)'];
-                $datasets = [
-                [
-                'label' => $dept->name,
-                'data' => [toCR($used), toCR($remaining)],
-                ],
-                ];
-                }
-                @endphp
-
                 <x-admin.chart-card id="departments_projects" title="Department Contract Overview"
-                    :headers="($scope ?? 'all') === 'all' 
-        ? ['Department', 'Total No. of Projects', 'Total No. of Contracts Signed', 'Total Amount Allocated (CR)', 'Contract Signed Value (CR)', 'Contract to be Signed (CR)']
-        : ['Department', 'Total No. of Projects', 'Total No. of Contracts Signed', 'Total Amount Allocated (CR)', 'Contract Signed Value (CR)', 'Contract to be Signed (CR)']" :rows="$rows"
-                    :labels="$labels" :datasets="$datasets" />
-
+                    :headers="$departmentContractOverview['headers']"
+                    :rows="$departmentContractOverview['rows']"
+                    :labels="$departmentContractOverview['labels']"
+                    :data="$departmentContractOverview['data']"
+                    :datasets="$departmentContractOverview['datasets']" />
             </div>
 
-
-
-
-
-            {{-- Department-wise Financial Progress --}}
             <div class="col-12 col-md-6">
-
                 <x-admin.chart-card id="type_of_procurement_chart" title="Type of Contracts Distribution"
                     :headers="['Procurement Type', 'No. of Packages']" :rows="$procurementPie['rows']"
                     :labels="$procurementPie['labels']" :data="$procurementPie['data']" type="pie" />
             </div>
 
-            {{-- Department-wise Physical Progress --}}
             <div class="col-12 col-md-6">
                 <x-admin.chart-card id="departments_physical_progress" title="Department-wise Physical Progress"
-                    :headers="['Department', 'Avg Physical Progress %']" :rows="$departmentsPhysicalProgress
-                        ->map(fn($d) => [$d['name'], $d['avg_progress'] . '%'])
-                        ->toArray()" :labels="$departmentsPhysicalProgress->pluck('name')->toArray()"
-                    :data="$departmentsPhysicalProgress->pluck('avg_progress')->toArray()" type="pie" />
+                    :headers="$departmentsPhysicalChart['headers']"
+                    :rows="$departmentsPhysicalChart['rows']"
+                    :labels="$departmentsPhysicalChart['labels']"
+                    :data="$departmentsPhysicalChart['data']"
+                    type="pie" />
             </div>
 
-            {{-- Type of Procurement --}}
             <div class="col-12 col-md-6">
-
                 <x-admin.chart-card id="departments_financial_progress" title="Department-wise Financial Progress"
-                    :headers="($scope ?? 'all') === 'all'
-        ? ['Department', 'Finance Progress (CR)', 'Finance %']
-        : ['Department', 'Budget (CR)', 'Contract Signed (CR)', 'Financial Expenditure (CR)', 'Finance Pending (CR)', 'Finance %']"
-                    :rows="($scope ?? 'all') === 'all'
-        ? $departmentsFinancialProgress
-            ->map(fn($d) => [
-                $d['name'],
-                formatPriceToCR($d['total_finance'] ?? 0),
-                ($d['finance_percentage'] ?? 0) . '%',
-            ])
-            ->toArray()
-        : $departmentsFinancialProgress
-            ->map(fn($d) => [
-                $d['name'],
-                formatPriceToCR($d['budget'] ?? 0),
-                formatPriceToCR($d['total_contract'] ?? 0),
-                formatPriceToCR($d['total_finance'] ?? 0),
-                formatPriceToCR($d['pending_finance'] ?? 0),
-                ($d['finance_percentage'] ?? 0) . '%',
-            ])
-            ->toArray()" :labels="($scope ?? 'all') === 'all'
-        ? $departmentsFinancialProgress->pluck('name')->toArray()
-        : ['Financial Expenditure (CR)', 'Finance Pending (CR)']" :data="($scope ?? 'all') === 'all'
-        ? $departmentsFinancialProgress->map(fn($d) => $d['finance_cr'] ?? 0)->toArray()
-        : $departmentsFinancialProgress
-            ->map(fn($d) => [
-                $d['finance_cr'] ?? 0,
-                $d['pending_cr'] ?? 0,
-            ])
-            ->first()" type="pie" />
-
+                    :headers="$departmentsFinancialChart['headers']"
+                    :rows="$departmentsFinancialChart['rows']"
+                    :labels="$departmentsFinancialChart['labels']"
+                    :data="$departmentsFinancialChart['data']"
+                    type="pie" />
             </div>
-
         </div>
 
         {{-- ======================
@@ -498,7 +388,7 @@
                         <tr class="text-center align-middle">
                             <th width="5%">S.No.</th>
                             <th width="15%">Department</th>
-                            <th style="width: 100% !important;padding-right: 458px !important;" >Name of Package</th>
+                            <th>Name of Package</th>
                             <th width="10%">Estimated Value</th>
 
                             @foreach($reportStatuses as $status)
@@ -521,18 +411,14 @@
             { data: 'package_name', name: 'package_name', className: 'text-start align-middle' },
             { data: 'estimated_value', name: 'estimated_value', className: 'text-end align-middle fw-semibold' },
             
-            // Generate Dynamic Status Columns
-// Generate Dynamic Status Columns
             @foreach($reportStatuses as $status)
             {
-                // Both name and data match the exact flattened column from the controller
                 name: 'status_{{ Str::slug($status) }}',
                 data: 'status_{{ Str::slug($status) }}', 
-                orderable: true,   // Yajra can natively sort this 1 or 0 now!
+                orderable: true,
                 searchable: false,
                 className: 'text-center align-middle',
                 render: function (data, type, row) {
-                    // Data is now a strict integer: 1 (Achieved) or 0 (Pending)
                     if (data === 1) {
                         if (type === 'sort' || type === 'type') return 1; 
                         return '<span class="d-none">1</span><span class="text-success" title="Achieved"><i class="fa-solid fa-circle-check fs-5"></i></span>';
@@ -544,12 +430,10 @@
             @endforeach
         ];
 
-        // Initialize DataTable
         const table = $('#packageStatusTable').DataTable({
             processing: true,
             serverSide: true, 
             ajax: {
-                // Uses the current URL natively. Works for both dashboard and report views.
                 url: window.location.href, 
                 type: 'GET'
             },
@@ -575,7 +459,6 @@
             initComplete: function () {
                 const api = this.api();
 
-                // Build Column Visibility Dropdown
                 api.columns().every(function (index) {
                     const column = this;
                     const title = $(column.header()).text().trim();
@@ -604,7 +487,6 @@
         // Trigger Yajra Filtering when Department Dropdown Changes
         $('#departmentFilter').on('change', function () {
             let selectedDepartment = $(this).val();
-            // Assuming Department is column index 1
             table.column(1).search(selectedDepartment).draw();
         });
     });

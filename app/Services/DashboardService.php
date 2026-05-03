@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Repositories\DashboardRepository;
 use App\Models\PackageProject;
 use App\Models\PackageStatus;
+use Illuminate\Support\Collection;
 
 class DashboardService
 {
@@ -37,12 +38,16 @@ class DashboardService
     public function getDashboardData($user)
     {
         $scope = $this->resolveScope($user);
+        $departmentStats = $this->getDepartmentOverviewStats($scope);
+        $departmentsPhysicalProgress = $this->repo->getDepartmentsPhysicalProgress($scope);
+        $departmentsFinancialProgress = $this->repo->getDepartmentsFinancialProgress($scope);
 
         return [
             // General Stats
             'departments' => $this->repo->getDepartmentsStats($scope),
-            'departmentsPhysicalProgress' => $this->repo->getDepartmentsPhysicalProgress($scope),
-            'departmentsFinancialProgress' => $this->repo->getDepartmentsFinancialProgress($scope),
+            'departmentStats' => $departmentStats,
+            'departmentsPhysicalProgress' => $departmentsPhysicalProgress,
+            'departmentsFinancialProgress' => $departmentsFinancialProgress,
             'components' => $this->repo->getComponents(),
             'contracts' => $this->repo->getContracts($scope),
             'contractsStatus' => $this->repo->getContractsStatus($scope),
@@ -69,22 +74,28 @@ class DashboardService
             // Tables
             'typeOfProcurementTable' => $this->repo->getTypeOfProcurementTableData($scope),
             'subCategoryProcurementTable' => $this->repo->getSubCategoryProcurementTableData($scope),
+            'departmentContractOverview' => $this->buildDepartmentContractOverview($departmentStats, $scope),
+            'departmentsPhysicalChart' => $this->buildPhysicalProgressChart($departmentsPhysicalProgress),
+            'departmentsFinancialChart' => $this->buildFinancialProgressChart($departmentsFinancialProgress, $scope),
 
             'scope' => $scope,
         ];
     }
+
+    public function getDepartmentOverviewStats(string|int $scope = 'all'): Collection
+    {
+        return $this->repo->getDepartmentOverviewStats($scope);
+    }
+
     public function getPackageMatrixReport($user): array
     {
-        // 1. Resolve Scope
         $scope = $this->resolveScope($user);
 
-        // 2. Fetch all ACTIVE dynamic statuses, ordered correctly
         $activeStatuses = PackageStatus::where('is_active', true)
             ->orderBy('order_by')
             ->pluck('name')
             ->toArray();
 
-        // 3. Build the query
         $query = PackageProject::query()
             ->select('id', 'package_name', 'estimated_budget_incl_gst', 'status', 'department_id')
             ->with(['department:id,name', 'activityLogs'])
@@ -92,16 +103,13 @@ class DashboardService
 
         $packages = $query->get();
 
-        // 4. Map the data
         $mappedPackages = $packages->map(function ($package) {
             $achievedStatuses = [];
 
-            // Add current status
             if (!empty($package->status)) {
                 $achievedStatuses[] = $package->status;
             }
 
-            // Extract historical statuses from logs safely
             if ($package->activityLogs) {
                 foreach ($package->activityLogs as $log) {
                     $changes = is_string($log->changes) ? json_decode($log->changes, true) : $log->changes;
@@ -120,16 +128,164 @@ class DashboardService
                 'id'              => $package->id,
                 'package_name'    => $package->package_name,
                 'department_name' => $package->department->name ?? 'N/A',
-                'estimated_value' => $package->estimated_budget_incl_gst,
-                'current_status'  => $package->status,
+                'estimated_value' => (float) ($package->estimated_budget_incl_gst ?? 0),
+                'current_status'  => $package->status ?? 'N/A',
                 'history'         => array_values(array_unique(array_filter($achievedStatuses))),
             ];
         });
 
-        // Return a structured array with both the Columns (Statuses) and the Rows (Packages)
         return [
             'statuses' => $activeStatuses,
             'packages' => $mappedPackages,
+        ];
+    }
+
+    private function buildDepartmentContractOverview(Collection $departmentStats, string|int $scope): array
+    {
+        if ($departmentStats->isEmpty()) {
+            return [
+                'headers' => [
+                    'Department',
+                    'Total No. of Projects',
+                    'Total No. of Contracts Signed',
+                    'Total Amount Allocated',
+                    'Contract Signed Value',
+                    'Contract to be Signed',
+                ],
+                'rows' => [],
+                'labels' => [],
+                'data' => [],
+                'datasets' => [],
+            ];
+        }
+
+        $headers = [
+            'Department',
+            'Total No. of Projects',
+            'Total No. of Contracts Signed',
+            'Total Amount Allocated',
+            'Contract Signed Value',
+            'Contract to be Signed',
+        ];
+
+        if ($scope === 'all') {
+            return [
+                'headers' => $headers,
+                'rows' => $departmentStats->map(function ($department) {
+                    $budget = (float) ($department->budget ?? 0);
+                    $contractValue = (float) ($department->total_contract_value ?? 0);
+                    $remaining = max($budget - $contractValue, 0);
+                    $signedPercentage = $budget > 0 ? round(($contractValue / $budget) * 100, 2) : 0;
+                    $remainingPercentage = $budget > 0 ? round(($remaining / $budget) * 100, 2) : 0;
+
+                    return [
+                        [
+                            'text' => $department->name,
+                            'url' => route('admin.package-projects.index', [
+                                'department_id' => $department->id,
+                                'has_contract' => 1,
+                            ]),
+                        ],
+                        $department->projects_count ?? 0,
+                        $department->signed_contracts_count ?? 0,
+                        formatPriceToCR($budget),
+                        formatPriceToCR($contractValue) . " ({$signedPercentage}%)",
+                        formatPriceToCR($remaining) . " ({$remainingPercentage}%)",
+                    ];
+                })->toArray(),
+                'labels' => $departmentStats->pluck('name')->toArray(),
+                'data' => [],
+                'datasets' => [[
+                    'label' => 'Total Contract Value (CR)',
+                    'data' => $departmentStats
+                        ->map(fn ($department) => round(((float) ($department->total_contract_value ?? 0)) / 10000000, 2))
+                        ->toArray(),
+                ]],
+            ];
+        }
+
+        $department = $departmentStats->first();
+        $budget = (float) ($department->budget ?? 0);
+        $contractValue = (float) ($department->total_contract_value ?? 0);
+        $remaining = max($budget - $contractValue, 0);
+        $signedPercentage = $budget > 0 ? round(($contractValue / $budget) * 100, 2) : 0;
+        $remainingPercentage = $budget > 0 ? round(($remaining / $budget) * 100, 2) : 0;
+
+        return [
+            'headers' => $headers,
+            'rows' => [[
+                [
+                    'text' => $department->name,
+                    'url' => route('admin.package-projects.index', [
+                        'department_id' => $department->id,
+                        'has_contract' => 1,
+                    ]),
+                ],
+                $department->projects_count ?? 0,
+                $department->signed_contracts_count ?? 0,
+                formatPriceToCR($budget),
+                formatPriceToCR($contractValue) . " ({$signedPercentage}%)",
+                formatPriceToCR($remaining) . " ({$remainingPercentage}%)",
+            ]],
+            'labels' => ['Contract Signed (CR)', 'Contract to be Signed (CR)'],
+            'data' => [
+                round($contractValue / 10000000, 2),
+                round($remaining / 10000000, 2),
+            ],
+            'datasets' => [],
+        ];
+    }
+
+    private function buildPhysicalProgressChart(Collection $departmentsPhysicalProgress): array
+    {
+        return [
+            'headers' => ['Department', 'Avg Physical Progress %'],
+            'rows' => $departmentsPhysicalProgress
+                ->map(fn ($department) => [$department['name'], ($department['avg_progress'] ?? 0) . '%'])
+                ->toArray(),
+            'labels' => $departmentsPhysicalProgress->pluck('name')->toArray(),
+            'data' => $departmentsPhysicalProgress->pluck('avg_progress')->toArray(),
+        ];
+    }
+
+    private function buildFinancialProgressChart(Collection $departmentsFinancialProgress, string|int $scope): array
+    {
+        if ($scope === 'all') {
+            return [
+                'headers' => ['Department', 'Finance Progress', 'Finance %'],
+                'rows' => $departmentsFinancialProgress
+                    ->map(fn ($department) => [
+                        $department['name'],
+                        formatPriceToCR($department['total_finance'] ?? 0),
+                        ($department['finance_percentage'] ?? 0) . '%',
+                    ])
+                    ->toArray(),
+                'labels' => $departmentsFinancialProgress->pluck('name')->toArray(),
+                'data' => $departmentsFinancialProgress
+                    ->map(fn ($department) => $department['finance_cr'] ?? 0)
+                    ->toArray(),
+            ];
+        }
+
+        $department = $departmentsFinancialProgress->first();
+
+        return [
+            'headers' => ['Department', 'Budget', 'Contract Signed', 'Financial Expenditure', 'Finance Pending', 'Finance %'],
+            'rows' => $departmentsFinancialProgress
+                ->map(fn ($item) => [
+                    $item['name'],
+                    formatPriceToCR($item['budget'] ?? 0),
+                    formatPriceToCR($item['total_contract'] ?? 0),
+                    formatPriceToCR($item['total_finance'] ?? 0),
+                    formatPriceToCR($item['pending_finance'] ?? 0),
+                    ($item['finance_percentage'] ?? 0) . '%',
+                ])
+                ->toArray(),
+            'labels' => ['Financial Expenditure (CR)', 'Finance Pending (CR)'],
+            'data' => [
+                $department['finance_cr'] ?? 0,
+                $department['pending_cr'] ?? 0,
+            ],
         ];
     }
 }

@@ -55,12 +55,12 @@ $(document).ready(function() {
     let actionColumnIndex = -1;
 
     $(tableId + ' thead th').each(function(index) {
-        if ($(this).text().trim().toLowerCase() === 'action') {
+        const title = $(this).text().trim().toLowerCase();
+        if (title === 'action' || title === 'actions') {
             actionColumnIndex = index;
         }
     });
 
-    // Buttons for export
     let buttons = [];
     @if($excel)
     buttons.push({
@@ -82,7 +82,6 @@ $(document).ready(function() {
     });
     @endif
 
-    // Initialize DataTable
     const table = $(tableId).DataTable({
         dom: '<"row mb-2"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
              '<"row mb-2"<"col-sm-12"B>>' +
@@ -109,14 +108,13 @@ $(document).ready(function() {
             { targets: '_all', className: 'align-middle' }
         ],
         initComplete: function() {
-    const dropdown = $('#package-projects-table-columns-dropdown');
-    const table = this.api(); // DataTable instance
+    const dropdown = $('#{{ $id }}-columns-dropdown');
+    const table = this.api();
 
     table.columns().every(function(index) {
         const col = this;
         const title = $(col.header()).text();
-        // Skip action column
-        if (title.toLowerCase() === 'action') return;
+        if (title.toLowerCase() === 'action' || title.toLowerCase() === 'actions') return;
 
         const checked = col.visible() ? 'checked' : '';
         dropdown.append(`
@@ -129,7 +127,6 @@ $(document).ready(function() {
         `);
     });
 
-    // Column toggle event
     $('.column-toggle').on('change', function() {
         const column = table.column($(this).data('column'));
         column.visible(!column.visible());

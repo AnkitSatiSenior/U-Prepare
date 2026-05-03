@@ -54,14 +54,6 @@ if (!function_exists('formatPriceToCR')) {
         return '₹ ' . number_format($price, 2);
     }
 }
-if (!function_exists('getDepartmentsStats')) {
-    function getDepartmentsStats($scope = 'all')
-    {
-        $controller = app()->make(App\Http\Controllers\DashboardController::class);
-        return $controller->getDepartmentsStatsOther($scope);
-    }
-}
-
 if (!function_exists('formatIndianCurrency')) {
     function formatIndianCurrency($number)
     {

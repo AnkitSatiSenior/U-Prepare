@@ -7,6 +7,22 @@ use Illuminate\Support\Facades\Auth;
 
 class DashboardRepository
 {
+    public function getDepartmentOverviewStats($scope = 'all')
+    {
+        return Department::query()
+            ->withProjectAndContractStats()
+            ->withFinancialStats()
+            ->withSum('contracts as total_contract_value', 'contract_value')
+            ->when($scope !== 'all', fn($q) => $q->where('id', $scope))
+            ->get()
+            ->map(function ($department) {
+                $department->total_contract_value = (float) ($department->total_contract_value ?? 0);
+                $department->budget = (float) ($department->budget ?? 0);
+
+                return $department;
+            });
+    }
+
     /**
      * Get Package Projects grouped by their Status (Count and Contract Value)
      */
