@@ -7,6 +7,11 @@ use Illuminate\Support\Facades\Auth;
 
 class DashboardRepository
 {
+    private function normalizeLabel(?string $value): string
+    {
+        return mb_strtolower(trim((string) $value));
+    }
+
     public function getDepartmentOverviewStats($scope = 'all')
     {
         return Department::query()
@@ -76,18 +81,31 @@ class DashboardRepository
         return TypeOfProcurement::with(['procurementDetails.packageProject.contracts'])
             ->when($scope !== 'all', fn($q) => $q->whereHas('procurementDetails.packageProject', fn($p) => $p->where('department_id', $scope)))
             ->get()
+            ->groupBy(fn($type) => $this->normalizeLabel($type->name))
             ->map(
-                fn($type) => [
-                    'id' => $type->id,
-                    'name' => $type->name,
-                    'procurement_details_count' => $type->procurementDetails->count(),
-                    'loa_issued_count' => $type->procurementDetails->filter(fn($d) => $d->packageProject?->contracts->whereNotNull('signing_date')->count())->count(),
-                    'contract_pending_count' => $type->procurementDetails->filter(fn($d) => $d->packageProject?->contracts->whereNull('signing_date')->count())->count(),
-                    'signed_contracts_count' => $type->procurementDetails->filter(fn($d) => $d->packageProject?->contracts->whereNotNull('signing_date')->count())->count(),
-                    'commencement_given_count' => $type->procurementDetails->filter(fn($d) => $d->packageProject?->contracts->whereNotNull('commencement_date')->count())->count(),
-                    'rebid_count' => $type->procurementDetails->filter(fn($d) => $d->packageProject?->status === PackageProject::STATUS_REBID)->count(),
-                ],
-            );
+                function ($types) {
+                    $primary = $types->first();
+                    $details = $types->flatMap->procurementDetails
+                        ->filter(fn($detail) => $detail->packageProject)
+                        ->unique('package_project_id')
+                        ->values();
+
+                    return [
+                        'id' => $primary->id,
+                        'name' => $primary->name,
+                        'procurement_details_count' => $details->count(),
+                        'loa_issued_count' => $details->filter(fn($detail) => !is_null($detail->loa_issued_date))->count(),
+                        'contract_pending_count' => $details->filter(function ($detail) {
+                            $contracts = $detail->packageProject?->contracts ?? collect();
+                            return !is_null($detail->loa_issued_date) && $contracts->whereNotNull('signing_date')->isEmpty();
+                        })->count(),
+                        'signed_contracts_count' => $details->filter(fn($d) => $d->packageProject?->contracts->whereNotNull('signing_date')->count())->count(),
+                        'commencement_given_count' => $details->filter(fn($d) => $d->packageProject?->contracts->whereNotNull('commencement_date')->count())->count(),
+                        'rebid_count' => $details->filter(fn($d) => $d->packageProject?->status === PackageProject::STATUS_REBID)->count(),
+                    ];
+                },
+            )
+            ->values();
     }
 
     public function getSubCategoryProcurementTableData($scope = 'all')
@@ -95,28 +113,45 @@ class DashboardRepository
         return SubCategory::with(['projects.procurementDetail.packageProject.contracts', 'category'])
             ->when($scope !== 'all', fn($q) => $q->whereHas('projects', fn($p) => $p->where('department_id', $scope)))
             ->get()
+            ->groupBy(fn($subCat) => $this->normalizeLabel($subCat->name) . '|' . $this->normalizeLabel($subCat->category?->name))
             ->map(
-                fn($subCat) => [
-                    'id' => $subCat->id,
-                    'name' => $subCat->name,
-                    'category_name' => $subCat->category?->name ?? 'No Category',
-                    'procurement_types' => $subCat->projects
-                        ->groupBy(fn($p) => $p->procurementDetail?->typeOfProcurement?->id)
-                        ->map(
-                            fn($projects, $ptypeId) => [
-                                'id' => $ptypeId,
-                                'name' => $projects->first()->procurementDetail?->typeOfProcurement?->name ?? 'Pending For Procurement',
-                                'count' => $projects->count(),
-                                'loa_issued_count' => $projects->filter(fn($p) => $p->contracts->whereNotNull('signing_date')->count())->count(),
-                                'contract_pending_count' => $projects->filter(fn($p) => $p->contracts->whereNull('signing_date')->count())->count(),
-                                'signed_contracts_count' => $projects->filter(fn($p) => $p->contracts->whereNotNull('signing_date')->count())->count(),
-                                'commencement_given_count' => $projects->filter(fn($p) => $p->contracts->whereNotNull('commencement_date')->count())->count(),
-                                'rebid_count' => $projects->filter(fn($p) => $p->status === PackageProject::STATUS_REBID)->count(),
-                            ],
-                        )
-                        ->values(),
-                ],
-            );
+                function ($subCategories) {
+                    $primary = $subCategories->first();
+                    $projects = $subCategories->flatMap->projects
+                        ->unique('id')
+                        ->values();
+
+                    return [
+                        'id' => $primary->id,
+                        'name' => $primary->name,
+                        'category_name' => $primary->category?->name ?? 'No Category',
+                        'procurement_types' => $projects
+                            ->groupBy(fn($project) => $this->normalizeLabel($project->procurementDetail?->typeOfProcurement?->name ?? 'Pending For Procurement'))
+                            ->map(function ($groupedProjects) {
+                                $firstProject = $groupedProjects->first();
+                                $type = $firstProject?->procurementDetail?->typeOfProcurement;
+
+                                return [
+                                    'id' => $type?->id ?? 0,
+                                    'name' => $type?->name ?? 'Pending For Procurement',
+                                    'count' => $groupedProjects->count(),
+                                    'loa_issued_count' => $groupedProjects->filter(fn($project) => !is_null($project->procurementDetail?->loa_issued_date))->count(),
+                                    'contract_pending_count' => $groupedProjects->filter(function ($project) {
+                                        return !is_null($project->procurementDetail?->loa_issued_date)
+                                            && $project->contracts->whereNotNull('signing_date')->isEmpty();
+                                    })->count(),
+                                    'signed_contracts_count' => $groupedProjects->filter(fn($project) => $project->contracts->whereNotNull('signing_date')->count())->count(),
+                                    'commencement_given_count' => $groupedProjects->filter(fn($project) => $project->contracts->whereNotNull('commencement_date')->count())->count(),
+                                    'rebid_count' => $groupedProjects->filter(fn($project) => $project->status === PackageProject::STATUS_REBID)->count(),
+                                ];
+                            })
+                            ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
+                            ->values(),
+                    ];
+                },
+            )
+            ->sortBy(fn($row) => $this->normalizeLabel(($row['category_name'] ?? '') . '|' . ($row['name'] ?? '')))
+            ->values();
     }
 
     // 1. Departments Budget (Pie + Table)
@@ -249,22 +284,37 @@ class DashboardRepository
             $query->whereHas('procurementDetails.packageProject', fn($q) => $q->where('department_id', $scope));
         }
 
-        $types = $query->get();
+        $types = $query->get()
+            ->groupBy(fn($type) => $this->normalizeLabel($type->name))
+            ->map(function ($groupedTypes) {
+                $primary = $groupedTypes->first();
+                $details = $groupedTypes->flatMap->procurementDetails
+                    ->filter(fn($detail) => $detail->packageProject)
+                    ->unique('package_project_id')
+                    ->values();
+
+                return [
+                    'id' => $primary->id,
+                    'name' => $primary->name,
+                    'details' => $details,
+                ];
+            })
+            ->values();
 
         $rows = $types
             ->map(
                 fn($type) => [
                     [
-                        'text' => $type->name,
-                        'url' => route('admin.package-projects.index', ['type_of_procurement_id' => $type->id]),
+                        'text' => $type['name'],
+                        'url' => route('admin.package-projects.index', ['type_of_procurement_id' => $type['id']]),
                     ],
-                    $type->procurementDetails->count() ?? 0,
+                    $type['details']->count() ?? 0,
                 ],
             )
             ->toArray();
 
         $labels = $types->pluck('name')->toArray();
-        $data = $types->pluck('procurementDetails')->map(fn($d) => $d->count() ?? 0)->toArray();
+        $data = $types->map(fn($type) => $type['details']->count() ?? 0)->toArray();
 
         return compact('rows', 'labels', 'data');
     }
@@ -407,15 +457,23 @@ class DashboardRepository
             ->with(['projects.procurementDetail.typeOfProcurement', 'projects.contracts'])
             ->when($scope !== 'all', fn($q) => $q->whereHas('projects', fn($p) => $p->where('department_id', $scope)))
             ->get()
+            ->groupBy(fn($subCat) => $this->normalizeLabel($subCat->name) . '|' . $this->normalizeLabel($subCat->category?->name))
             ->map(
-                fn($subCat) => [
-                    'id' => $subCat->id,
-                    'name' => $subCat->name,
-                    'category_name' => $subCat->category?->name,
-                    'total_projects' => $subCat->projects->count(),
-                ],
+                function ($subCategories) {
+                    $primary = $subCategories->first();
+                    $projects = $subCategories->flatMap->projects->unique('id');
+
+                    return [
+                        'id' => $primary->id,
+                        'name' => $primary->name,
+                        'category_name' => $primary->category?->name,
+                        'total_projects' => $projects->count(),
+                    ];
+                },
             )
-            ->filter(fn($subCat) => $subCat['total_projects'] > 0);
+            ->filter(fn($subCat) => $subCat['total_projects'] > 0)
+            ->sortBy(fn($row) => $this->normalizeLabel(($row['category_name'] ?? '') . '|' . ($row['name'] ?? '')))
+            ->values();
     }
 
     public function getPackageProjectsSubProjectStats($scope = 'all')

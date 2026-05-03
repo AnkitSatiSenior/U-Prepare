@@ -246,10 +246,11 @@
                             <th rowspan="2">Sl No.</th>
                             <th rowspan="2">Department</th>
                             <th rowspan="2">Sub-Department</th>
-                            <th colspan="2">Allocation Target</th>
+                            <th colspan="3">Allocation Target</th>
                             <th colspan="2">Work Order Issued</th>
                         </tr>
                         <tr>
+                            <th>Category / Subcategory</th>
                             <th>Physical (No.)</th>
                             <th>Financial (Cr.)</th>
                             <th>No.</th>
@@ -301,6 +302,7 @@
                             <td>{{ $sub['physical_count'] ?? '-' }}</td>
                             <td>{{ $formatCr($sub['financial_total'] ?? 0) }}</td>
                             <td>{{ $sub['work_order_count'] ?? '-' }}</td>
+                            <td>{{ $formatCr($sub['work_order_amount'] ?? 0) }}</td>
 
                         </tr>
 
@@ -315,7 +317,7 @@
 
                         {{-- Sub-department Total --}}
                         <tr class="fw-bold table-secondary">
-                            <td colspan="3" class="text-end">
+                            <td colspan="4" class="text-end">
 
                                 Total ({{ $subDept['sub_department_name'] ?? '-' }})
 
@@ -338,7 +340,7 @@
 
                         {{-- Grand Total --}}
                         <tr class="fw-bold table-dark">
-                            <td colspan="3" class="text-end">Grand Total</td>
+                            <td colspan="4" class="text-end">Grand Total</td>
                             <td>{{ $grandPhysical }}</td>
                             <td>{{ $formatCr($grandFinancialRaw) }}</td>
                             <td>{{ $grandWorkOrders }}</td>
