@@ -22506,6 +22506,14 @@ namespace App\Models {
      * App\Models\User
      *
      * @property \Illuminate\Support\Carbon|null $deleted_at
+     * @property string|null $previous_experience
+     * @property string|null $research_publication_citation
+     * @property string|null $procurement_support
+     * @property string|null $area_of_expertise
+     * @property string|null $total_work_experience
+     * @property string|null $qualification
+     * @property \Illuminate\Support\Carbon|null $date_of_joining
+     * @property \Illuminate\Support\Carbon|null $dob
      * @property string|null $district
      * @property mixed $status
      * @property string|null $phone_no
@@ -22563,6 +22571,14 @@ namespace App\Models {
      * @method static \Illuminate\Database\Eloquent\Builder<User>|User wherePhoneNo($value)
      * @method static \Illuminate\Database\Eloquent\Builder<User>|User whereStatus($value)
      * @method static \Illuminate\Database\Eloquent\Builder<User>|User whereDistrict($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<User>|User whereDob($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<User>|User whereDateOfJoining($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<User>|User whereQualification($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<User>|User whereTotalWorkExperience($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<User>|User whereAreaOfExpertise($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<User>|User whereProcurementSupport($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<User>|User whereResearchPublicationCitation($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<User>|User wherePreviousExperience($value)
      * @method static \Illuminate\Database\Eloquent\Builder<User>|User whereDeletedAt($value)
      * @method static \Illuminate\Database\Eloquent\Builder<User>|User newModelQuery()
      * @method static \Illuminate\Database\Eloquent\Builder<User>|User newQuery()

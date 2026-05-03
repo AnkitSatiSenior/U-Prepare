@@ -455,6 +455,7 @@ Route::group(['prefix' => 'users/{user}/profile', 'as' => 'profile.'], function 
                     Route::delete('/bulk-destroy', [EpcEntryDataController::class, 'bulkDestroy'])->name('bulkDestroy');
                     Route::delete('/{id}', [EpcEntryDataController::class, 'destroy'])->name('destroy');
                 });
+            Route::get('users/data', [UserController::class, 'data'])->name('users.data');
             Route::resource('users', UserController::class);
             Route::resource('roles', RoleController::class);
             Route::resource('departments', DepartmentController::class);
