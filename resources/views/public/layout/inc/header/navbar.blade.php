@@ -62,6 +62,14 @@
                 </li>
             @endforeach
             <li>
+                <a href="https://drive.google.com/drive/u/0/folders/12_4FDgaJwIEh0Y3FGbz1bdErdhtmt7dv" 
+                   target="_blank" 
+                   rel="noopener noreferrer"
+                   title="{{ __('Download Mobile Application') }}">
+                    {{ $locale === 'hi' ? 'ऐप डाउनलोड करें' : 'Download App' }}
+                </a>
+            </li>
+            <li>
                 @guest
                     <a href="{{ route('login') }}">{{ __('Mis Login') }}</a>
                 @else
