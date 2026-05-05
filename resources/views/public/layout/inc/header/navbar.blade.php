@@ -61,14 +61,16 @@
                     @endif
                 </li>
             @endforeach
-            <li>
-                <a href="/U_Prepare_App_Latest.apk" 
-                   target="_blank" 
-                   rel="noopener noreferrer"
-                   title="{{ __('Download Mobile Application') }}">
-                    {{ $locale === 'hi' ? 'ऐप डाउनलोड करें' : 'Download App' }}
-                </a>
-            </li>
+            <li class="nav-item-highlight">
+    <a href="/U_Prepare_App_Latest.apk" 
+       target="_blank" 
+       rel="noopener noreferrer"
+       title="{{ __('Download Mobile Application') }}"
+       class="btn-download">
+        <i class="bi bi-cloud-arrow-down"></i>
+        {{ $locale === 'hi' ? 'ऐप डाउनलोड करें' : 'Download App' }}
+    </a>
+</li>
             <li>
                 @guest
                     <a href="{{ route('login') }}">{{ __('Mis Login') }}</a>
@@ -81,6 +83,44 @@
     </div>
 </nav>
 <style>
+    /* --- Highlighted Download Button --- */
+.btn-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: #0d6efd; /* Primary brand color */
+    color: #ffffff !important;
+    padding: 0.5rem 1.25rem;
+    border-radius: 50px; /* Gives it a modern pill shape */
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    box-shadow: 0 4px 6px rgba(13, 110, 253, 0.2);
+}
+
+.btn-download i {
+    font-size: 1.1rem;
+}
+
+/* Hover effects for better interaction */
+.btn-download:hover {
+    background-color: #0b5ed7; /* Slightly darker shade for hover */
+    transform: translateY(-2px); /* Lifts the button slightly */
+    box-shadow: 0 6px 12px rgba(13, 110, 253, 0.3);
+    color: #ffffff !important;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+    .nav-item-highlight {
+        padding: 0.5rem 0; /* Adds breathing room in the mobile dropdown */
+    }
+    
+    .btn-download {
+        justify-content: center;
+        width: 100%; /* Makes the button full-width on mobile */
+    }
+}
     .site-nav__inner {
     display: flex;
     justify-content: space-between;
