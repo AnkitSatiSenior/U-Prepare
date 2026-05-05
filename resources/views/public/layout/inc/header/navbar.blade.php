@@ -62,7 +62,7 @@
                 </li>
             @endforeach
             <li>
-                <a href="https://drive.google.com/drive/u/0/folders/12_4FDgaJwIEh0Y3FGbz1bdErdhtmt7dv" 
+                <a href="/U_Prepare_App_Latest.apk" 
                    target="_blank" 
                    rel="noopener noreferrer"
                    title="{{ __('Download Mobile Application') }}">
