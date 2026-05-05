@@ -100,18 +100,20 @@ class User extends Authenticatable
     public function getProfilePhotoUrlAttribute(): string
     {
         $fallback = asset('images/demo-user.png');
+        $disk = config('jetstream.profile_photo_disk', config('filesystems.default', 'public'));
 
         if (empty($this->profile_photo_path)) {
             return $fallback;
         }
 
         try {
-            return Storage::disk('s3')->url($this->profile_photo_path);
+            return Storage::disk($disk)->url($this->profile_photo_path);
         } catch (Exception $e) {
-            Log::error('Failed to resolve S3 URL for User Profile Photo', [
+            Log::error('Failed to resolve profile photo URL for user.', [
                 'user_id' => $this->id,
+                'disk' => $disk,
                 'path' => $this->profile_photo_path,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             
             return $fallback;

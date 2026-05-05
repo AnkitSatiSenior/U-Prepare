@@ -63,6 +63,7 @@ use App\Http\Controllers\PermissionGroupController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\ProjectSubprojectLinkController;
 use App\Http\Controllers\Admin\EscalationLogController;
+use App\Http\Controllers\ProfilePhotoController;
 use App\Http\Controllers\SystemController;
 use App\Http\Middleware\SetLocale;
 use App\Models\User;
@@ -157,6 +158,10 @@ Route::get('/api/subdepartment-users-projects/{subDepartmentId}', [ProjectAccess
 Route::get('/api/department-users-projects/{departmentId}', [ProjectAccessSummaryController::class, 'getUsersAndProjectsByDepartment']);
 
 Route::get('/api/get-subpackage/{projectID}', [ProjectAccessSummaryController::class, 'getSubpackge']);
+
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
+    Route::post('/user/profile-photo', [ProfilePhotoController::class, 'update'])->name('profile-photo.update');
+});
 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'role.routes'])->group(function () {
     Route::prefix('admin')

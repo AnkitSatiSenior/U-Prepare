@@ -11,6 +11,8 @@
 
                 {{-- Update Profile Information --}}
                 @if (Laravel\Fortify\Features::canUpdateProfileInformation())
+                    @include('profile.partials.update-profile-photo-form', ['user' => $user])
+
                     <div class="mb-5">
                         <h5 class="text-lg font-medium text-primary m-3">{{ __('Update Profile Information') }}</h5>
                         @livewire('profile.update-profile-information-form')

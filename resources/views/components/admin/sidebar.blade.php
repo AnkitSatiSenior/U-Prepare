@@ -47,7 +47,7 @@
         ======================== -->
         <div class="profile clearfix text-center mt-3">
             <!-- Profile Photo -->
-            <img id="profileImage" src="{{ $user->profile_photo_url }}" alt="Profile" class="img-circle profile_img"
+            <img id="profileImage" data-profile-photo src="{{ $user->profile_photo_url }}" alt="Profile" class="img-circle profile_img"
                 style="height:150px; width:auto; margin:0 auto; display:block;"
                 onerror="this.style.display='none'; document.getElementById('initialsDiv').style.display='flex';">
 

@@ -32,7 +32,7 @@
 
                         <!-- User Profile Photo OR Initials Fallback -->
                         <div class="me-2">
-                            <img src="{{ auth()->user()->profile_photo_url }}" 
+                            <img data-profile-photo src="{{ auth()->user()->profile_photo_url }}" 
                                  alt="User Avatar" 
                                  class="rounded-circle" 
                                  style="width:40px; height:40px; object-fit:cover;"
