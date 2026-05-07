@@ -38,20 +38,46 @@
             </div>
 
             <div class="container-fluid honpers mt-4">
-            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 justify-content-center">
-                    @foreach (getLeaders() as $person)
-                    <div class="col d-flex flex-column align-items-center honper mb-4">
-                       <figure class="d-flex justify-content-center mb-3">
-                            <img src="{{ $person->image_url }}" alt="{{ $person->name }} Profile" loading="lazy" class="img-fluid rounded-circle"/>
-                        </figure>
-                        <div class="caption text-center m-0">
-                            <h4>{{ $person->name }}</h4>
-                            <h5>({{ $person->title }})</h5>
-                        </div>
-                    </div>
-                    @endforeach
-                </div>
+            @php
+    // Ensure the output is a Laravel Collection so we can utilize collection methods safely
+    $leaders = collect(getLeaders());
+    
+    // Separate the collection into two distinct groups
+    $firstRowLeaders = $leaders->take(2);
+    $secondRowLeaders = $leaders->skip(2);
+@endphp
+
+<div class="leader-grid-container">
+    <!-- First Row: Exactly 2 Leaders -->
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 justify-content-center">
+        @foreach ($firstRowLeaders as $person)
+        <div class="col d-flex flex-column align-items-center honper mb-4">
+           <figure class="d-flex justify-content-center mb-3">
+                <img src="{{ $person->image_url }}" alt="{{ $person->name }} Profile" loading="lazy" class="img-fluid rounded-circle"/>
+            </figure>
+            <div class="caption text-center m-0">
+                <h4>{{ $person->name }}</h4>
+                <h5>({{ $person->title }})</h5>
             </div>
+        </div>
+        @endforeach
+    </div>
+
+    <!-- Second Row: Remaining 3 Leaders -->
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 justify-content-center">
+        @foreach ($secondRowLeaders as $person)
+        <div class="col d-flex flex-column align-items-center honper mb-4">
+           <figure class="d-flex justify-content-center mb-3">
+                <img src="{{ $person->image_url }}" alt="{{ $person->name }} Profile" loading="lazy" class="img-fluid rounded-circle"/>
+            </figure>
+            <div class="caption text-center m-0">
+                <h4>{{ $person->name }}</h4>
+                <h5>({{ $person->title }})</h5>
+            </div>
+        </div>
+        @endforeach
+    </div>
+</div>
 
             {{-- ================= ANNOUNCEMENTS ================= --}}
             <div class="container-fluid pt-5">
