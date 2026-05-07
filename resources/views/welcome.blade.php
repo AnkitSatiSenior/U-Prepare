@@ -65,7 +65,7 @@
         @foreach ($secondRowLeaders as $person)
         <div class="col d-flex flex-column align-items-center honper mb-4">
            <figure class="d-flex justify-content-center mb-3">
-                <img src="{{ $person->image_url }}" alt="{{ $person->name }} Profile" loading="lazy" class="img-fluid rounded-circle"/>
+                <img src="{{ $person->image_url }}" alt="{{ $person->name }} Profile" loading="lazy" class="img-fluid rounded-circle" style="border: 3px solid black;"/>
             </figure>
             <div class="caption text-center m-0">
                 <h4>{{ $person->name }}</h4>
