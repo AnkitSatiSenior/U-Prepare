@@ -32,10 +32,7 @@
     {{-- ================= LEADERS ================= --}}
     <section class="about-sec pt-4">
         <div class="container-fluid p-0">
-            <div class="bg-bar">
-                <div class="overlay"></div>
-                <img src="{{ asset('assets/img/honper-bgi.webp') }}" alt="Background Pattern" />
-            </div>
+            
 
             <div class="container-fluid honpers mt-4">
             @php
