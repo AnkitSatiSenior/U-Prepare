@@ -110,6 +110,9 @@ Route::middleware('auth.token')->group(function () {
         Route::post('/entry/upload', 
             [SocialSafeguardEntryApiController::class, 'upload']);
 
+        Route::delete('/entry/media/{id}',
+            [SocialSafeguardEntryApiController::class, 'destroyMedia']);
+
         Route::post('/entry/save', 
             [SocialSafeguardEntryApiController::class, 'save']);
 
