@@ -47,14 +47,14 @@
                     <table class="table table-bordered table-striped align-middle w-100" id="activity-log-table">
                         <thead class="table-light">
                             <tr>
-                                <th width="60">SL</th>
-                                <th>User</th>
-                                <th>Model</th>
-                                <th width="120">Action</th>
-                                <th width="160">Location</th>
-                                <th>URL</th>
-                                <th width="170">Date</th>
-                                <th width="100">Actions</th>
+                                <th width="5%">SL</th>
+                                <th width="15%">User</th>
+                                <th width="15%">Model</th>
+                                <th width="10%">Action</th>
+                                <th width="15%">Location</th>
+                                <th width="15%">URL</th>
+                                <th width="15%">Date</th>
+                                <th width="10%" class="text-center">Actions</th>
                             </tr>
                         </thead>
                     </table>
@@ -64,9 +64,34 @@
 
     </div>
 
+    {{-- SYSTEM MODAL: Activity Log Details --}}
+    <div class="modal fade" id="viewLogModal" tabindex="-1" aria-labelledby="viewLogModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title text-primary" id="viewLogModalLabel">
+                        <i class="fas fa-search me-2"></i> Activity Payload Details
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <strong>Target Model:</strong> <span id="modal-model-type" class="badge bg-secondary"></span>
+                        <strong class="ms-3">Action:</strong> <span id="modal-action" class="badge bg-info text-dark"></span>
+                    </div>
+                    <hr>
+                    <h6>Data Payload:</h6>
+                    {{-- Preformatted block for JSON syntax highlighting --}}
+                    <pre class="bg-dark text-light p-3 rounded" style="max-height: 400px; overflow-y: auto;"><code id="modal-payload-data"></code></pre>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <script>
-        $(document).ready(function () {
-
+    $(document).ready(function () {
         const table = $('#activity-log-table').DataTable({
             processing: true,
             serverSide: true,
@@ -80,51 +105,63 @@
                 }
             },
             columns: [
-                {
-                    data: 'DT_RowIndex',
-                    orderable: false,
-                    searchable: false
-                },
-                {
-                    data: 'user',
-                    name: 'user.name'
-                },
-                {
-                    data: 'model',
-                    name: 'model_type'
-                },
-                {
-                    data: 'action_badge',
-                    name: 'action',
-                    orderable: false
-                },
-                {
-                    data: 'location',
-                    orderable: false,
-                    searchable: false
-                },
-                {
-                    data: 'url',
-                    name: 'url'
-                },
-                {
-                    data: 'date',
-                    name: 'created_at'
-                },
-                {
-                    data: 'actions',
-                    orderable: false,
-                    searchable: false
-                }
+                { data: 'DT_RowIndex', orderable: false, searchable: false },
+                { data: 'user', name: 'user.name' },
+                { data: 'model', name: 'model_type' },
+                { data: 'action_badge', name: 'action', orderable: false },
+                { data: 'location', name: 'location', orderable: false, searchable: false },
+                // Required to prevent the DataTables 'unknown parameter url' crash
+                { data: 'url', name: 'url', orderable: false }, 
+                { data: 'date', name: 'created_at' },
+                { data: 'actions', name: 'actions', orderable: false, searchable: false, className: 'text-center' }
             ]
         });
 
-        {{-- Reload table on filter --}}
         $('#filter-form').on('submit', function (e) {
             e.preventDefault();
             table.ajax.reload();
         });
 
+        // Event Delegation for View Action Modal
+        $('#activity-log-table tbody').on('click', '.view-log-btn', function () {
+            const button = $(this);
+            
+            // Extract the changes JSON
+            const rawPayload = button.attr('data-payload');
+            const modelType = button.data('model');
+            const actionType = button.data('action');
+
+            $('#modal-model-type').text(modelType || 'N/A');
+            $('#modal-action').text(actionType || 'Unknown');
+
+            const codeBlock = $('#modal-payload-data');
+            
+            try {
+                // Handle empty or missing payload
+                if (!rawPayload || rawPayload === 'null' || rawPayload === '[]' || rawPayload === '{}' || rawPayload === '""') {
+                    codeBlock.html('<i>No changes recorded for this action.</i>');
+                } else {
+                    // This will parse the nested {"new": {...}} or {"old": {...}} objects
+                    let parsedData = JSON.parse(rawPayload);
+                    
+                    // If the database stored a stringified JSON string inside the JSON (double encoding),
+                    // we parse it a second time to ensure it expands nicely in the UI.
+                    if (typeof parsedData === 'string') {
+                        parsedData = JSON.parse(parsedData);
+                    }
+                    
+                    // Format with 4-space indentation for readability
+                    codeBlock.text(JSON.stringify(parsedData, null, 4));
+                }
+            } catch (e) {
+                // Graceful fallback if data isn't pure JSON
+                codeBlock.text(rawPayload || 'Unparseable data.');
+                console.warn("Failed to parse log payload JSON:", e);
+            }
+
+            const modal = new bootstrap.Modal(document.getElementById('viewLogModal'));
+            modal.show();
+        });
     });
-    </script>
+</script>
 </x-app-layout>
