@@ -66,6 +66,7 @@ use App\Http\Controllers\Admin\EscalationLogController;
 use App\Http\Controllers\ProfilePhotoController;
 use App\Http\Controllers\SystemController;
 use App\Http\Middleware\SetLocale;
+use App\Models\News;
 use App\Models\User;
 
 // Inside your Admin middleware group:
@@ -130,7 +131,21 @@ Route::middleware(SetLocale::class)->group(function () {
             'locale' => 'en',
             'news' => $news,
         ]);
-    });
+    })->whereNumber('news');
+
+    Route::get('/en/news', [AdminNewsController::class, 'publicIndex'])
+        ->defaults('locale', 'en');
+
+    Route::get('/hi/news', [AdminNewsController::class, 'publicIndex'])
+        ->defaults('locale', 'hi');
+
+    Route::get('/en/news/{news}', [AdminNewsController::class, 'show'])
+        ->defaults('locale', 'en')
+        ->whereNumber('news');
+
+    Route::get('/hi/news/{news}', [AdminNewsController::class, 'show'])
+        ->defaults('locale', 'hi')
+        ->whereNumber('news');
 
     Route::get('/{locale}/news', [AdminNewsController::class, 'publicIndex'])
         ->whereIn('locale', ['en', 'hi'])
@@ -138,6 +153,7 @@ Route::middleware(SetLocale::class)->group(function () {
 
     Route::get('/{locale}/news/{news}', [AdminNewsController::class, 'show'])
         ->whereIn('locale', ['en', 'hi'])
+        ->whereNumber('news')
         ->name('news.show');
 
     Route::prefix('{locale}')

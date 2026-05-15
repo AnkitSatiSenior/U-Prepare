@@ -15,7 +15,7 @@
         {{-- Attachment --}}
         @if($adminnews->file)
             <p>
-                <a href="{{ Storage::url($adminnews->file) }}" target="_blank" class="btn btn-primary">
+                <a href="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url($adminnews->file) }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
                     {!! $lang === 'hi' ? 'संलग्न देखें' : 'View Attachment' !!}
                 </a>
             </p>

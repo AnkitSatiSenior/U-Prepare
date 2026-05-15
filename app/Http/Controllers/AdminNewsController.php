@@ -66,9 +66,9 @@ class AdminNewsController extends Controller
     {
         $news = $news instanceof News
             ? $news
-            : News::query()->findOrFail($news);
+            : News::query()->whereKey((int) $news)->firstOrFail();
 
-        $lang = $request->segment(1) === 'hi' ? 'hi' : 'en';
+        $lang = $request->route('locale') === 'hi' ? 'hi' : 'en';
 
         return view('news.show', [
             'adminnews' => $news,
@@ -79,7 +79,7 @@ class AdminNewsController extends Controller
     public function publicIndex(Request $request)
     {
         $allNewspublic = News::latest()->get();
-        $lang = $request->segment(1) === 'hi' ? 'hi' : 'en';
+        $lang = $request->route('locale') === 'hi' ? 'hi' : 'en';
 
         return view('news.index', compact('allNewspublic', 'lang'));
     }
