@@ -62,8 +62,12 @@ class AdminNewsController extends Controller
             ->with('success', 'News deleted successfully.');
     }
     
-    public function show(Request $request, News $news)
+    public function show(Request $request, $news)
     {
+        $news = $news instanceof News
+            ? $news
+            : News::query()->findOrFail($news);
+
         $lang = $request->segment(1) === 'hi' ? 'hi' : 'en';
 
         return view('news.show', [

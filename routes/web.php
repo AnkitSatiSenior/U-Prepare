@@ -319,7 +319,7 @@ Route::group(['prefix' => 'users/{user}/profile', 'as' => 'profile.'], function 
 
             Route::post('/social-safeguard-entries/save', [SocialSafeguardEntryController::class, 'save'])->name('social_safeguard_entries.save');
 
-            Route::resource('news', AdminNewsController::class);
+            Route::resource('news', AdminNewsController::class)->except(['show']);
             Route::resource('tenders', AdminTenderController::class);
 
             // Admin routes (with middleware protection)
