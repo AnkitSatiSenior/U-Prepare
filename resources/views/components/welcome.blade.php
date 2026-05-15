@@ -92,7 +92,7 @@
                                     @foreach (getNews() as $item)
                                         <li class="d-flex align-items-start mb-1 text-black">
                                             <img class="me-2 mt-1" src="{{ asset('assets/img/icons/bullet.png') }}" alt="•">
-                                            <a href="{{ route('news.show', $item->id) }}" class="text-black text-decoration-none">
+                                            <a href="{{ route('news.show', ['locale' => app()->getLocale(), 'news' => $item->id]) }}" class="text-black text-decoration-none">
                                                 {!! request()->cookie('lang') === 'hi' ? $item->title_hi : $item->title_en !!}
                                             </a>
                                         </li>

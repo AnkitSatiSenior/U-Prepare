@@ -26,7 +26,7 @@
                     <div class="card mb-3 shadow-sm">
                         <div class="card-body">
                             <h5 class="card-title">
-                                <a href="{{ route('news.show', $adminnews->id) }}">
+                                <a href="{{ route('news.show', ['locale' => $lang, 'news' => $adminnews->id]) }}">
                                     {!! $lang === 'hi' ? $adminnews->title_hi : $adminnews->title_en !!}
                                 </a>
                             </h5>
@@ -37,7 +37,7 @@
                                     200
                                 ) !!}
                             </p>
-                            <a href="{{ route('news.show', $adminnews->id) }}" class="btn btn-sm btn-primary">
+                            <a href="{{ route('news.show', ['locale' => $lang, 'news' => $adminnews->id]) }}" class="btn btn-sm btn-primary">
                                 {!! $lang === 'hi' ? 'पूरा पढ़ें' : 'Read More' !!}
                             </a>
                         </div>
@@ -56,7 +56,7 @@
                     <ul class="list-group list-group-flush">
                         @forelse($allNewspublic as $adminnews)
                             <li class="list-group-item">
-                                <a href="{{ route('news.show', $adminnews->id) }}">
+                                <a href="{{ route('news.show', ['locale' => $lang, 'news' => $adminnews->id]) }}">
                                     {!! $lang === 'hi' ? $adminnews->title_hi : $adminnews->title_en !!}
                                 </a>
                             </li>
