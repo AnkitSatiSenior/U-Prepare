@@ -124,6 +124,22 @@ Route::middleware(SetLocale::class)->group(function () {
         ->defaults('locale', 'en')
         ->name('welcome.default');
 
+    Route::redirect('/news', '/en/news');
+    Route::get('/news/{news}', function ($news) {
+        return redirect()->route('news.show', [
+            'locale' => 'en',
+            'news' => $news,
+        ]);
+    });
+
+    Route::get('/{locale}/news', [AdminNewsController::class, 'publicIndex'])
+        ->whereIn('locale', ['en', 'hi'])
+        ->name('news.index');
+
+    Route::get('/{locale}/news/{news}', [AdminNewsController::class, 'show'])
+        ->whereIn('locale', ['en', 'hi'])
+        ->name('news.show');
+
     Route::prefix('{locale}')
         ->whereIn('locale', ['en', 'hi'])
         ->group(function () {
@@ -135,13 +151,6 @@ Route::middleware(SetLocale::class)->group(function () {
                     Route::get('/', [GrievancePublicController::class, 'create'])->name('create');
                     Route::get('/status', [GrievancePublicController::class, 'status2'])->name('status.with');
                     Route::get('/status/{grievance_no}', [GrievancePublicController::class, 'status'])->name('status');
-                });
-
-            Route::prefix('news')
-                ->name('news.')
-                ->group(function () {
-                    Route::get('/', [AdminNewsController::class, 'publicIndex'])->name('index');
-                    Route::get('/{news}', [AdminNewsController::class, 'show'])->name('show');
                 });
 
             Route::get('/tenders', [AdminTenderController::class, 'publicIndex'])->name('tender.index.public');
