@@ -28,6 +28,7 @@
         <div class="guest-container guest-container--narrow">
             <form method="POST" action="{{ route('grievances.store') }}" enctype="multipart/form-data">
                 @csrf
+                <input type="hidden" name="locale" value="{{ app()->getLocale() }}" />
                 <div class="row g-3 g-lg-4">
 
                     {{-- Full Name --}}

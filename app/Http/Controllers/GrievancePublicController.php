@@ -138,9 +138,15 @@ class GrievancePublicController extends Controller
     {
         $request->validate([
             'grievance_no' => 'required|string',
+            'locale' => 'nullable|in:en,hi',
         ]);
 
-        return redirect()->route('grievances.status', $request->grievance_no);
+        // grievances.status is {locale}/grievance/status/{grievance_no}. Passing a
+        // bare scalar binds it to {locale}, not {grievance_no} -- name both.
+        return redirect()->route('grievances.status', [
+            'locale' => $request->input('locale', app()->getLocale()),
+            'grievance_no' => $request->input('grievance_no'),
+        ]);
     }
 
     /**
@@ -163,6 +169,7 @@ class GrievancePublicController extends Controller
         'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png,mp4|max:25120',
         'behalf' => 'required|string',
         'consent' => 'required|string',
+        'locale' => 'nullable|in:en,hi',
     ]);
 
     try {
@@ -261,7 +268,10 @@ class GrievancePublicController extends Controller
         Log::info("✅ Grievance {$grievanceNo} created. Assigned to: {$assignedName} ({$departmentName}).");
 
         return redirect()
-            ->route('grievances.status', $grievance->grievance_no)
+            ->route('grievances.status', [
+                'locale' => $request->input('locale', app()->getLocale()),
+                'grievance_no' => $grievance->grievance_no,
+            ])
             ->with('success', "✅ Grievance submitted successfully! Your Grievance No is <b>{$grievanceNo}</b>");
     } catch (\Exception $e) {
         Log::error('❌ Grievance submission failed: ' . $e->getMessage());
@@ -273,7 +283,10 @@ class GrievancePublicController extends Controller
     /**
      * Check grievance status by number
      */
-    public function status($grievance_no)
+    // Route is {locale}/grievance/status/{grievance_no}. Laravel hands controller
+    // parameters over positionally, not by name, so $locale must be declared first
+    // -- omitting it makes $grievance_no receive "en"/"hi" and always 404.
+    public function status(string $locale, string $grievance_no)
     {
         $grievance = Grievance::where('grievance_no', $grievance_no)
             ->with(['logs.user', 'assignments.assignedUser'])

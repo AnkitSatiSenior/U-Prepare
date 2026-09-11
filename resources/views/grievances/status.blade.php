@@ -29,6 +29,7 @@
             {{-- Search Form --}}
             <form method="POST" action="{{ route('grievances.status.check') }}">
                 @csrf
+                <input type="hidden" name="locale" value="{{ app()->getLocale() }}" />
                 <div class="row align-items-center mb-4">
                     <div class="col-lg-2"></div>
                     <div class="col-lg-2">
