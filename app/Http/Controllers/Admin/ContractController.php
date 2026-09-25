@@ -523,7 +523,7 @@ class ContractController extends Controller
             'revised_completion_date' => 'nullable|date',
             'actual_completion_date' => 'nullable|date',
             'contractor_id' => $id ? 'required|exists:contractors,id' : 'nullable|exists:contractors,id',
-            'contract_document_file' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx|max:25120',
+            'contract_document_file' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx|max:25600', // 25 MB (in KB)
 
             // Single sub-project lat/long (nullable, numeric)
             'lat' => 'nullable|numeric|between:-90,90',

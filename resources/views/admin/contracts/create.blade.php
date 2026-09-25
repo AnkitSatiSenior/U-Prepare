@@ -117,7 +117,7 @@
                             <label class="form-label">Contract Document</label>
                             <input type="file" name="contract_document_file" class="form-control"
                                 accept=".pdf,.doc,.docx,.xls,.xlsx">
-                            <small class="text-muted">Accepted formats: PDF, DOC, DOCX, XLS, XLSX (Max: 5MB)</small>
+                            <small class="text-muted">Accepted formats: PDF, DOC, DOCX, XLS, XLSX (Max: 25MB)</small>
                         </div>
 
                         {{-- Contractor Info --}}
