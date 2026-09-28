@@ -378,6 +378,20 @@
                         <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
 
+                        @if (config('services.hcaptcha.site_key'))
+                        <div class="mb-3">
+                            <div class="h-captcha" data-sitekey="{{ config('services.hcaptcha.site_key') }}"></div>
+                            @error('h-captcha-response')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+                        @else
+                        <div class="alert alert-warning" role="alert">
+                            CAPTCHA verification is not configured. Please try again later.
+                        </div>
+                        @endif
+
                         <div class="d-flex justify-content-end">
                             <button type="submit" class="btn btn-theme">Submit</button>
                         </div>

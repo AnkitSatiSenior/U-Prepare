@@ -19,7 +19,9 @@ class ForceWww
 
     // Check if we are in production and if 'www.' is missing
     if (app()->isProduction() && !str_starts_with($host, 'www.')) {
-        return redirect()->to('https://www.' . $host . $request->getRequestUri(), 301);
+        // 308, not 301: a 301 makes browsers re-issue a POST as GET, which turns
+        // form submits to the bare domain into 405s. 308 preserves the method.
+        return redirect()->to('https://www.' . $host . $request->getRequestUri(), 308);
     }
 
     return $next($request);

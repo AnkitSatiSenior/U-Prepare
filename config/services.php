@@ -38,5 +38,10 @@ return [
     'url' => env('WHATSAPP_API_URL'),
     'key' => env('WHATSAPP_API_KEY'),
 ],
+    'hcaptcha' => [
+        'site_key' => env('HCAPTCHA_SITE_KEY'),
+        'secret' => env('HCAPTCHA_SECRET'),
+        'hostname' => env('HCAPTCHA_HOSTNAME'),
+    ],
 
 ];

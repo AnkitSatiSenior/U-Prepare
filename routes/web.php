@@ -82,9 +82,23 @@ Route::post('/activity-log-location', [ActivityLogController::class, 'updateLoca
 
 Route::prefix('grievance')
     ->name('grievances.')
+    ->middleware(SetLocale::class)
     ->group(function () {
         Route::post('/', [GrievancePublicController::class, 'store'])->name('store');
         Route::post('/status', [GrievancePublicController::class, 'statusSearch'])->name('status.check');
+
+        // Locale-less GET entry points: direct links, bookmarks, shared URLs and
+        // POST->GET downgrades from the ForceWww redirect all land here. Without
+        // these the router answers 405 (only POST is registered on this URI).
+        Route::get('/', fn () => redirect()->route('grievances.create'))
+            ->name('create.redirect');
+
+        Route::get('/status', fn () => redirect()->route('grievances.status.with'))
+            ->name('status.redirect');
+
+        Route::get('/status/{grievance_no}', fn ($grievance_no) => redirect()->route('grievances.status', [
+            'grievance_no' => $grievance_no,
+        ]))->name('status.redirect.with');
     });
 
 Route::get('/team/{username}', function (string $username) {

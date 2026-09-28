@@ -11,7 +11,7 @@ class FeedbackController extends Controller
     public function store(StoreFeedbackRequest $request, StoreFeedbackAction $action): RedirectResponse
     {
         $action->execute(
-            data: $request->validated(),
+            data: $request->safe()->except('h-captcha-response'),
             ipAddress: $request->ip()
         );
 
